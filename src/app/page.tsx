@@ -233,11 +233,18 @@ export default function Home() {
       });
       const data = await res.json();
 
-      if (data.success && typeof data.lat === 'number' && typeof data.lng === 'number') {
-        setLatInput(String(data.lat));
-        setLngInput(String(data.lng));
+      // Accept both { lat, lng } (our API) and { latitude, longitude } (legacy)
+      const lat = data.lat ?? data.latitude;
+      const lng = data.lng ?? data.longitude;
+
+      if (data.success && typeof lat === 'number' && typeof lng === 'number') {
+        setLatInput(String(lat));
+        setLngInput(String(lng));
         setPrecision('EXACT');
         setDirigenteLink('');
+        if (data.expanded_url) {
+          console.info('[Dirigente Link] Expanded URL:', data.expanded_url);
+        }
         toast.success('Coordenadas extraídas do link do dirigente com sucesso! Confirme no mapa.');
       } else {
         toast.error(data.error || 'Não foi possível extrair as coordenadas do link informado.');
