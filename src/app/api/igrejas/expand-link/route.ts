@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
-// Coordinate extraction helpers
+// Helpers: coordinate extraction from URL strings
 // ---------------------------------------------------------------------------
 
-/**
- * All known Google Maps URL patterns that carry explicit lat/lng.
- *
- * Priority order matters – try the most specific patterns first.
- *  @-23.5329,-46.6395,17z           (place / street view)
- *  q=-23.5329,-46.6395              (search by coords)
- *  ll=-23.5329,-46.6395             (older format)
- *  center=-23.5329,-46.6395         (embed)
- *  destination=-23.5329,-46.6395    (directions)
- *  !3d<lat>!4d<lng>                 (encoded in /data= segment)
- */
-const COORD_PATTERNS: RegExp[] = [
+const URL_COORD_PATTERNS: RegExp[] = [
   /@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
   /[?&]q=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
   /[?&]ll=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
@@ -24,168 +13,155 @@ const COORD_PATTERNS: RegExp[] = [
   /!3d(-?\d{1,3}\.\d{4,})!4d(-?\d{1,3}\.\d{4,})/,
 ];
 
-function extractCoordsFromText(text: string): { lat: number; lng: number } | null {
-  for (const pattern of COORD_PATTERNS) {
-    const match = text.match(pattern);
-    if (match) {
-      const lat = parseFloat(match[1]);
-      const lng = parseFloat(match[2]);
-      if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
-        return { lat, lng };
-      }
+function coordsFromUrl(url: string): [number, number] | null {
+  for (const p of URL_COORD_PATTERNS) {
+    const m = url.match(p);
+    if (m) {
+      const lat = parseFloat(m[1]);
+      const lng = parseFloat(m[2]);
+      if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) > 0.001) return [lat, lng];
     }
   }
   return null;
 }
 
 // ---------------------------------------------------------------------------
-// URL helpers
+// Helpers: coordinate extraction from HTML body
 // ---------------------------------------------------------------------------
 
-/** Pick out the first http/https URL found anywhere in a block of text. */
-function firstUrlIn(text: string): string | null {
-  // Strip markdown-style trailing punctuation that WhatsApp sometimes wraps
-  const m = text.match(/https?:\/\/[^\s"'<>)\]]+/i);
-  return m ? m[0].replace(/[.,!?]+$/, '') : null;
+/**
+ * Tries every pattern we know that Google Maps embeds coordinates in HTML.
+ * The order matters – most precise / reliable patterns first.
+ */
+function coordsFromHtml(html: string): [number, number] | null {
+  // Work on a slice to keep regex fast on huge pages
+  const body = html.slice(0, 60_000);
+
+  const htmlPatterns: RegExp[] = [
+    // 1. og:image staticmap URL with percent-encoded comma
+    /staticmap[^"']*center=(-?\d{1,3}\.\d{4,})%2C(-?\d{1,3}\.\d{4,})/i,
+    // 2. og:image staticmap with literal comma
+    /staticmap[^"']*center=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/i,
+    // 3. og:url or canonical with embedded coordinates
+    /(?:og:url|canonical)[^>]*content="[^"]*@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/i,
+    /content="[^"]*@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})[^"]*"[^>]*property="og:url"/i,
+    // 4. JSON "lat":..., "lng":...  (APP_INITIALIZATION_STATE or similar)
+    /"lat"\s*:\s*(-?\d{1,3}\.\d{4,})\s*,\s*"lng"\s*:\s*(-?\d{1,3}\.\d{4,})/,
+    // 5. JSON [lat,lng] arrays inside initData blobs
+    /\[\s*(-?\d{1,3}\.\d{6,})\s*,\s*(-?\d{1,3}\.\d{6,})\s*,\s*\d/,
+    // 6. !1d<lat>!2d<lng> (proto-encoded URL segment)
+    /!1d(-?\d{1,3}\.\d{4,})!2d(-?\d{1,3}\.\d{4,})/,
+    // 7. "center":{"lat":...,"lng":...} in embedded JSON
+    /"center"\s*:\s*\{\s*"lat"\s*:\s*(-?\d{1,3}\.\d{4,})\s*,\s*"lng"\s*:\s*(-?\d{1,3}\.\d{4,})/,
+    // 8. ?q=lat,lng inside any string in the HTML
+    /[?&]q=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+    // 9. @lat,lng anywhere in the HTML
+    /@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+  ];
+
+  for (const p of htmlPatterns) {
+    const m = body.match(p);
+    if (m) {
+      const lat = parseFloat(m[1]);
+      const lng = parseFloat(m[2]);
+      // Sanity-check: Brazil bounding box (-34 to 5 lat, -74 to -34 lng)
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -35 && lat <= 6 && lng >= -75 && lng <= -34) {
+        return [lat, lng];
+      }
+      // Accept coordinates outside Brazil too (international use is possible)
+      if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) > 0.001 && Math.abs(lng) > 0.001) {
+        return [lat, lng];
+      }
+    }
+  }
+
+  return null;
 }
+
+// ---------------------------------------------------------------------------
+// Manual redirect follower (catches Location header before fetch absorbs it)
+// ---------------------------------------------------------------------------
 
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
-// ---------------------------------------------------------------------------
-// Manual redirect follower
-// ---------------------------------------------------------------------------
+const FETCH_HEADERS = {
+  'User-Agent': BROWSER_UA,
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+  'Accept-Encoding': 'gzip, deflate, br',
+  // Provide a cookie-consent cookie that some Google endpoints require
+  Cookie: 'CONSENT=YES+cb; SOCS=CAISHAgBEhJnd3NfMjAyNDA1MDktMF9SQzEaAmVuIAEaBgiA'; 
+};
 
-/**
- * Follows up to `maxHops` HTTP redirects manually so we can inspect every
- * intermediate Location header.  This is necessary because Google's link
- * shortener sometimes issues a 302 whose Location header contains the full
- * maps URL (with coordinates), but the Fetch API's `redirect: 'follow'` hides
- * all intermediate URLs and only exposes the final response.url – which may be
- * a 200 HTML page without coordinates in its own URL.
- */
-async function expandUrlManually(
+async function expandManually(
   startUrl: string,
-  maxHops = 8,
-  timeoutMs = 8000
-): Promise<{ finalUrl: string; visitedUrls: string[] }> {
-  const visited: string[] = [];
+  maxHops = 10
+): Promise<{ hops: string[]; finalHtml: string | null }> {
+  const hops: string[] = [startUrl];
   let current = startUrl;
+  let finalHtml: string | null = null;
 
-  for (let hop = 0; hop < maxHops; hop++) {
-    visited.push(current);
-
-    let response: Response;
+  for (let i = 0; i < maxHops; i++) {
+    let res: Response;
     try {
-      response = await fetch(current, {
+      res = await fetch(current, {
         method: 'GET',
-        redirect: 'manual',           // <── key: do NOT auto-follow
-        signal: AbortSignal.timeout(timeoutMs),
-        headers: {
-          'User-Agent': BROWSER_UA,
-          Accept:
-            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-        },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(9000),
+        headers: FETCH_HEADERS,
       });
     } catch {
-      // Network or timeout – return what we have so far
       break;
     }
 
-    const status = response.status;
-
-    // 3xx redirect – follow Location header
-    if (status >= 300 && status < 400) {
-      const location = response.headers.get('location');
-      if (!location) break;
-
-      // Resolve relative URLs (rare but possible)
-      try {
-        current = new URL(location, current).href;
-      } catch {
-        current = location;
-      }
-      continue; // next hop
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get('location');
+      if (!loc) break;
+      try { current = new URL(loc, current).href; } catch { current = loc; }
+      hops.push(current);
+      continue;
     }
 
-    // 200 (or other non-redirect) – we've reached the final page
-    // response.url reflects the actual URL of this response
-    current = response.url || current;
-
-    // Try to get coordinates from the body HTML as last resort
-    // (e.g., meta-refresh or og:url or initData JSON)
-    if (status === 200) {
-      try {
-        const html = await response.text();
-        // Store as a synthetic "url" for the caller to scan
-        visited.push('__HTML__' + html.slice(0, 8000));
-      } catch {
-        /* ignore */
-      }
-    }
-
+    // Non-redirect response – grab the HTML body
+    current = res.url || current;
+    if (current && !hops.includes(current)) hops.push(current);
+    try { finalHtml = await res.text(); } catch { /* ignore */ }
     break;
   }
 
-  return { finalUrl: current, visitedUrls: visited };
+  return { hops, finalHtml };
 }
 
 // ---------------------------------------------------------------------------
-// HTML coordinate mining
+// Second pass: follow with redirect:'follow' to let the runtime handle it,
+// then try HTML mining on the final page.
 // ---------------------------------------------------------------------------
 
-/**
- * Tries to extract coordinates from HTML page content using several heuristics:
- *  - og:url / canonical meta tags
- *  - meta refresh URL
- *  - JSON-LD / initData blobs embedded in script tags
- *  - Bare coordinate patterns anywhere in the first 20 KB
- */
-function extractCoordsFromHtml(html: string): { lat: number; lng: number } | null {
-  const snippet = html.slice(0, 20000);
+async function fetchFollowAndMine(url: string): Promise<[number, number] | null> {
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(9000),
+      headers: FETCH_HEADERS,
+    });
 
-  // 1. og:url or canonical
-  const metaUrlPatterns = [
-    /property=["']og:url["'][^>]*content=["']([^"']+)["']/i,
-    /content=["']([^"']+)["'][^>]*property=["']og:url["']/i,
-    /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i,
-    /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["']/i,
-  ];
-  for (const p of metaUrlPatterns) {
-    const m = snippet.match(p);
-    if (m) {
-      const coords = extractCoordsFromText(m[1]);
-      if (coords) return coords;
-    }
+    // Check response.url (may differ from url if redirected)
+    const finalUrl = res.url || url;
+    const urlCoords = coordsFromUrl(finalUrl);
+    if (urlCoords) return urlCoords;
+
+    const html = await res.text();
+    return coordsFromHtml(html);
+  } catch {
+    return null;
   }
-
-  // 2. meta refresh
-  const refreshMatch = snippet.match(
-    /<meta[^>]*http-equiv=["']refresh["'][^>]*content=["'][^;]*;\s*url=([^"']+)["']/i
-  );
-  if (refreshMatch) {
-    const coords = extractCoordsFromText(refreshMatch[1]);
-    if (coords) return coords;
-  }
-
-  // 3. window.location / location.replace patterns in JS
-  const jsRedirects = snippet.matchAll(/location(?:\.replace)?\s*\(?["']([^"']{20,})["']/g);
-  for (const m of jsRedirects) {
-    const coords = extractCoordsFromText(m[1]);
-    if (coords) return coords;
-  }
-
-  // 4. Raw coordinate pattern anywhere in the snippet (covers initData JSON)
-  const coords = extractCoordsFromText(snippet);
-  if (coords) return coords;
-
-  return null;
 }
 
 // ---------------------------------------------------------------------------
-// Main route handler
+// Main API route
 // ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest) {
@@ -194,72 +170,75 @@ export async function POST(req: NextRequest) {
     const rawInput: string = (body?.url ?? '').trim();
 
     if (!rawInput || rawInput.length < 5) {
-      return NextResponse.json(
-        { success: false, error: 'Nenhum link informado.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Nenhum link informado.' }, { status: 400 });
     }
 
-    // ── Step 1: try to find a URL inside the pasted text ──────────────────
-    const candidate = firstUrlIn(rawInput) ?? rawInput;
+    // Extract first URL from possibly a WhatsApp message blob
+    const urlMatch = rawInput.match(/https?:\/\/[^\s"'<>)\]]+/i);
+    const candidate = (urlMatch ? urlMatch[0] : rawInput).replace(/[.,!?]+$/, '');
 
-    // ── Step 2: direct extraction (long Maps URLs already have coords) ─────
-    const direct = extractCoordsFromText(candidate);
+    // ── Pass 1: try extracting directly from the pasted URL (long links) ──
+    const direct = coordsFromUrl(candidate);
     if (direct) {
-      return NextResponse.json({ success: true, ...direct, expanded_url: candidate });
+      return NextResponse.json({
+        success: true, lat: direct[0], lng: direct[1],
+        latitude: direct[0], longitude: direct[1],
+        expanded_url: candidate,
+      });
     }
 
-    // ── Step 3: expand the URL manually, hop by hop ────────────────────────
-    let { finalUrl, visitedUrls } = await expandUrlManually(candidate);
+    // ── Pass 2: manual hop-by-hop redirect following ───────────────────────
+    console.info('[expand-link] Expanding (manual):', candidate);
+    const { hops, finalHtml } = await expandManually(candidate);
 
-    // Check every URL we visited (including intermediate redirects)
-    for (const url of visitedUrls) {
-      if (url.startsWith('__HTML__')) {
-        // This is the body HTML we captured from the final 200 response
-        const html = url.slice('__HTML__'.length);
-        const coords = extractCoordsFromHtml(html);
-        if (coords) {
-          return NextResponse.json({
-            success: true,
-            ...coords,
-            expanded_url: finalUrl,
-          });
-        }
-      } else {
-        const coords = extractCoordsFromText(url);
-        if (coords) {
-          return NextResponse.json({
-            success: true,
-            ...coords,
-            expanded_url: finalUrl,
-          });
-        }
+    for (const hop of hops) {
+      const c = coordsFromUrl(hop);
+      if (c) {
+        return NextResponse.json({
+          success: true, lat: c[0], lng: c[1],
+          latitude: c[0], longitude: c[1],
+          expanded_url: hop,
+        });
       }
     }
 
-    // ── Step 4: final-URL extraction ───────────────────────────────────────
-    const finalCoords = extractCoordsFromText(finalUrl);
-    if (finalCoords) {
-      return NextResponse.json({ success: true, ...finalCoords, expanded_url: finalUrl });
+    if (finalHtml) {
+      const c = coordsFromHtml(finalHtml);
+      if (c) {
+        return NextResponse.json({
+          success: true, lat: c[0], lng: c[1],
+          latitude: c[0], longitude: c[1],
+          expanded_url: hops[hops.length - 1] ?? candidate,
+        });
+      }
     }
 
-    // ── Step 5: nothing worked ─────────────────────────────────────────────
-    console.warn('[expand-link] Could not extract coordinates from:', candidate, '→', finalUrl);
+    // ── Pass 3: auto-follow redirect (different runtime path, may work when
+    //            manual doesn't due to TLS/gzip differences) ─────────────────
+    console.info('[expand-link] Pass 3 fetch+follow for:', candidate);
+    const p3 = await fetchFollowAndMine(candidate);
+    if (p3) {
+      return NextResponse.json({
+        success: true, lat: p3[0], lng: p3[1],
+        latitude: p3[0], longitude: p3[1],
+        expanded_url: candidate,
+      });
+    }
+
+    // ── All passes failed ──────────────────────────────────────────────────
+    console.warn('[expand-link] All passes failed for:', candidate, 'hops:', hops);
     return NextResponse.json(
       {
         success: false,
         error:
-          'Não foi possível extrair as coordenadas do link. Peça ao dirigente para ' +
-          'enviar o link longo do Google Maps (pressionar "Compartilhar" → "Copiar link") ' +
-          'ou as coordenadas manualmente.',
+          'Não foi possível extrair as coordenadas do link. ' +
+          'Peça ao dirigente para enviar o link longo do Google Maps ' +
+          '(toque em "Compartilhar" → "Copiar link") ou as coordenadas diretamente.',
       },
       { status: 422 }
     );
   } catch (err) {
-    console.error('[expand-link] Unhandled error:', err);
-    return NextResponse.json(
-      { success: false, error: 'Erro interno ao processar o link.' },
-      { status: 500 }
-    );
+    console.error('[expand-link] Error:', err);
+    return NextResponse.json({ success: false, error: 'Erro interno ao processar o link.' }, { status: 500 });
   }
 }
