@@ -15,13 +15,12 @@ import {
   Zap,
   Loader2,
   ArrowRight,
-  Filter,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface DashboardViewProps {
   igrejas: Igreja[];
-  states: string[];
+  states?: string[];
   onSelectStateAndSwitch: (uf: string) => void;
   onSelectStatusAndSwitch: (status: string) => void;
   onBatchAutoGeocode: () => void;
@@ -31,7 +30,6 @@ interface DashboardViewProps {
 
 export default function DashboardView({
   igrejas,
-  states,
   onSelectStateAndSwitch,
   onSelectStatusAndSwitch,
   onBatchAutoGeocode,
@@ -340,7 +338,7 @@ export default function DashboardView({
               <label className="text-xs text-zinc-500 font-semibold hidden sm:inline">Exportar:</label>
               <select
                 value={exportFilter}
-                onChange={(e) => setExportFilter(e.target.value as any)}
+                onChange={(e) => setExportFilter(e.target.value as 'ALL' | 'VALIDADO' | 'PENDENTE' | 'DUVIDA')}
                 className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="VALIDADO">Apenas Validadas</option>

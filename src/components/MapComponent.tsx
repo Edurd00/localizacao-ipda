@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -9,19 +9,51 @@ interface MapComponentProps {
   latitude: number;
   longitude: number;
   onChangeCoords: (lat: number, lng: number) => void;
+  zoom?: number;
+  onZoomChange?: (zoom: number) => void;
+  mapType?: 'osm' | 'satellite';
+  onMapTypeChange?: (mapType: 'osm' | 'satellite') => void;
 }
 
-// Updater component to recenter map when latitude/longitude changes from outside
-function ChangeMapView({ coords }: { coords: [number, number] }) {
+// Updater component to recenter map when latitude/longitude or zoom changes from outside
+function ChangeMapView({ coords, zoom }: { coords: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(coords, map.getZoom());
-  }, [coords, map]);
+    map.setView(coords, zoom);
+  }, [coords, zoom, map]);
   return null;
 }
 
-export default function MapComponent({ latitude, longitude, onChangeCoords }: MapComponentProps) {
-  const [mapType, setMapType] = useState<'osm' | 'satellite'>('satellite');
+// Helper component to track user-initiated map zoom changes
+function MapEvents({ onZoomChange }: { onZoomChange?: (zoom: number) => void }) {
+  const map = useMapEvents({
+    zoomend() {
+      if (onZoomChange) {
+        onZoomChange(map.getZoom());
+      }
+    },
+  });
+  return null;
+}
+
+export default function MapComponent({
+  latitude,
+  longitude,
+  onChangeCoords,
+  zoom = 15,
+  onZoomChange,
+  mapType: externalMapType,
+  onMapTypeChange,
+}: MapComponentProps) {
+  const [internalMapType, setInternalMapType] = useState<'osm' | 'satellite'>('satellite');
+
+  const mapType = externalMapType !== undefined ? externalMapType : internalMapType;
+  const setMapType = (type: 'osm' | 'satellite') => {
+    setInternalMapType(type);
+    if (onMapTypeChange) {
+      onMapTypeChange(type);
+    }
+  };
 
   // Custom marker icon using an elegant inline SVG pin to avoid broken Leaflet default assets
   const customIcon = useMemo(() => {
@@ -65,11 +97,12 @@ export default function MapComponent({ latitude, longitude, onChangeCoords }: Ma
     <div className="relative w-full h-full min-h-[400px] md:min-h-0 rounded-xl overflow-hidden border border-zinc-200 shadow-inner bg-zinc-100">
       <MapContainer
         center={position}
-        zoom={15}
+        zoom={zoom}
         scrollWheelZoom={true}
         className="w-full h-full z-10"
       >
-        <ChangeMapView coords={position} />
+        <ChangeMapView coords={position} zoom={zoom} />
+        <MapEvents onZoomChange={onZoomChange} />
 
         {mapType === 'satellite' ? (
           <TileLayer

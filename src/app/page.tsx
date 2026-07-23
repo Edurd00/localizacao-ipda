@@ -27,7 +27,6 @@ import {
   X,
   BarChart3,
   Sparkles,
-  Link,
   Clipboard,
 } from 'lucide-react';
 
@@ -194,9 +193,13 @@ export default function Home() {
   const [precision, setPrecision] = useState<'EXACT' | 'APPROX' | 'APPROX_MUNICIPIO' | 'NOT_FOUND'>('NOT_FOUND');
   const [geocodingLoading, setGeocodingLoading] = useState<boolean>(false);
 
-  // Dirigente Link Extractor state
-  const [dirigenteLink, setDirigenteLink] = useState<string>('');
-  const [dirigenteLoading, setDirigenteLoading] = useState<boolean>(false);
+  // New Client-Side Dirigente Coordinates state
+  const [pastedCoords, setPastedCoords] = useState<string>('');
+  const [isDirigenteSource, setIsDirigenteSource] = useState<boolean>(false);
+
+  // Controlled map state
+  const [mapZoom, setMapZoom] = useState<number>(15);
+  const [mapType, setMapType] = useState<'osm' | 'satellite'>('satellite');
 
   // Load operator name from localStorage on mount
   useEffect(() => {
@@ -208,6 +211,12 @@ export default function Home() {
     }
   }, []);
 
+  // Reset isDirigenteSource on index changes
+  useEffect(() => {
+    setIsDirigenteSource(false);
+    setMapZoom(15);
+  }, [currentIndex]);
+
   // Save operator name to localStorage when changed
   const handleOperatorChange = (val: string) => {
     setOperator(val);
@@ -216,44 +225,58 @@ export default function Home() {
     }
   };
 
-  // Extract coordinates from a Google Maps link (or WhatsApp message) sent by the church leader
-  const handleProcessDirigenteLink = async () => {
-    const input = dirigenteLink.trim();
-    if (!input) {
-      toast.warning('Cole o link ou mensagem do dirigente antes de processar.');
-      return;
+  /**
+   * Parse coordinates from various inputs (e.g., -9.64447, -36.4957, or WhatsApp maps links)
+   */
+  const parseCoordinates = (text: string): { lat: number; lng: number } | null => {
+    const cleanText = text.trim();
+    if (!cleanText) return null;
+
+    // Regex to match two decimal numbers (negative or positive, containing dot or comma)
+    // Matches patterns like:
+    // -9.64447, -36.4957
+    // -9.64447 -36.4957
+    // -9,64447, -36,4957
+    // or parts inside query params of a link: q=-9.64447,-36.4957
+    const coordRegex = /(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)/;
+
+    // Check if the user pasted a link first to match URL patterns if any
+    const targetText = cleanText;
+    const urlMatch = cleanText.match(/[?&]q=(-?\d+(?:[.,]\d+)?),(-?\d+(?:[.,]\d+)?)/i);
+    if (urlMatch) {
+      const lat = parseFloat(urlMatch[1].replace(',', '.'));
+      const lng = parseFloat(urlMatch[2].replace(',', '.'));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return { lat, lng };
+      }
     }
 
-    setDirigenteLoading(true);
-    try {
-      const res = await fetch('/api/igrejas/expand-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: input }),
-      });
-      const data = await res.json();
-
-      // Accept both { lat, lng } (our API) and { latitude, longitude } (legacy)
-      const lat = data.lat ?? data.latitude;
-      const lng = data.lng ?? data.longitude;
-
-      if (data.success && typeof lat === 'number' && typeof lng === 'number') {
-        setLatInput(String(lat));
-        setLngInput(String(lng));
-        setPrecision('EXACT');
-        setDirigenteLink('');
-        if (data.expanded_url) {
-          console.info('[Dirigente Link] Expanded URL:', data.expanded_url);
-        }
-        toast.success('Coordenadas extraídas do link do dirigente com sucesso! Confirme no mapa.');
-      } else {
-        toast.error(data.error || 'Não foi possível extrair as coordenadas do link informado.');
+    const match = targetText.match(coordRegex);
+    if (match) {
+      const lat = parseFloat(match[1].replace(',', '.'));
+      const lng = parseFloat(match[2].replace(',', '.'));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return { lat, lng };
       }
-    } catch (err) {
-      console.error('Dirigente link error:', err);
-      toast.error('Erro ao processar o link. Verifique sua conexão e tente novamente.');
-    } finally {
-      setDirigenteLoading(false);
+    }
+
+    return null;
+  };
+
+  // Client-side processing of pasted coordinates
+  const handleApplyPastedCoords = () => {
+    const parsed = parseCoordinates(pastedCoords);
+    if (parsed) {
+      setLatInput(String(parsed.lat));
+      setLngInput(String(parsed.lng));
+      setPrecision('EXACT');
+      setIsDirigenteSource(true);
+      setMapZoom(18);
+      setMapType('satellite');
+      setPastedCoords('');
+      toast.success('Coordenadas aplicadas e mapa atualizado!');
+    } else {
+      toast.error('Coordenadas inválidas. Cole no formato: -9.64447, -36.4957');
     }
   };
 
@@ -1019,53 +1042,48 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* ─── Dirigente Link Extractor ─── */}
+                    {/* ─── Colar Coordenadas (Lat, Lng) ─── */}
                     <div className="mt-5 pt-4 border-t border-zinc-100">
                       <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5 mb-3">
-                        <Link className="h-3.5 w-3.5 text-violet-600" />
-                        Link/Mensagem do Dirigente
+                        <MapPin className="h-3.5 w-3.5 text-violet-600" />
+                        📍 Colar Coordenadas (Lat, Lng)
                       </h4>
 
                       <p className="text-[10px] text-zinc-500 leading-relaxed mb-2.5">
-                        Cole abaixo o link do Google Maps (curto ou longo) enviado pelo dirigente via WhatsApp. O sistema
-                        extrai as coordenadas automaticamente.
+                        Cole as coordenadas ou o link com coordenadas do WhatsApp/Google Maps. O sistema extrai e aplica diretamente.
                       </p>
 
                       <div className="flex gap-2">
                         <div className="relative flex-1">
                           <Clipboard className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
                           <input
-                            id="dirigente-link-input"
+                            id="pasted-coords-input"
                             type="text"
-                            value={dirigenteLink}
-                            onChange={(e) => setDirigenteLink(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleProcessDirigenteLink()}
-                            placeholder="Cole o link ou mensagem aqui..."
+                            value={pastedCoords}
+                            onChange={(e) => setPastedCoords(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleApplyPastedCoords()}
+                            placeholder="Ex: -9.64447, -36.4957"
                             className="pl-8 pr-3 py-2 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-violet-500 focus:border-violet-500 outline-none text-xs rounded-lg w-full font-medium placeholder:text-zinc-400"
                           />
                         </div>
                         <button
-                          id="btn-process-dirigente-link"
+                          id="btn-apply-pasted-coords"
                           type="button"
-                          onClick={handleProcessDirigenteLink}
-                          disabled={dirigenteLoading || !dirigenteLink.trim()}
+                          onClick={handleApplyPastedCoords}
+                          disabled={!pastedCoords.trim()}
                           className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shrink-0 shadow-sm"
-                          title="Processar link e extrair coordenadas"
+                          title="Aplicar coordenadas e atualizar o mapa"
                         >
-                          {dirigenteLoading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Link className="h-3.5 w-3.5" />
-                          )}
-                          {dirigenteLoading ? 'Processando...' : 'Processar'}
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Aplicar Coordenadas</span>
                         </button>
                       </div>
 
-                      {/* Dirigente badge – shown when precision is EXACT and triggered by link */}
-                      {precision === 'EXACT' && latInput && !dirigenteLoading && (
+                      {/* Dirigente badge – shown when coordinates are applied by the operator */}
+                      {isDirigenteSource && latInput && (
                         <div className="mt-2">
                           <span className="inline-flex items-center text-[10px] bg-violet-50 text-violet-800 font-bold px-2.5 py-1 rounded-lg border border-violet-200">
-                            🟣 Enviado pelo Dirigente (Validado via Link)
+                            🟣 Informado pelo Dirigente
                           </span>
                         </div>
                       )}
@@ -1192,6 +1210,10 @@ export default function Home() {
                       latitude={finalLat}
                       longitude={finalLng}
                       onChangeCoords={handleMapCoordsChange}
+                      zoom={mapZoom}
+                      onZoomChange={setMapZoom}
+                      mapType={mapType}
+                      onMapTypeChange={setMapType}
                     />
                   </div>
                 </div>
