@@ -2,7 +2,17 @@
 
 import dynamic from 'next/dynamic';
 
-const MapWrapper = dynamic(() => import('./MapComponent'), {
+interface MapWrapperProps {
+  latitude: number;
+  longitude: number;
+  onChangeCoords: (lat: number, lng: number) => void;
+  zoom?: number;
+  onZoomChange?: (zoom: number) => void;
+  mapType?: 'osm' | 'satellite';
+  onMapTypeChange?: (mapType: 'osm' | 'satellite') => void;
+}
+
+const MapWrapper = dynamic<MapWrapperProps>(() => import('./MapComponent'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center w-full h-full min-h-[400px] bg-zinc-100 border border-zinc-200 rounded-xl">
