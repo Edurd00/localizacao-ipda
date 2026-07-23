@@ -1,0 +1,920 @@
+'use client';
+
+/* eslint-disable react-hooks/set-state-in-effect */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import SpreadsheetUpload from '@/components/SpreadsheetUpload';
+import MapWrapper from '@/components/MapWrapper';
+import { Igreja } from '@/lib/db';
+import {
+  Filter,
+  Check,
+  AlertTriangle,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  MapPin,
+  ExternalLink,
+  User,
+  Info,
+  Layers,
+  Zap,
+  Loader2,
+} from 'lucide-react';
+
+export function limparEndereco(endereco: string): string {
+  if (!endereco) return '';
+  let limpo = endereco;
+
+  // 1. Remove expressions like "ANTIGO ENDERECO:" / "ANTIGO ENDEREÇO:" (case-insensitive)
+  limpo = limpo.replace(/antigo\s+endere[cç]o:?\s*/gi, '');
+
+  // 2. Remove text between parentheses
+  limpo = limpo.replace(/\([^)]*\)/g, '');
+
+  // 3. Remove S/N or SN (case-insensitive, handle borders)
+  limpo = limpo.replace(/,\s*[sS]\/?[nN]\b/g, '');
+  limpo = limpo.replace(/\b[sS]\/?[nN]\b/g, '');
+
+  // 4. Double space and comma cleaning
+  limpo = limpo.replace(/\s+/g, ' ');
+  limpo = limpo.trim().replace(/^,|,$/g, '').trim();
+
+  return limpo;
+}
+
+/**
+  * Geographic validation: Check if coordinates are within Brazil boundaries.
+  * Lat: -35° to +6°, Lng: -75° to -30°
+  */
+function isValidBrasil(lat: number, lng: number): boolean {
+  return lat >= -35 && lat <= 6 && lng >= -75 && lng <= -30;
+}
+
+/**
+  * 100% Free ViaCEP integration to enrich address details by CEP.
+  */
+async function fetchViaCEP(cep: string): Promise<{ logradouro: string; bairro: string; localidade: string; uf: string } | null> {
+  if (!cep) return null;
+  const clean = cep.replace(/\D/g, '');
+  if (clean.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && !data.erro) {
+      return {
+        logradouro: data.logradouro || '',
+        bairro: data.bairro || '',
+        localidade: data.localidade || '',
+        uf: data.uf || '',
+      };
+    }
+  } catch (err) {
+    console.error(`ViaCEP error for CEP ${cep}:`, err);
+  }
+  return null;
+}
+
+/**
+  * 100% Free Geocoding API Cascade:
+  * 1. OpenStreetMap (Nominatim API)
+  * 2. Photon Komoot API (OSM Fallback)
+  */
+async function fetchGeocodeUnstructured(queryStr: string): Promise<{ lat: number; lon: number } | null> {
+  if (!queryStr || queryStr.trim().length < 3) return null;
+
+  // 1. Try Nominatim OpenStreetMap API
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'LocalizacaoIPDA/1.0 (validador@ipda.com.br)' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          return { lat, lon };
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`Nominatim error for query: "${queryStr}"`, err);
+  }
+
+  // 2. Fallback: Photon Komoot Free Geocoding API
+  try {
+    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(queryStr)}&limit=1`;
+    const res = await fetch(photonUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.features && data.features.length > 0) {
+        const coords = data.features[0].geometry?.coordinates;
+        if (coords && coords.length >= 2) {
+          const lon = parseFloat(coords[0]);
+          const lat = parseFloat(coords[1]);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            return { lat, lon };
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`Photon error for query: "${queryStr}"`, err);
+  }
+
+  return null;
+}
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<'validation' | 'upload'>('validation');
+
+  // Database state
+  const [igrejas, setIgrejas] = useState<Igreja[]>([]);
+  const [states, setStates] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Batch Auto-Geocoding State
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Filters
+  const [filterEstado, setFilterEstado] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('PENDENTE');
+
+  // Selected church index in the current filtered list
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+
+  // Form states for the current church under validation
+  const [latInput, setLatInput] = useState<string>('');
+  const [lngInput, setLngInput] = useState<string>('');
+  const [operator, setOperator] = useState<string>('');
+
+  // Fallback Geocoding Cascade states
+  const [precision, setPrecision] = useState<'EXACT' | 'APPROX' | 'APPROX_MUNICIPIO' | 'NOT_FOUND'>('NOT_FOUND');
+  const [geocodingLoading, setGeocodingLoading] = useState<boolean>(false);
+
+  // Load operator name from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedOperator = localStorage.getItem('validador_operador');
+      if (savedOperator) {
+        setOperator(savedOperator);
+      }
+    }
+  }, []);
+
+  // Save operator name to localStorage when changed
+  const handleOperatorChange = (val: string) => {
+    setOperator(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('validador_operador', val);
+    }
+  };
+
+  // Fetch data from API based on current filters
+  const fetchIgrejas = useCallback(async (preserveIndex = false, forceSelectCode?: string) => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams();
+      if (filterEstado && filterEstado !== 'ALL') {
+        query.set('estado', filterEstado);
+      }
+      if (filterStatus && filterStatus !== 'ALL') {
+        query.set('status', filterStatus);
+      }
+
+      const res = await fetch(`/api/igrejas?${query.toString()}`);
+      const data = await res.json();
+
+      if (data.success) {
+        setIgrejas(data.igrejas || []);
+        setStates(data.states || []);
+
+        const list = data.igrejas || [];
+        if (list.length > 0) {
+          if (forceSelectCode) {
+            const idx = list.findIndex((ig: Igreja) => ig.codigo_totvs === forceSelectCode);
+            setCurrentIndex(idx !== -1 ? idx : 0);
+          } else if (preserveIndex) {
+            setCurrentIndex((prev) => {
+              if (prev >= list.length) return list.length - 1;
+              if (prev < 0) return 0;
+              return prev;
+            });
+          } else {
+            const firstPendingIdx = list.findIndex((ig: Igreja) => ig.status === 'PENDENTE');
+            setCurrentIndex(firstPendingIdx !== -1 ? firstPendingIdx : 0);
+          }
+        } else {
+          setCurrentIndex(-1);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching churches:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [filterEstado, filterStatus]);
+
+  // Initial fetch and fetch on filter change
+  useEffect(() => {
+    fetchIgrejas();
+  }, [fetchIgrejas]);
+
+  // Current church being validated
+  const currentIgreja = igrejas[currentIndex];
+
+  // Geocoding helper for single church object
+  const geocodeChurch = async (igreja: Igreja) => {
+    // 1. Existing valid non-zero coordinates
+    if (
+      igreja.latitude !== null &&
+      igreja.longitude !== null &&
+      igreja.latitude !== 0 &&
+      igreja.longitude !== 0
+    ) {
+      return { lat: igreja.latitude, lng: igreja.longitude, precision: 'EXACT' as const };
+    }
+
+    // 2. Google Maps link extraction
+    if (igreja.link_google_maps) {
+      const link = igreja.link_google_maps;
+      let match = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (!match) match = link.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (!match) match = link.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+      if (match) {
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+          return { lat, lng, precision: 'EXACT' as const };
+        }
+      }
+    }
+
+    // 3. ViaCEP enrichment if CEP is present
+    const { endereco, bairro, municipio, estado, cep } = igreja;
+    const viaCepData = cep ? await fetchViaCEP(cep) : null;
+
+    const streetFromViaCep = viaCepData?.logradouro || '';
+    const bairroFromViaCep = viaCepData?.bairro || bairro || '';
+    const municipioFromViaCep = viaCepData?.localidade || municipio || '';
+    const estadoFromViaCep = viaCepData?.uf || estado || '';
+
+    const enderecoOriginal = endereco || '';
+    const enderecoLimpo = limparEndereco(enderecoOriginal);
+
+    const queries: { q: string; approxType: 'APPROX' | 'APPROX_MUNICIPIO' }[] = [];
+
+    if (streetFromViaCep) {
+      queries.push({
+        q: `${streetFromViaCep}${bairroFromViaCep ? `, ${bairroFromViaCep}` : ''}, ${municipioFromViaCep} - ${estadoFromViaCep}, Brasil`,
+        approxType: 'APPROX',
+      });
+    }
+
+    if (enderecoOriginal) {
+      queries.push({
+        q: `${enderecoOriginal}${bairro ? `, ${bairro}` : ''}${municipio ? `, ${municipio}` : ''}${estado ? ` - ${estado}` : ''}${cep ? `, ${cep}` : ''}, Brasil`,
+        approxType: 'APPROX',
+      });
+    }
+
+    if (enderecoLimpo && enderecoLimpo !== enderecoOriginal) {
+      queries.push({
+        q: `${enderecoLimpo}${bairro ? `, ${bairro}` : ''}${municipio ? `, ${municipio}` : ''}${estado ? ` - ${estado}` : ''}, Brasil`,
+        approxType: 'APPROX',
+      });
+    }
+
+    if (bairro) {
+      queries.push({
+        q: `${bairro}, ${municipio || municipioFromViaCep} - ${estado || estadoFromViaCep}, Brasil`,
+        approxType: 'APPROX',
+      });
+    }
+
+    if (municipio || municipioFromViaCep) {
+      queries.push({
+        q: `${municipio || municipioFromViaCep} - ${estado || estadoFromViaCep}, Brasil`,
+        approxType: 'APPROX_MUNICIPIO',
+      });
+    }
+
+    for (const item of queries) {
+      if (!item.q || item.q.trim() === 'Brasil' || item.q.trim() === ', Brasil') continue;
+
+      const coords = await fetchGeocodeUnstructured(item.q);
+      if (coords && isValidBrasil(coords.lat, coords.lon)) {
+        return { lat: coords.lat, lng: coords.lon, precision: item.approxType };
+      }
+      // Small pause to respect Nominatim API rate limits
+      await new Promise((r) => setTimeout(r, 250));
+    }
+
+    // Default Fallback: Center of Brazil (-14.235, -51.925)
+    return { lat: -14.235, lng: -51.925, precision: 'NOT_FOUND' as const };
+  };
+
+  // Automated batch geocoding for pending churches missing valid coordinates
+  const handleBatchAutoGeocode = async () => {
+    const pendingWithoutCoords = igrejas.filter(
+      (ig) =>
+        ig.latitude === null ||
+        ig.longitude === null ||
+        ig.latitude === 0 ||
+        ig.longitude === 0
+    );
+
+    if (pendingWithoutCoords.length === 0) {
+      alert('Todas as igrejas filtradas já possuem coordenadas válidas!');
+      return;
+    }
+
+    const confirmRun = window.confirm(
+      `Deseja iniciar a localização automática para ${pendingWithoutCoords.length} igrejas sem coordenadas?`
+    );
+
+    if (!confirmRun) return;
+
+    setBatchLoading(true);
+    setBatchProgress({ current: 0, total: pendingWithoutCoords.length });
+
+    let processedCount = 0;
+
+    for (const igreja of pendingWithoutCoords) {
+      processedCount++;
+      setBatchProgress({ current: processedCount, total: pendingWithoutCoords.length });
+
+      const result = await geocodeChurch(igreja);
+      if (result.precision !== 'NOT_FOUND') {
+        const link = `https://www.google.com/maps?q=${result.lat},${result.lng}`;
+        try {
+          await fetch('/api/igrejas/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              codigo_totvs: igreja.codigo_totvs,
+              latitude: result.lat,
+              longitude: result.lng,
+              link_google_maps: link,
+            }),
+          });
+        } catch (err) {
+          console.error(`Erro ao salvar igreja ${igreja.codigo_totvs}:`, err);
+        }
+      }
+    }
+
+    setBatchLoading(false);
+    setBatchProgress(null);
+    await fetchIgrejas(true);
+    alert(`Processo concluído! ${pendingWithoutCoords.length} igrejas foram localizadas e atualizadas.`);
+  };
+
+  // Fallback Cascade Geocoding Effect for the active church
+  useEffect(() => {
+    let active = true;
+
+    async function runGeocodingCascade() {
+      if (!currentIgreja) {
+        setLatInput('');
+        setLngInput('');
+        setPrecision('NOT_FOUND');
+        return;
+      }
+
+      setGeocodingLoading(true);
+      const res = await geocodeChurch(currentIgreja);
+
+      if (active) {
+        setLatInput(String(res.lat));
+        setLngInput(String(res.lng));
+        setPrecision(res.precision);
+        setGeocodingLoading(false);
+      }
+    }
+
+    runGeocodingCascade();
+
+    return () => {
+      active = false;
+    };
+  }, [currentIgreja, currentIndex]);
+
+  // Handle coordinates changes from Leaflet Draggable Pin
+  const handleMapCoordsChange = useCallback((lat: number, lng: number) => {
+    setLatInput(String(lat));
+    setLngInput(String(lng));
+    setPrecision('EXACT');
+  }, []);
+
+  const parsedLat = parseFloat(latInput);
+  const parsedLng = parseFloat(lngInput);
+  const finalLat = isNaN(parsedLat) ? -14.235 : parsedLat;
+  const finalLng = isNaN(parsedLng) ? -51.925 : parsedLng;
+
+  // Real-time generated Google Maps link
+  const generatedGoogleMapsLink = `https://www.google.com/maps?q=${finalLat},${finalLng}`;
+
+  // Save current validation status
+  const handleSaveAndNext = async (statusOverride: 'VALIDADO' | 'DUVIDA') => {
+    if (!currentIgreja) return;
+
+    if (!operator.trim()) {
+      alert('Por favor, informe o nome do operador / validador no campo correspondente.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/igrejas/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigo_totvs: currentIgreja.codigo_totvs,
+          latitude: finalLat,
+          longitude: finalLng,
+          status: statusOverride,
+          usuario_validador: operator.trim(),
+          link_google_maps: generatedGoogleMapsLink,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        let nextCode: string | undefined = undefined;
+        const nextPendingIdx = igrejas.findIndex(
+          (ig, idx) => idx > currentIndex && ig.status === 'PENDENTE'
+        );
+
+        if (nextPendingIdx !== -1) {
+          nextCode = igrejas[nextPendingIdx].codigo_totvs;
+        } else {
+          const nextIdx = currentIndex + 1;
+          if (nextIdx < igrejas.length) {
+            nextCode = igrejas[nextIdx].codigo_totvs;
+          }
+        }
+
+        await fetchIgrejas(true, nextCode);
+      } else {
+        alert('Erro ao salvar os dados: ' + (result.error || 'Erro desconhecido.'));
+      }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+      alert('Erro na requisição de salvamento: ' + errMsg);
+    }
+  };
+
+  const hasNoInitialCoordinates =
+    currentIgreja &&
+    (currentIgreja.latitude === null ||
+      currentIgreja.longitude === null ||
+      currentIgreja.latitude === 0 ||
+      currentIgreja.longitude === 0);
+
+  return (
+    <div className="min-h-screen bg-zinc-50 flex flex-col font-sans">
+      {/* Top Banner Navigation with Logo */}
+      <header className="bg-white border-b border-zinc-200 sticky top-0 z-[1001] shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center space-x-3">
+              <img
+                src="/img/logo.png"
+                alt="Localização IPDA"
+                className="h-10 w-auto object-contain rounded-md shadow-sm"
+              />
+              <div>
+                <h1 className="text-lg font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">
+                  Localização IPDA <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold">12K Igrejas</span>
+                </h1>
+                <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">Sistema de Validação e Geolocalização</p>
+              </div>
+            </div>
+
+            {/* Tab switchers */}
+            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
+              <button
+                onClick={() => setActiveTab('validation')}
+                className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
+                  activeTab === 'validation'
+                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
+                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
+                }`}
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                <span>Painel de Validação</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('upload')}
+                className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
+                  activeTab === 'upload'
+                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
+                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span>Importar Planilhas</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+        {activeTab === 'upload' ? (
+          <div className="max-w-2xl mx-auto w-full space-y-6 py-6">
+            <SpreadsheetUpload onUploadSuccess={() => fetchIgrejas(false)} />
+
+            {/* Guide box */}
+            <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-zinc-800 mb-3 flex items-center gap-1.5">
+                <Info className="h-4 w-4 text-indigo-600" />
+                Instruções de Mapeamento
+              </h3>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                O importador automatiza o mapeamento dos campos da sua planilha. Garanta que ela contenha cabeçalhos similares aos seguintes nomes:
+              </p>
+              <div className="grid grid-cols-2 gap-3 mt-4 text-[11px]">
+                <div className="p-2 bg-zinc-50 rounded border border-zinc-150">
+                  <span className="font-semibold text-zinc-700">Codigo</span> ➔ <span className="font-mono text-indigo-700 font-semibold">codigo_totvs</span>
+                </div>
+                <div className="p-2 bg-zinc-50 rounded border border-zinc-150">
+                  <span className="font-semibold text-zinc-700">Desc Igreja</span> ➔ <span className="font-mono text-indigo-700 font-semibold">desc_igreja</span>
+                </div>
+                <div className="p-2 bg-zinc-50 rounded border border-zinc-150">
+                  <span className="font-semibold text-zinc-700">Tipo Imovel</span> ➔ <span className="font-mono text-indigo-700 font-semibold">tipo_imovel</span>
+                </div>
+                <div className="p-2 bg-zinc-50 rounded border border-zinc-150">
+                  <span className="font-semibold text-zinc-700">Endereco</span> ➔ <span className="font-mono text-indigo-700 font-semibold">endereco</span>
+                </div>
+                <div className="p-2 bg-zinc-50 rounded border border-zinc-150">
+                  <span className="font-semibold text-zinc-700">Lat e Long</span> ➔ <span className="font-mono text-indigo-700 font-semibold">latitude, longitude</span>
+                </div>
+                <div className="p-2 bg-zinc-50 rounded border border-zinc-150">
+                  <span className="font-semibold text-zinc-700">Endereco www</span> ➔ <span className="font-mono text-indigo-700 font-semibold">link_google_maps</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-4 italic">
+                *Nota: Se a coluna &quot;Lat e Long&quot; estiver separada por vírgula (ex: &quot;-9.644, -36.495&quot;), o sistema irá dividi-la automaticamente para salvar latitude e longitude de forma isolada.
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* VALIDATION WORKSPACE (Split Screen) */
+          <div className="flex-1 flex flex-col gap-5">
+            {/* Filter Bar */}
+            <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-2 text-zinc-800 shrink-0">
+                <Filter className="h-4 w-4 text-indigo-600" />
+                <span className="text-sm font-semibold">Filtros de Pesquisa:</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* State selector */}
+                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Estado:</label>
+                  <select
+                    value={filterEstado}
+                    onChange={(e) => setFilterEstado(e.target.value)}
+                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-40"
+                  >
+                    <option value="ALL">Todos os Estados</option>
+                    {states.map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status selector */}
+                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status:</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-40"
+                  >
+                    <option value="ALL">Todos os Status</option>
+                    <option value="PENDENTE">Pendentes</option>
+                    <option value="VALIDADO">Validados</option>
+                    <option value="DUVIDA">Dúvidas</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action & Stats counter */}
+              <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                <button
+                  type="button"
+                  onClick={handleBatchAutoGeocode}
+                  disabled={batchLoading || loading || igrejas.length === 0}
+                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
+                  title="Localizar automaticamente igrejas sem coordenadas via APIs gratuitas"
+                >
+                  {batchLoading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>{batchProgress?.current}/{batchProgress?.total}...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-3.5 w-3.5 text-indigo-600" />
+                      <span>Auto-Localizar Pendentes</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-xs font-semibold text-zinc-500 px-3 py-1.5 bg-zinc-100 rounded-lg shrink-0">
+                  {igrejas.length} {igrejas.length === 1 ? 'igreja' : 'igrejas'}
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white border border-zinc-200 rounded-2xl shadow-sm">
+                <svg className="animate-spin h-10 w-10 text-indigo-600 mb-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <h3 className="text-base font-semibold text-zinc-800">Buscando igrejas...</h3>
+                <p className="text-xs text-zinc-500 mt-1">Isso pode levar alguns segundos dependendo do banco de dados.</p>
+              </div>
+            ) : igrejas.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white border border-zinc-200 rounded-2xl shadow-sm text-center px-4">
+                <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
+                <h3 className="text-lg font-bold text-zinc-800">Nenhuma igreja encontrada</h3>
+                <p className="text-sm text-zinc-500 max-w-md mt-1">
+                  Não há igrejas correspondentes aos filtros selecionados. Envie uma nova planilha de igrejas na aba &quot;Importar Planilhas&quot; ou altere os filtros acima.
+                </p>
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className="mt-6 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow transition-all"
+                >
+                  Ir para Importador
+                </button>
+              </div>
+            ) : (
+              /* SPLIT SCREEN WORKSPACE */
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[600px] items-stretch">
+                {/* LEFT COLUMN: Data Validation Details (5 cols) */}
+                <div className="lg:col-span-5 flex flex-col gap-4 bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm justify-between">
+                  <div>
+                    {/* Header: Navigation & Status Badge */}
+                    <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-100">
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => setCurrentIndex((prev) => (prev > 0 ? prev - 1 : igrejas.length - 1))}
+                          className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
+                          title="Anterior"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <span className="text-xs font-bold text-zinc-700 font-mono">
+                          {currentIndex + 1} / {igrejas.length}
+                        </span>
+                        <button
+                          onClick={() => setCurrentIndex((prev) => (prev < igrejas.length - 1 ? prev + 1 : 0))}
+                          className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
+                          title="Próxima"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Status pill badge */}
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                          currentIgreja.status === 'VALIDADO'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : currentIgreja.status === 'DUVIDA'
+                            ? 'bg-rose-50 text-rose-800 border-rose-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}
+                      >
+                        {currentIgreja.status === 'PENDENTE' ? 'Pendente' : currentIgreja.status === 'VALIDADO' ? 'Validado' : 'Dúvida'}
+                      </span>
+                    </div>
+
+                    {/* Church Primary Info */}
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Código TOTVS</p>
+                        <p className="text-sm font-semibold text-zinc-900 font-mono mt-0.5">{currentIgreja.codigo_totvs}</p>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Descrição da Igreja</p>
+                            <p className="text-base font-bold text-zinc-900 mt-0.5">{currentIgreja.desc_igreja}</p>
+                          </div>
+                        </div>
+
+                        {/* Fallback Precision Badge */}
+                        <div className="mt-2.5">
+                          {geocodingLoading ? (
+                            <span className="inline-flex items-center text-[10px] bg-zinc-100 text-zinc-500 font-bold px-2.5 py-1 rounded-lg border border-zinc-200 animate-pulse">
+                              ⏳ Buscando geolocalização...
+                            </span>
+                          ) : (
+                            <>
+                              {precision === 'EXACT' && (
+                                <span className="inline-flex items-center text-xs bg-emerald-50 text-emerald-800 font-bold px-3 py-1.5 rounded-lg border border-emerald-200 leading-normal">
+                                  🟢 Localização exata via banco/link
+                                </span>
+                              )}
+                              {precision === 'APPROX' && (
+                                <span className="inline-flex items-center text-xs bg-amber-50 text-amber-800 font-bold px-3 py-1.5 rounded-lg border border-amber-250 leading-normal">
+                                  🟡 Localização aproximada. Ajuste o pin sobre o telhado da igreja.
+                                </span>
+                              )}
+                              {precision === 'APPROX_MUNICIPIO' && (
+                                <span className="inline-flex items-center text-xs bg-orange-50 text-orange-850 font-bold px-3 py-1.5 rounded-lg border border-orange-200 leading-normal">
+                                  🟠 Localização aproximada no município. Posicione o pin no local correto.
+                                </span>
+                              )}
+                              {precision === 'NOT_FOUND' && (
+                                <span className="inline-flex items-center text-xs bg-rose-50 text-rose-800 font-bold px-3 py-1.5 rounded-lg border border-rose-200 leading-normal">
+                                  🔴 Não localizado. Arraste o pin no mapa
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {currentIgreja.tipo_imovel && (
+                          <span className="inline-block text-[10px] bg-zinc-100 text-zinc-700 font-medium px-2 py-0.5 rounded border border-zinc-200 mt-2.5">
+                            {currentIgreja.tipo_imovel}
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Endereço Completo</p>
+                        <p className="text-xs text-zinc-700 leading-relaxed mt-1">
+                          {currentIgreja.endereco || 'Endereço não cadastrado'}
+                        </p>
+                        <div className="flex gap-4 mt-2 text-xs text-zinc-500 font-medium">
+                          {currentIgreja.bairro && (
+                            <div>
+                              <span className="text-[10px] block font-bold text-zinc-400">Bairro</span>
+                              {currentIgreja.bairro}
+                            </div>
+                          )}
+                          {currentIgreja.municipio && (
+                            <div>
+                              <span className="text-[10px] block font-bold text-zinc-400">Município / Estado</span>
+                              {currentIgreja.municipio} - {currentIgreja.estado}
+                            </div>
+                          )}
+                          {currentIgreja.cep && (
+                            <div>
+                              <span className="text-[10px] block font-bold text-zinc-400">CEP</span>
+                              {currentIgreja.cep}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Real-time coordinates form */}
+                    <div className="mt-6 pt-5 border-t border-zinc-100 space-y-4">
+                      <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-indigo-600" />
+                        Coordenadas Geográficas (Grau Decimal)
+                      </h4>
+
+                      {hasNoInitialCoordinates && (
+                        <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-xs flex items-start gap-2 border border-amber-200">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                          <div>
+                            <p className="font-semibold">Coordenadas iniciais não encontradas</p>
+                            <p className="text-[10px] opacity-90 mt-0.5">
+                              Exibindo marcador aproximado. Arraste o pin no mapa para fixar a localização correta.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-zinc-500 block">LATITUDE</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={latInput}
+                            onChange={(e) => {
+                              setLatInput(e.target.value);
+                              setPrecision('EXACT');
+                            }}
+                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-zinc-500 block">LONGITUDE</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={lngInput}
+                            onChange={(e) => {
+                              setLngInput(e.target.value);
+                              setPrecision('EXACT');
+                            }}
+                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Display generated dynamic link */}
+                      <div>
+                        <span className="text-[10px] font-bold text-zinc-500 block">Link Google Maps Gerado:</span>
+                        <a
+                          href={generatedGoogleMapsLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-semibold underline mt-1 transition-colors"
+                        >
+                          <span>{generatedGoogleMapsLink}</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Validation Form Actions */}
+                  <div className="mt-6 pt-5 border-t border-zinc-100 space-y-4">
+                    {/* Operator signature */}
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 block flex items-center gap-1 uppercase tracking-wider">
+                        <User className="h-3 w-3 text-zinc-500" />
+                        Nome do Operador (Validador)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Insira seu nome para assinar"
+                        value={operator}
+                        onChange={(e) => handleOperatorChange(e.target.value)}
+                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5"
+                      />
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveAndNext('DUVIDA')}
+                        className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold rounded-xl flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+                      >
+                        <HelpCircle className="h-4 w-4 text-zinc-600" />
+                        <span>Marcar como Dúvida</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSaveAndNext('VALIDADO')}
+                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all active:scale-[0.98]"
+                      >
+                        <Check className="h-4 w-4" />
+                        <span>Salvar e Próxima</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN: Leaflet Interactive Map (7 cols) */}
+                <div className="lg:col-span-7 flex flex-col bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm min-h-[450px] lg:min-h-0">
+                  <div className="flex items-center justify-between mb-3 shrink-0">
+                    <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Layers className="h-4 w-4 text-indigo-600" />
+                      Visualização de Satélite e Posicionador do Pin
+                    </h3>
+                    <div className="text-[10px] text-zinc-500 font-medium italic">
+                      💡 Dica: Arraste o pin vermelho para ajustar as coordenadas
+                    </div>
+                  </div>
+
+                  <div className="flex-1">
+                    <MapWrapper
+                      latitude={finalLat}
+                      longitude={finalLng}
+                      onChangeCoords={handleMapCoordsChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
