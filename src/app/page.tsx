@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SpreadsheetUpload from '@/components/SpreadsheetUpload';
 import MapWrapper from '@/components/MapWrapper';
 import { Igreja } from '@/lib/db';
+import { normalizeUF, isResultInState } from '@/lib/geocoding';
 import {
   Filter,
   Check,
@@ -13,7 +14,6 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
-  Database,
   MapPin,
   ExternalLink,
   User,
@@ -45,14 +45,6 @@ export function limparEndereco(endereco: string): string {
 }
 
 /**
-  * Geographic validation: Check if coordinates are within Brazil boundaries.
-  * Lat: -35° to +6°, Lng: -75° to -30°
-  */
-function isValidBrasil(lat: number, lng: number): boolean {
-  return lat >= -35 && lat <= 6 && lng >= -75 && lng <= -30;
-}
-
-/**
   * 100% Free ViaCEP integration to enrich address details by CEP.
   */
 async function fetchViaCEP(cep: string): Promise<{ logradouro: string; bairro: string; localidade: string; uf: string } | null> {
@@ -77,27 +69,49 @@ async function fetchViaCEP(cep: string): Promise<{ logradouro: string; bairro: s
   return null;
 }
 
+interface GeocodeResult {
+  lat: number;
+  lon: number;
+  returnedState?: string;
+}
+
 /**
-  * 100% Free Geocoding API Cascade:
-  * 1. OpenStreetMap (Nominatim API)
+  * 100% Free Geocoding API Cascade with Rigid Geographic UF State Lock:
+  * 1. OpenStreetMap (Nominatim API) with countrycodes=br & addressdetails=1
   * 2. Photon Komoot API (OSM Fallback)
   */
-async function fetchGeocodeUnstructured(queryStr: string): Promise<{ lat: number; lon: number } | null> {
+async function fetchGeocodeUnstructured(
+  queryStr: string,
+  targetUF?: string | null
+): Promise<GeocodeResult | null> {
   if (!queryStr || queryStr.trim().length < 3) return null;
 
   // 1. Try Nominatim OpenStreetMap API
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=br&q=${encodeURIComponent(
+      queryStr
+    )}&limit=3`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'LocalizacaoIPDA/1.0 (validador@ipda.com.br)' },
     });
     if (res.ok) {
       const data = await res.json();
-      if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
-        if (!isNaN(lat) && !isNaN(lon)) {
-          return { lat, lon };
+      if (Array.isArray(data) && data.length > 0) {
+        for (const item of data) {
+          const lat = parseFloat(item.lat);
+          const lon = parseFloat(item.lon);
+          const returnedState =
+            item.address?.state ||
+            item.address?.['ISO3166-2-lvl4'] ||
+            item.address?.state_code ||
+            null;
+
+          if (!isNaN(lat) && !isNaN(lon)) {
+            // Rigid State Lock Check
+            if (isResultInState(lat, lon, targetUF || null, returnedState)) {
+              return { lat, lon, returnedState };
+            }
+          }
         }
       }
     }
@@ -107,17 +121,28 @@ async function fetchGeocodeUnstructured(queryStr: string): Promise<{ lat: number
 
   // 2. Fallback: Photon Komoot Free Geocoding API
   try {
-    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(queryStr)}&limit=1`;
+    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(
+      queryStr
+    )}&limit=3`;
     const res = await fetch(photonUrl);
     if (res.ok) {
       const data = await res.json();
       if (data && data.features && data.features.length > 0) {
-        const coords = data.features[0].geometry?.coordinates;
-        if (coords && coords.length >= 2) {
-          const lon = parseFloat(coords[0]);
-          const lat = parseFloat(coords[1]);
-          if (!isNaN(lat) && !isNaN(lon)) {
-            return { lat, lon };
+        for (const feature of data.features) {
+          const coords = feature.geometry?.coordinates;
+          const props = feature.properties || {};
+          const returnedState = props.state || props.statecode || null;
+
+          if (coords && coords.length >= 2) {
+            const lon = parseFloat(coords[0]);
+            const lat = parseFloat(coords[1]);
+
+            if (!isNaN(lat) && !isNaN(lon)) {
+              // Rigid State Lock Check
+              if (isResultInState(lat, lon, targetUF || null, returnedState)) {
+                return { lat, lon, returnedState };
+              }
+            }
           }
         }
       }
@@ -228,19 +253,24 @@ export default function Home() {
   // Current church being validated
   const currentIgreja = igrejas[currentIndex];
 
-  // Geocoding helper for single church object
+  // Geocoding helper for single church object with POI variations & UF Lock
   const geocodeChurch = async (igreja: Igreja) => {
-    // 1. Existing valid non-zero coordinates
+    const { endereco, bairro, municipio, estado, cep } = igreja;
+    const targetUF = normalizeUF(estado);
+
+    // 1. Existing valid non-zero coordinates with UF validation
     if (
       igreja.latitude !== null &&
       igreja.longitude !== null &&
       igreja.latitude !== 0 &&
       igreja.longitude !== 0
     ) {
-      return { lat: igreja.latitude, lng: igreja.longitude, precision: 'EXACT' as const };
+      if (isResultInState(igreja.latitude, igreja.longitude, targetUF)) {
+        return { lat: igreja.latitude, lng: igreja.longitude, precision: 'EXACT' as const };
+      }
     }
 
-    // 2. Google Maps link extraction
+    // 2. Google Maps link extraction with UF validation
     if (igreja.link_google_maps) {
       const link = igreja.link_google_maps;
       let match = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
@@ -251,56 +281,71 @@ export default function Home() {
         const lat = parseFloat(match[1]);
         const lng = parseFloat(match[2]);
         if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-          return { lat, lng, precision: 'EXACT' as const };
+          if (isResultInState(lat, lng, targetUF)) {
+            return { lat, lng, precision: 'EXACT' as const };
+          }
         }
       }
     }
 
-    // 3. ViaCEP enrichment if CEP is present
-    const { endereco, bairro, municipio, estado, cep } = igreja;
+    // 3. ViaCEP enrichment if CEP is present and matches target UF
     const viaCepData = cep ? await fetchViaCEP(cep) : null;
+    let streetFromViaCep = '';
+    let bairroFromViaCep = bairro || '';
+    let municipioFromViaCep = municipio || '';
+    let estadoFromViaCep = estado || '';
 
-    const streetFromViaCep = viaCepData?.logradouro || '';
-    const bairroFromViaCep = viaCepData?.bairro || bairro || '';
-    const municipioFromViaCep = viaCepData?.localidade || municipio || '';
-    const estadoFromViaCep = viaCepData?.uf || estado || '';
+    if (viaCepData && isResultInState(0, 0, targetUF, viaCepData.uf)) {
+      streetFromViaCep = viaCepData.logradouro || '';
+      bairroFromViaCep = viaCepData.bairro || bairro || '';
+      municipioFromViaCep = viaCepData.localidade || municipio || '';
+      estadoFromViaCep = viaCepData.uf || estado || '';
+    }
 
-    const enderecoOriginal = endereco || '';
-    const enderecoLimpo = limparEndereco(enderecoOriginal);
+    const enderecoBase = streetFromViaCep || endereco || '';
+    const enderecoLimpo = limparEndereco(enderecoBase);
+    const currentBairro = bairroFromViaCep || bairro || '';
+    const currentMunicipio = municipioFromViaCep || municipio || '';
+    const currentEstado = estadoFromViaCep || estado || '';
 
-    const queries: { q: string; approxType: 'APPROX' | 'APPROX_MUNICIPIO' }[] = [];
+    const queries: { q: string; approxType: 'EXACT' | 'APPROX' | 'APPROX_MUNICIPIO' }[] = [];
 
-    if (streetFromViaCep) {
+    // Variação 1: "Igreja Pentecostal Deus é Amor, [Endereco Limpo], [Bairro], [Municipio] - [Estado], Brasil"
+    if (enderecoLimpo) {
       queries.push({
-        q: `${streetFromViaCep}${bairroFromViaCep ? `, ${bairroFromViaCep}` : ''}, ${municipioFromViaCep} - ${estadoFromViaCep}, Brasil`,
+        q: `Igreja Pentecostal Deus é Amor, ${enderecoLimpo}${currentBairro ? `, ${currentBairro}` : ''}, ${currentMunicipio} - ${currentEstado}, Brasil`,
+        approxType: 'EXACT',
+      });
+    }
+
+    // Variação 2: "IPDA, [Endereco Limpo], [Municipio] - [Estado], Brasil"
+    if (enderecoLimpo) {
+      queries.push({
+        q: `IPDA, ${enderecoLimpo}, ${currentMunicipio} - ${currentEstado}, Brasil`,
+        approxType: 'EXACT',
+      });
+    }
+
+    // Variação 3 (Fallback sem POI): "[Endereco Limpo], [Bairro], [Municipio] - [Estado], Brasil"
+    if (enderecoLimpo) {
+      queries.push({
+        q: `${enderecoLimpo}${currentBairro ? `, ${currentBairro}` : ''}, ${currentMunicipio} - ${currentEstado}, Brasil`,
         approxType: 'APPROX',
       });
     }
 
-    if (enderecoOriginal) {
+    // Variação 4 (Fallback Bairro/Cidade): "[Bairro], [Municipio] - [Estado], Brasil"
+    if (currentBairro && currentMunicipio) {
       queries.push({
-        q: `${enderecoOriginal}${bairro ? `, ${bairro}` : ''}${municipio ? `, ${municipio}` : ''}${estado ? ` - ${estado}` : ''}${cep ? `, ${cep}` : ''}, Brasil`,
+        q: `${currentBairro}, ${currentMunicipio} - ${currentEstado}, Brasil`,
         approxType: 'APPROX',
       });
     }
 
-    if (enderecoLimpo && enderecoLimpo !== enderecoOriginal) {
+    // Variação 5 (Fallback Município): "[Municipio] - [Estado], Brasil" (Garante ponto oficial dentro da UF)
+    if (currentMunicipio) {
       queries.push({
-        q: `${enderecoLimpo}${bairro ? `, ${bairro}` : ''}${municipio ? `, ${municipio}` : ''}${estado ? ` - ${estado}` : ''}, Brasil`,
-        approxType: 'APPROX',
-      });
-    }
-
-    if (bairro) {
-      queries.push({
-        q: `${bairro}, ${municipio || municipioFromViaCep} - ${estado || estadoFromViaCep}, Brasil`,
-        approxType: 'APPROX',
-      });
-    }
-
-    if (municipio || municipioFromViaCep) {
-      queries.push({
-        q: `${municipio || municipioFromViaCep} - ${estado || estadoFromViaCep}, Brasil`,
+        q: `${currentMunicipio} - ${currentEstado}, Brasil`,
         approxType: 'APPROX_MUNICIPIO',
       });
     }
@@ -308,11 +353,11 @@ export default function Home() {
     for (const item of queries) {
       if (!item.q || item.q.trim() === 'Brasil' || item.q.trim() === ', Brasil') continue;
 
-      const coords = await fetchGeocodeUnstructured(item.q);
-      if (coords && isValidBrasil(coords.lat, coords.lon)) {
+      const coords = await fetchGeocodeUnstructured(item.q, targetUF);
+      if (coords) {
         return { lat: coords.lat, lng: coords.lon, precision: item.approxType };
       }
-      // Small pause to respect Nominatim API rate limits
+
       await new Promise((r) => setTimeout(r, 250));
     }
 
@@ -618,7 +663,7 @@ export default function Home() {
                   onClick={handleBatchAutoGeocode}
                   disabled={batchLoading || loading || igrejas.length === 0}
                   className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
-                  title="Localizar automaticamente igrejas sem coordenadas via APIs gratuitas"
+                  title="Localizar automaticamente igrejas sem coordenadas via APIs gratuitas com trava por estado (UF)"
                 >
                   {batchLoading ? (
                     <>
@@ -723,28 +768,28 @@ export default function Home() {
                         <div className="mt-2.5">
                           {geocodingLoading ? (
                             <span className="inline-flex items-center text-[10px] bg-zinc-100 text-zinc-500 font-bold px-2.5 py-1 rounded-lg border border-zinc-200 animate-pulse">
-                              ⏳ Buscando geolocalização...
+                              ⏳ Buscando geolocalização com trava UF...
                             </span>
                           ) : (
                             <>
                               {precision === 'EXACT' && (
                                 <span className="inline-flex items-center text-xs bg-emerald-50 text-emerald-800 font-bold px-3 py-1.5 rounded-lg border border-emerald-200 leading-normal">
-                                  🟢 Localização exata via banco/link
+                                  🟢 Localização exata por POI/link ({currentIgreja.estado})
                                 </span>
                               )}
                               {precision === 'APPROX' && (
                                 <span className="inline-flex items-center text-xs bg-amber-50 text-amber-800 font-bold px-3 py-1.5 rounded-lg border border-amber-250 leading-normal">
-                                  🟡 Localização aproximada. Ajuste o pin sobre o telhado da igreja.
+                                  🟡 Localização por rua ({currentIgreja.estado}). Ajuste o pin sobre a igreja.
                                 </span>
                               )}
                               {precision === 'APPROX_MUNICIPIO' && (
                                 <span className="inline-flex items-center text-xs bg-orange-50 text-orange-850 font-bold px-3 py-1.5 rounded-lg border border-orange-200 leading-normal">
-                                  🟠 Localização aproximada no município. Posicione o pin no local correto.
+                                  🟠 Localizado no município de {currentIgreja.municipio} ({currentIgreja.estado}). Posicione o pin.
                                 </span>
                               )}
                               {precision === 'NOT_FOUND' && (
                                 <span className="inline-flex items-center text-xs bg-rose-50 text-rose-800 font-bold px-3 py-1.5 rounded-lg border border-rose-200 leading-normal">
-                                  🔴 Não localizado. Arraste o pin no mapa
+                                  🔴 Não localizado na UF {currentIgreja.estado}. Arraste o pin no mapa
                                 </span>
                               )}
                             </>
@@ -799,7 +844,7 @@ export default function Home() {
                           <div>
                             <p className="font-semibold">Coordenadas iniciais não encontradas</p>
                             <p className="text-[10px] opacity-90 mt-0.5">
-                              Exibindo marcador aproximado. Arraste o pin no mapa para fixar a localização correta.
+                              Exibindo marcador aproximado na UF {currentIgreja.estado}. Arraste o pin no mapa para fixar a localização correta.
                             </p>
                           </div>
                         </div>
