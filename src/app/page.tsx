@@ -3,8 +3,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Toaster, toast } from 'sonner';
 import SpreadsheetUpload from '@/components/SpreadsheetUpload';
 import MapWrapper from '@/components/MapWrapper';
+import DashboardView from '@/components/DashboardView';
 import { Igreja } from '@/lib/db';
 import { normalizeUF, isResultInState } from '@/lib/geocoding';
 import {
@@ -21,6 +23,10 @@ import {
   Layers,
   Zap,
   Loader2,
+  Search,
+  X,
+  BarChart3,
+  Sparkles,
 } from 'lucide-react';
 
 export function limparEndereco(endereco: string): string {
@@ -155,16 +161,20 @@ async function fetchGeocodeUnstructured(
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'validation' | 'upload'>('validation');
+  const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
 
   // Database state
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [states, setStates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Batch Auto-Geocoding State
+  // Quick Search Bar state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Batch Auto-Geocoding State & Modal
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   // Filters
   const [filterEstado, setFilterEstado] = useState<string>('ALL');
@@ -240,6 +250,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Error fetching churches:', err);
+      toast.error('Erro ao conectar com a base de dados de igrejas.');
     } finally {
       setLoading(false);
     }
@@ -252,6 +263,30 @@ export default function Home() {
 
   // Current church being validated
   const currentIgreja = igrejas[currentIndex];
+
+  // Quick search handler
+  const handleSearchChurch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return;
+
+    const idx = igrejas.findIndex(
+      (ig) =>
+        ig.codigo_totvs.toLowerCase() === term ||
+        ig.codigo_totvs.toLowerCase().includes(term) ||
+        ig.desc_igreja.toLowerCase().includes(term) ||
+        ig.endereco.toLowerCase().includes(term) ||
+        ig.municipio.toLowerCase().includes(term)
+    );
+
+    if (idx !== -1) {
+      setCurrentIndex(idx);
+      setActiveTab('validation');
+      toast.success(`Igreja localizada: ${igrejas[idx].desc_igreja} (Código ${igrejas[idx].codigo_totvs})`);
+    } else {
+      toast.error(`Igreja com código TOTVS ou termo "${searchQuery}" não foi localizada nos filtros atuais.`);
+    }
+  };
 
   // Geocoding helper for single church object with POI variations & UF Lock
   const geocodeChurch = async (igreja: Igreja) => {
@@ -342,7 +377,7 @@ export default function Home() {
       });
     }
 
-    // Variação 5 (Fallback Município): "[Municipio] - [Estado], Brasil" (Garante ponto oficial dentro da UF)
+    // Variação 5 (Fallback Município): "[Municipio] - [Estado], Brasil"
     if (currentMunicipio) {
       queries.push({
         q: `${currentMunicipio} - ${currentEstado}, Brasil`,
@@ -365,8 +400,9 @@ export default function Home() {
     return { lat: -14.235, lng: -51.925, precision: 'NOT_FOUND' as const };
   };
 
-  // Automated batch geocoding for pending churches missing valid coordinates
-  const handleBatchAutoGeocode = async () => {
+  // Automated batch geocoding runner
+  const executeBatchAutoGeocode = async () => {
+    setShowBatchModal(false);
     const pendingWithoutCoords = igrejas.filter(
       (ig) =>
         ig.latitude === null ||
@@ -376,18 +412,13 @@ export default function Home() {
     );
 
     if (pendingWithoutCoords.length === 0) {
-      alert('Todas as igrejas filtradas já possuem coordenadas válidas!');
+      toast.info('Todas as igrejas filtradas já possuem coordenadas válidas!');
       return;
     }
 
-    const confirmRun = window.confirm(
-      `Deseja iniciar a localização automática para ${pendingWithoutCoords.length} igrejas sem coordenadas?`
-    );
-
-    if (!confirmRun) return;
-
     setBatchLoading(true);
     setBatchProgress({ current: 0, total: pendingWithoutCoords.length });
+    toast.info(`Iniciando auto-localização para ${pendingWithoutCoords.length} igrejas...`);
 
     let processedCount = 0;
 
@@ -418,7 +449,7 @@ export default function Home() {
     setBatchLoading(false);
     setBatchProgress(null);
     await fetchIgrejas(true);
-    alert(`Processo concluído! ${pendingWithoutCoords.length} igrejas foram localizadas e atualizadas.`);
+    toast.success(`Processo concluído! ${pendingWithoutCoords.length} igrejas foram localizadas e salvas.`);
   };
 
   // Fallback Cascade Geocoding Effect for the active church
@@ -466,12 +497,12 @@ export default function Home() {
   // Real-time generated Google Maps link
   const generatedGoogleMapsLink = `https://www.google.com/maps?q=${finalLat},${finalLng}`;
 
-  // Save current validation status
+  // Save current validation status with Sonner Toast feedback
   const handleSaveAndNext = async (statusOverride: 'VALIDADO' | 'DUVIDA') => {
     if (!currentIgreja) return;
 
     if (!operator.trim()) {
-      alert('Por favor, informe o nome do operador / validador no campo correspondente.');
+      toast.error('Por favor, informe seu nome de operador/validador para assinar a validação.');
       return;
     }
 
@@ -492,6 +523,12 @@ export default function Home() {
       const result = await response.json();
 
       if (result.success) {
+        if (statusOverride === 'VALIDADO') {
+          toast.success(`Igreja ${currentIgreja.codigo_totvs} validada com sucesso!`);
+        } else {
+          toast.warning(`Igreja ${currentIgreja.codigo_totvs} marcada com Dúvida para revisão.`);
+        }
+
         let nextCode: string | undefined = undefined;
         const nextPendingIdx = igrejas.findIndex(
           (ig, idx) => idx > currentIndex && ig.status === 'PENDENTE'
@@ -508,12 +545,25 @@ export default function Home() {
 
         await fetchIgrejas(true, nextCode);
       } else {
-        alert('Erro ao salvar os dados: ' + (result.error || 'Erro desconhecido.'));
+        toast.error('Falha ao salvar os dados: ' + (result.error || 'Erro desconhecido.'));
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Erro desconhecido';
-      alert('Erro na requisição de salvamento: ' + errMsg);
+      toast.error('Falha ao salvar os dados. Tente novamente: ' + errMsg);
     }
+  };
+
+  // Handlers for Dashboard View interactions
+  const handleSelectStateFromDashboard = (uf: string) => {
+    setFilterEstado(uf);
+    setActiveTab('validation');
+    toast.info(`Filtro aplicado para o Estado: ${uf}`);
+  };
+
+  const handleSelectStatusFromDashboard = (status: string) => {
+    setFilterStatus(status);
+    setActiveTab('validation');
+    toast.info(`Filtro aplicado para Status: ${status}`);
   };
 
   const hasNoInitialCoordinates =
@@ -523,49 +573,133 @@ export default function Home() {
       currentIgreja.latitude === 0 ||
       currentIgreja.longitude === 0);
 
+  const pendingWithoutCoordsCount = igrejas.filter(
+    (ig) =>
+      ig.latitude === null ||
+      ig.longitude === null ||
+      ig.latitude === 0 ||
+      ig.longitude === 0
+  ).length;
+
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col font-sans">
-      {/* Top Banner Navigation with Logo */}
+    <div className="min-h-screen bg-zinc-50 flex flex-col font-sans text-zinc-900">
+      {/* Toast Notification Container */}
+      <Toaster position="top-right" richColors closeButton />
+
+      {/* Confirmation Modal for Batch Geocode */}
+      {showBatchModal && (
+        <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center space-x-3 text-amber-600">
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200">
+                <Sparkles className="h-6 w-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900">Auto-Geocodificação Automática</h3>
+                <p className="text-xs text-zinc-500 font-medium">Processamento inteligente de coordenadas</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-700 leading-relaxed">
+              Foram encontradas <strong className="text-indigo-600 font-bold">{pendingWithoutCoordsCount} igrejas</strong> sem coordenadas no filtro atual.
+              Deseja disparar a busca em cascata com trava geográfica por estado (UF)?
+            </p>
+
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBatchModal(false)}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-xs rounded-xl transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeBatchAutoGeocode}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center space-x-1.5"
+              >
+                <Zap className="h-3.5 w-3.5 fill-white" />
+                <span>Iniciar Processamento</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Banner Navigation */}
       <header className="bg-white border-b border-zinc-200 sticky top-0 z-[1001] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row justify-between h-auto sm:h-16 py-3 sm:py-0 items-center gap-3 sm:gap-0">
+            {/* Logo & Branding */}
+            <div className="flex items-center space-x-3 shrink-0">
               <img
                 src="/img/logo.png"
                 alt="Localização IPDA"
                 className="h-10 w-auto object-contain rounded-md shadow-sm"
               />
               <div>
-                <h1 className="text-lg font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">
-                  Localização IPDA <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold">12K Igrejas</span>
+                <h1 className="text-base font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">
+                  GEO-VALIG IPDA <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100 font-bold">12K</span>
                 </h1>
-                <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">Sistema de Validação e Geolocalização</p>
+                <p className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider">Validação e Geolocalização</p>
               </div>
             </div>
 
-            {/* Tab switchers */}
-            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
+            {/* QUICK SEARCH BAR */}
+            <form onSubmit={handleSearchChurch} className="relative flex items-center w-full sm:w-72 lg:w-96">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Buscar por Código TOTVS, Nome ou Rua..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-zinc-100 border border-zinc-200 rounded-xl pl-8 pr-8 py-1.5 text-xs text-zinc-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-medium transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-600 p-0.5"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </form>
+
+            {/* Tab switchers (3 Tabs) */}
+            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 shrink-0">
               <button
                 onClick={() => setActiveTab('validation')}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
                   activeTab === 'validation'
                     ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
                     : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
                 }`}
               >
                 <MapPin className="h-3.5 w-3.5" />
-                <span>Painel de Validação</span>
+                <span>Validação</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
+                  activeTab === 'dashboard'
+                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
+                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
+                }`}
+              >
+                <BarChart3 className="h-3.5 w-3.5 text-indigo-600" />
+                <span>Dashboard</span>
               </button>
               <button
                 onClick={() => setActiveTab('upload')}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
                   activeTab === 'upload'
                     ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
                     : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
                 }`}
               >
                 <Layers className="h-3.5 w-3.5" />
-                <span>Importar Planilhas</span>
+                <span>Importar</span>
               </button>
             </div>
           </div>
@@ -574,7 +708,17 @@ export default function Home() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-        {activeTab === 'upload' ? (
+        {activeTab === 'dashboard' ? (
+          <DashboardView
+            igrejas={igrejas}
+            states={states}
+            onSelectStateAndSwitch={handleSelectStateFromDashboard}
+            onSelectStatusAndSwitch={handleSelectStatusFromDashboard}
+            onBatchAutoGeocode={() => setShowBatchModal(true)}
+            batchLoading={batchLoading}
+            batchProgress={batchProgress}
+          />
+        ) : activeTab === 'upload' ? (
           <div className="max-w-2xl mx-auto w-full space-y-6 py-6">
             <SpreadsheetUpload onUploadSuccess={() => fetchIgrejas(false)} />
 
@@ -607,9 +751,6 @@ export default function Home() {
                   <span className="font-semibold text-zinc-700">Endereco www</span> ➔ <span className="font-mono text-indigo-700 font-semibold">link_google_maps</span>
                 </div>
               </div>
-              <p className="text-[10px] text-zinc-500 mt-4 italic">
-                *Nota: Se a coluna &quot;Lat e Long&quot; estiver separada por vírgula (ex: &quot;-9.644, -36.495&quot;), o sistema irá dividi-la automaticamente para salvar latitude e longitude de forma isolada.
-              </p>
             </div>
           </div>
         ) : (
@@ -660,7 +801,7 @@ export default function Home() {
               <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                 <button
                   type="button"
-                  onClick={handleBatchAutoGeocode}
+                  onClick={() => setShowBatchModal(true)}
                   disabled={batchLoading || loading || igrejas.length === 0}
                   className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
                   title="Localizar automaticamente igrejas sem coordenadas via APIs gratuitas com trava por estado (UF)"
@@ -672,7 +813,7 @@ export default function Home() {
                     </>
                   ) : (
                     <>
-                      <Zap className="h-3.5 w-3.5 text-indigo-600" />
+                      <Zap className="h-3.5 w-3.5 text-indigo-600 fill-indigo-600" />
                       <span>Auto-Localizar Pendentes</span>
                     </>
                   )}
@@ -899,7 +1040,7 @@ export default function Home() {
                   <div className="mt-6 pt-5 border-t border-zinc-100 space-y-4">
                     {/* Operator signature */}
                     <div>
-                      <label className="text-[10px] font-bold text-zinc-500 block flex items-center gap-1 uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 uppercase tracking-wider">
                         <User className="h-3 w-3 text-zinc-500" />
                         Nome do Operador (Validador)
                       </label>
@@ -908,7 +1049,7 @@ export default function Home() {
                         placeholder="Insira seu nome para assinar"
                         value={operator}
                         onChange={(e) => handleOperatorChange(e.target.value)}
-                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5"
+                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5 font-medium"
                       />
                     </div>
 
