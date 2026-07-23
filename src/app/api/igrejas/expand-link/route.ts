@@ -92,7 +92,7 @@ const FETCH_HEADERS = {
   'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
   'Accept-Encoding': 'gzip, deflate, br',
   // Provide a cookie-consent cookie that some Google endpoints require
-  Cookie: 'CONSENT=YES+cb; SOCS=CAISHAgBEhJnd3NfMjAyNDA1MDktMF9SQzEaAmVuIAEaBgiA'; 
+  Cookie: 'CONSENT=YES+cb; SOCS=CAISHAgBEhJnd3NfMjAyNDA1MDktMF9SQzEaAmVuIAEaBgiA'
 };
 
 async function expandManually(
