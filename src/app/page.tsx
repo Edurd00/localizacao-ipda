@@ -27,6 +27,8 @@ import {
   X,
   BarChart3,
   Sparkles,
+  Link,
+  Clipboard,
 } from 'lucide-react';
 
 export function limparEndereco(endereco: string): string {
@@ -192,6 +194,10 @@ export default function Home() {
   const [precision, setPrecision] = useState<'EXACT' | 'APPROX' | 'APPROX_MUNICIPIO' | 'NOT_FOUND'>('NOT_FOUND');
   const [geocodingLoading, setGeocodingLoading] = useState<boolean>(false);
 
+  // Dirigente Link Extractor state
+  const [dirigenteLink, setDirigenteLink] = useState<string>('');
+  const [dirigenteLoading, setDirigenteLoading] = useState<boolean>(false);
+
   // Load operator name from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -207,6 +213,40 @@ export default function Home() {
     setOperator(val);
     if (typeof window !== 'undefined') {
       localStorage.setItem('validador_operador', val);
+    }
+  };
+
+  // Extract coordinates from a Google Maps link (or WhatsApp message) sent by the church leader
+  const handleProcessDirigenteLink = async () => {
+    const input = dirigenteLink.trim();
+    if (!input) {
+      toast.warning('Cole o link ou mensagem do dirigente antes de processar.');
+      return;
+    }
+
+    setDirigenteLoading(true);
+    try {
+      const res = await fetch('/api/igrejas/expand-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: input }),
+      });
+      const data = await res.json();
+
+      if (data.success && typeof data.lat === 'number' && typeof data.lng === 'number') {
+        setLatInput(String(data.lat));
+        setLngInput(String(data.lng));
+        setPrecision('EXACT');
+        setDirigenteLink('');
+        toast.success('Coordenadas extraídas do link do dirigente com sucesso! Confirme no mapa.');
+      } else {
+        toast.error(data.error || 'Não foi possível extrair as coordenadas do link informado.');
+      }
+    } catch (err) {
+      console.error('Dirigente link error:', err);
+      toast.error('Erro ao processar o link. Verifique sua conexão e tente novamente.');
+    } finally {
+      setDirigenteLoading(false);
     }
   };
 
@@ -970,6 +1010,58 @@ export default function Home() {
                           )}
                         </div>
                       </div>
+                    </div>
+
+                    {/* ─── Dirigente Link Extractor ─── */}
+                    <div className="mt-5 pt-4 border-t border-zinc-100">
+                      <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+                        <Link className="h-3.5 w-3.5 text-violet-600" />
+                        Link/Mensagem do Dirigente
+                      </h4>
+
+                      <p className="text-[10px] text-zinc-500 leading-relaxed mb-2.5">
+                        Cole abaixo o link do Google Maps (curto ou longo) enviado pelo dirigente via WhatsApp. O sistema
+                        extrai as coordenadas automaticamente.
+                      </p>
+
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Clipboard className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
+                          <input
+                            id="dirigente-link-input"
+                            type="text"
+                            value={dirigenteLink}
+                            onChange={(e) => setDirigenteLink(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleProcessDirigenteLink()}
+                            placeholder="Cole o link ou mensagem aqui..."
+                            className="pl-8 pr-3 py-2 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-violet-500 focus:border-violet-500 outline-none text-xs rounded-lg w-full font-medium placeholder:text-zinc-400"
+                          />
+                        </div>
+                        <button
+                          id="btn-process-dirigente-link"
+                          type="button"
+                          onClick={handleProcessDirigenteLink}
+                          disabled={dirigenteLoading || !dirigenteLink.trim()}
+                          className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shrink-0 shadow-sm"
+                          title="Processar link e extrair coordenadas"
+                        >
+                          {dirigenteLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Link className="h-3.5 w-3.5" />
+                          )}
+                          {dirigenteLoading ? 'Processando...' : 'Processar'}
+                        </button>
+                      </div>
+
+                      {/* Dirigente badge – shown when precision is EXACT and triggered by link */}
+                      {precision === 'EXACT' && latInput && !dirigenteLoading && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center text-[10px] bg-violet-50 text-violet-800 font-bold px-2.5 py-1 rounded-lg border border-violet-200">
+                            🟣 Enviado pelo Dirigente (Validado via Link)
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Real-time coordinates form */}
