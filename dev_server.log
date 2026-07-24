@@ -5,60 +5,55 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 1313ms
+✓ Ready in 527ms
 
 ○ Compiling / ...
- HEAD / 200 in 9.7s (next.js: 8.7s, application-code: 1021ms)
- GET / 200 in 83ms (next.js: 7ms, application-code: 76ms)
- POST /api/igrejas/upload 200 in 601ms (next.js: 573ms, application-code: 28ms)
- GET / 200 in 142ms (next.js: 8ms, application-code: 134ms)
- GET /api/igrejas?status=PENDENTE 200 in 190ms (next.js: 182ms, application-code: 8ms)
-[browser] [Geocoding Lock Rejected] Point (0, 0) is outside bounding box for UF SP (src/lib/geocoding.ts:81:15)
- GET /api/igrejas?status=VALIDADO 200 in 20ms (next.js: 9ms, application-code: 11ms)
- GET / 200 in 78ms (next.js: 8ms, application-code: 71ms)
- POST /api/igrejas/upload 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET / 200 in 116ms (next.js: 5ms, application-code: 111ms)
- GET /api/igrejas?status=PENDENTE 200 in 10ms (next.js: 4ms, application-code: 6ms)
-[browser] [Geocoding Lock Rejected] Point (0, 0) is outside bounding box for UF SP (src/lib/geocoding.ts:81:15)
- GET /api/igrejas?status=VALIDADO 200 in 10ms (next.js: 3ms, application-code: 7ms)
- POST /api/igrejas/upload 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/igrejas?status=PENDENTE_REVISAO 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET / 200 in 829ms (next.js: 133ms, application-code: 696ms)
- POST /api/igrejas/upload 200 in 70ms (next.js: 31ms, application-code: 40ms)
- GET / 200 in 126ms (next.js: 6ms, application-code: 119ms)
- GET /api/igrejas?status=PENDENTE 200 in 24ms (next.js: 16ms, application-code: 9ms)
-[browser] [Geocoding Lock Rejected] Point (0, 0) is outside bounding box for UF SP (src/lib/geocoding.ts:81:15)
- GET /api/igrejas?status=VALIDADO 200 in 13ms (next.js: 8ms, application-code: 6ms)
- POST /api/igrejas/upload 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /api/igrejas?status=PENDENTE_REVISAO 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET / 200 in 85ms (next.js: 9ms, application-code: 77ms)
- POST /api/igrejas/upload 200 in 8ms (next.js: 2ms, application-code: 5ms)
- GET / 200 in 74ms (next.js: 3ms, application-code: 71ms)
- GET /api/igrejas?status=PENDENTE 200 in 8ms (next.js: 3ms, application-code: 5ms)
-[browser] [Geocoding Lock Rejected] Point (0, 0) is outside bounding box for UF SP (src/lib/geocoding.ts:81:15)
- GET /api/igrejas?status=VALIDADO 200 in 10ms (next.js: 6ms, application-code: 4ms)
- POST /api/igrejas/upload 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/igrejas?status=PENDENTE_REVISAO 200 in 8ms (next.js: 4ms, application-code: 4ms)
- GET / 200 in 227ms (next.js: 70ms, application-code: 157ms)
- POST /api/igrejas/upload 200 in 18ms (next.js: 8ms, application-code: 11ms)
- GET / 200 in 81ms (next.js: 6ms, application-code: 75ms)
- GET /api/igrejas?status=PENDENTE 200 in 9ms (next.js: 3ms, application-code: 6ms)
-[browser] [Geocoding Lock Rejected] Point (0, 0) is outside bounding box for UF SP (src/lib/geocoding.ts:81:15)
- GET /api/igrejas?status=VALIDADO 200 in 8ms (next.js: 4ms, application-code: 4ms)
- POST /api/igrejas/upload 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/igrejas?status=PENDENTE_REVISAO 200 in 9ms (next.js: 4ms, application-code: 5ms)
- GET / 200 in 76ms (next.js: 10ms, application-code: 66ms)
- POST /api/igrejas/upload 200 in 15ms (next.js: 7ms, application-code: 8ms)
- GET / 200 in 62ms (next.js: 3ms, application-code: 59ms)
- GET /api/igrejas?status=PENDENTE 200 in 10ms (next.js: 4ms, application-code: 6ms)
-[browser] [Geocoding Lock Rejected] Point (0, 0) is outside bounding box for UF SP (src/lib/geocoding.ts:81:15)
- GET /api/igrejas?status=VALIDADO 200 in 9ms (next.js: 4ms, application-code: 5ms)
- GET / 200 in 61ms (next.js: 5ms, application-code: 56ms)
- POST /api/igrejas/upload 200 in 9ms (next.js: 3ms, application-code: 6ms)
- POST /api/igrejas/save 200 in 1215ms (next.js: 1206ms, application-code: 9ms)
- GET / 200 in 115ms (next.js: 3ms, application-code: 112ms)
- GET /api/igrejas?status=PENDENTE 200 in 8ms (next.js: 3ms, application-code: 5ms)
-[browser] [Geocoding Lock Rejected] Point (0, 0) is outside bounding box for UF SP (src/lib/geocoding.ts:81:15)
- GET /api/igrejas?status=VALIDADO 200 in 18ms (next.js: 13ms, application-code: 5ms)
- POST /api/igrejas/upload 200 in 9ms (next.js: 4ms, application-code: 5ms)
- GET /api/igrejas?status=PENDENTE_REVISAO 200 in 7ms (next.js: 3ms, application-code: 4ms)
+ HEAD / 200 in 4.3s (next.js: 3.9s, application-code: 373ms)
+ GET / 200 in 136ms (next.js: 11ms, application-code: 125ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>
+      <HTTPAccessFallbackErrorBoundary pathname="/" notFound={{...}} forbidden={undefined} unauthorized={undefined} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+              <SegmentViewNode type="page" pagePath="src/page.tsx">
+                <SegmentTrieNode>
+                <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+                  <Home params={Promise} searchParams={Promise}>
+                    <div className="min-h-scre...">
+                      <Toaster>
+                      <header className="bg-white b...">
+                        <div className="max-w-7xl ...">
+                          <div className="flex flex-...">
+                            <div>
+                            <form onSubmit={function handleSearchChurch} className="relative f...">
+                              <Search>
+                              <input
+                                type="text"
+                                placeholder="Buscar por Código TOTVS, Nome ou Rua..."
+                                value=""
+                                onChange={function onChange}
+                                className="w-full bg-zinc-100 border border-zinc-200 rounded-xl pl-8 pr-8 py-1.5 text-..."
+-                               style={{caret-color:"transparent"}}
+                              >
+                            ...
+                      ...
+              ...
+            ...
+
+ GET /api/igrejas?status=PENDENTE 200 in 880ms (next.js: 844ms, application-code: 36ms)
+ GET /mapa-geral 200 in 1174ms (next.js: 1002ms, application-code: 172ms)
+ GET /api/igrejas/validadas 200 in 263ms (next.js: 250ms, application-code: 13ms)
+ GET /api/igrejas/validadas 200 in 7ms (next.js: 3ms, application-code: 5ms)
