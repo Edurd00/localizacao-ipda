@@ -14,6 +14,7 @@ export interface Igreja {
   longitude: number | null;
   status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO';
   usuario_validador?: string | null;
+  codigo_totvs_pai?: string | null;
   updated_at?: string;
 }
 
@@ -59,9 +60,16 @@ async function ensurePostgresTable() {
           longitude DOUBLE PRECISION,
           status VARCHAR(20) DEFAULT 'PENDENTE',
           usuario_validador VARCHAR(100),
+          codigo_totvs_pai VARCHAR(100),
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      // Run an alter table just in case the table exists but lacks the column
+      try {
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS codigo_totvs_pai VARCHAR(100);`);
+      } catch (alterErr) {
+        console.warn('Alter table column check failed (might be expected):', alterErr);
+      }
       isTableInitialized = true;
     } finally {
       client.release();
@@ -108,6 +116,7 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
         longitude: row.longitude === 0 ? null : row.longitude,
         status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO',
         usuario_validador: row.usuario_validador,
+        codigo_totvs_pai: row.codigo_totvs_pai,
         updated_at: row.updated_at,
       }));
     } catch (err) {
@@ -150,8 +159,8 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
       for (const ig of igrejas) {
         await client.query(
           `INSERT INTO igrejas (
-            codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           ON CONFLICT (codigo_totvs) DO UPDATE SET
             desc_igreja = EXCLUDED.desc_igreja,
             tipo_imovel = EXCLUDED.tipo_imovel,
@@ -176,6 +185,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
               ELSE COALESCE(NULLIF(EXCLUDED.link_google_maps, ''), igrejas.link_google_maps)
             END,
             endereco = EXCLUDED.endereco,
+            codigo_totvs_pai = EXCLUDED.codigo_totvs_pai,
             updated_at = CURRENT_TIMESTAMP`,
           [
             ig.codigo_totvs,
@@ -190,6 +200,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
             ig.latitude,
             ig.longitude,
             ig.status || 'PENDENTE',
+            ig.codigo_totvs_pai || null,
           ]
         );
       }
@@ -237,6 +248,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
           ? existing.longitude
           : (ig.longitude !== null ? ig.longitude : existing.longitude),
         status: novoStatus,
+        codigo_totvs_pai: ig.codigo_totvs_pai || existing.codigo_totvs_pai,
         updated_at: new Date().toISOString(),
       });
     } else {

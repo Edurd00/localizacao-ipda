@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Sistema de Validação de Geolocalização das Igrejas IPDA",
   icons: {
     icon: "/img/favicon.jpg",
+    shortcut: "/img/favicon.jpg",
+    apple: "/img/favicon.jpg",
   },
 };
 
