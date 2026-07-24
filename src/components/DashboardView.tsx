@@ -39,34 +39,37 @@ export default function DashboardView({
   batchProgress,
 }: DashboardViewProps) {
   const [filterStateSearch, setFilterStateSearch] = useState('');
-  const [exportFilter, setExportFilter] = useState<'ALL' | 'VALIDADO' | 'PENDENTE' | 'DUVIDA'>('VALIDADO');
+  const [exportFilter, setExportFilter] = useState<'ALL' | 'VALIDADO' | 'PENDENTE' | 'DUVIDA' | 'PENDENTE_REVISAO'>('VALIDADO');
 
   // Overall KPIs calculation
   const totalCount = igrejas.length;
-  const validadasCount = useMemo(() => igrejas.filter((i) => i.status === 'VALIDADO').length, [igrejas]);
-  const pendentesCount = useMemo(() => igrejas.filter((i) => i.status === 'PENDENTE').length, [igrejas]);
-  const duvidasCount = useMemo(() => igrejas.filter((i) => i.status === 'DUVIDA').length, [igrejas]);
+  const validadasCount = useMemo(() => igrejas.filter((i) => (i.status as string) === 'VALIDADO').length, [igrejas]);
+  const pendentesCount = useMemo(() => igrejas.filter((i) => (i.status as string) === 'PENDENTE').length, [igrejas]);
+  const duvidasCount = useMemo(() => igrejas.filter((i) => (i.status === 'DUVIDA' || (i.status as string) === 'DUVIDA')).length, [igrejas]);
+  const revisoesCount = useMemo(() => igrejas.filter((i) => (i.status as string) === 'PENDENTE_REVISAO').length, [igrejas]);
 
   const validadasPct = totalCount > 0 ? ((validadasCount / totalCount) * 100).toFixed(1) : '0.0';
   const pendentesPct = totalCount > 0 ? ((pendentesCount / totalCount) * 100).toFixed(1) : '0.0';
   const duvidasPct = totalCount > 0 ? ((duvidasCount / totalCount) * 100).toFixed(1) : '0.0';
+  const revisoesPct = totalCount > 0 ? ((revisoesCount / totalCount) * 100).toFixed(1) : '0.0';
 
   // Per State Metrics Calculation
   const stateMetrics = useMemo(() => {
     const map = new Map<
       string,
-      { uf: string; total: number; validadas: number; pendentes: number; duvidas: number }
+      { uf: string; total: number; validadas: number; pendentes: number; duvidas: number; revisoes: number }
     >();
 
     igrejas.forEach((ig) => {
       const uf = ig.estado || 'Outros';
       if (!map.has(uf)) {
-        map.set(uf, { uf, total: 0, validadas: 0, pendentes: 0, duvidas: 0 });
+        map.set(uf, { uf, total: 0, validadas: 0, pendentes: 0, duvidas: 0, revisoes: 0 });
       }
       const item = map.get(uf)!;
       item.total += 1;
-      if (ig.status === 'VALIDADO') item.validadas += 1;
-      else if (ig.status === 'DUVIDA') item.duvidas += 1;
+      if ((ig.status as string) === 'VALIDADO') item.validadas += 1;
+      else if ((ig.status as string) === 'DUVIDA') item.duvidas += 1;
+      else if ((ig.status as string) === 'PENDENTE_REVISAO') item.revisoes += 1;
       else item.pendentes += 1;
     });
 
@@ -87,13 +90,16 @@ export default function DashboardView({
     let fileNameSuffix = 'todas';
 
     if (exportFilter === 'VALIDADO') {
-      listToExport = igrejas.filter((i) => i.status === 'VALIDADO');
+      listToExport = igrejas.filter((i) => (i.status as string) === 'VALIDADO');
       fileNameSuffix = 'validadas';
     } else if (exportFilter === 'PENDENTE') {
-      listToExport = igrejas.filter((i) => i.status === 'PENDENTE');
+      listToExport = igrejas.filter((i) => (i.status as string) === 'PENDENTE');
       fileNameSuffix = 'pendentes';
+    } else if (exportFilter === 'PENDENTE_REVISAO') {
+      listToExport = igrejas.filter((i) => (i.status as string) === 'PENDENTE_REVISAO');
+      fileNameSuffix = 'revisoes';
     } else if (exportFilter === 'DUVIDA') {
-      listToExport = igrejas.filter((i) => i.status === 'DUVIDA');
+      listToExport = igrejas.filter((i) => (i.status as string) === 'DUVIDA');
       fileNameSuffix = 'duvidas';
     }
 
@@ -175,8 +181,8 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* KPI Cards Grid (4 Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards Grid (5 Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Churches */}
         <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div className="flex justify-between items-start">
@@ -265,6 +271,30 @@ export default function DashboardView({
             </span>
           </div>
         </div>
+
+        {/* Pending Revision */}
+        <div
+          onClick={() => onSelectStatusAndSwitch('PENDENTE_REVISAO')}
+          className="bg-white border border-purple-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Revisões Pendentes</p>
+              <h3 className="text-3xl font-black text-purple-700 mt-1">{revisoesCount.toLocaleString('pt-BR')}</h3>
+            </div>
+            <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
+              <Clock className="h-6 w-6" />
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-purple-100 flex justify-between items-center text-xs">
+            <span className="text-purple-700 font-medium group-hover:underline flex items-center gap-1">
+              Filtrar no painel <ArrowRight className="h-3 w-3" />
+            </span>
+            <span className="font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+              {revisoesPct}%
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Global Progress Section */}
@@ -287,6 +317,11 @@ export default function DashboardView({
             title={`Validadas: ${validadasCount}`}
           />
           <div
+            className="bg-purple-500 h-full transition-all duration-500"
+            style={{ width: `${revisoesPct}%` }}
+            title={`Revisões: ${revisoesCount}`}
+          />
+          <div
             className="bg-rose-400 h-full transition-all duration-500"
             style={{ width: `${duvidasPct}%` }}
             title={`Dúvidas: ${duvidasCount}`}
@@ -294,9 +329,12 @@ export default function DashboardView({
         </div>
 
         <div className="flex justify-between items-center text-xs text-zinc-500 pt-1 font-medium">
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="flex items-center gap-1.5 text-emerald-700 font-semibold">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Validadas ({validadasCount})
+            </span>
+            <span className="flex items-center gap-1.5 text-purple-700 font-semibold">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Mudança de Endereço ({revisoesCount})
             </span>
             <span className="flex items-center gap-1.5 text-amber-700 font-semibold">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" /> Pendentes ({pendentesCount})
@@ -345,6 +383,7 @@ export default function DashboardView({
               >
                 <option value="VALIDADO">Apenas Validadas</option>
                 <option value="PENDENTE">Apenas Pendentes</option>
+                <option value="PENDENTE_REVISAO">Apenas Revisões</option>
                 <option value="DUVIDA">Apenas Dúvidas</option>
                 <option value="ALL">Todas as Igrejas</option>
               </select>
@@ -361,6 +400,7 @@ export default function DashboardView({
                 <th className="p-3 text-center">Total Igrejas</th>
                 <th className="p-3 text-center">Validadas</th>
                 <th className="p-3 text-center">Pendentes</th>
+                <th className="p-3 text-center">Revisões</th>
                 <th className="p-3 text-center">Dúvidas</th>
                 <th className="p-3 text-right">% Progresso</th>
                 <th className="p-3 text-center">Ação</th>
@@ -369,7 +409,7 @@ export default function DashboardView({
             <tbody className="divide-y divide-zinc-100">
               {filteredStateMetrics.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-zinc-400 italic">
+                  <td colSpan={8} className="p-6 text-center text-zinc-400 italic">
                     Nenhum estado encontrado com o filtro informado.
                   </td>
                 </tr>
@@ -390,6 +430,7 @@ export default function DashboardView({
                       <td className="p-3 text-center font-mono font-semibold text-zinc-800">{st.total}</td>
                       <td className="p-3 text-center font-mono font-bold text-emerald-600">{st.validadas}</td>
                       <td className="p-3 text-center font-mono font-medium text-amber-600">{st.pendentes}</td>
+                      <td className="p-3 text-center font-mono font-medium text-purple-600">{st.revisoes}</td>
                       <td className="p-3 text-center font-mono font-medium text-rose-600">{st.duvidas}</td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end space-x-2">

@@ -12,7 +12,7 @@ export interface Igreja {
   link_google_maps: string;
   latitude: number | null;
   longitude: number | null;
-  status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA';
+  status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO';
   usuario_validador?: string | null;
   updated_at?: string;
 }
@@ -106,7 +106,7 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
         link_google_maps: row.link_google_maps,
         latitude: row.latitude === 0 ? null : row.latitude,
         longitude: row.longitude === 0 ? null : row.longitude,
-        status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA',
+        status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO',
         usuario_validador: row.usuario_validador,
         updated_at: row.updated_at,
       }));
@@ -155,14 +155,27 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
           ON CONFLICT (codigo_totvs) DO UPDATE SET
             desc_igreja = EXCLUDED.desc_igreja,
             tipo_imovel = EXCLUDED.tipo_imovel,
-            endereco = EXCLUDED.endereco,
             bairro = EXCLUDED.bairro,
             municipio = EXCLUDED.municipio,
             estado = EXCLUDED.estado,
             cep = EXCLUDED.cep,
-            link_google_maps = EXCLUDED.link_google_maps,
-            latitude = COALESCE(EXCLUDED.latitude, igrejas.latitude),
-            longitude = COALESCE(EXCLUDED.longitude, igrejas.longitude),
+            status = CASE
+              WHEN igrejas.endereco <> EXCLUDED.endereco THEN 'PENDENTE_REVISAO'
+              ELSE igrejas.status
+            END,
+            latitude = CASE
+              WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.latitude
+              ELSE COALESCE(EXCLUDED.latitude, igrejas.latitude)
+            END,
+            longitude = CASE
+              WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.longitude
+              ELSE COALESCE(EXCLUDED.longitude, igrejas.longitude)
+            END,
+            link_google_maps = CASE
+              WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.link_google_maps
+              ELSE COALESCE(NULLIF(EXCLUDED.link_google_maps, ''), igrejas.link_google_maps)
+            END,
+            endereco = EXCLUDED.endereco,
             updated_at = CURRENT_TIMESTAMP`,
           [
             ig.codigo_totvs,
@@ -198,6 +211,13 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
   igrejas.forEach((ig) => {
     const existing = map.get(ig.codigo_totvs);
     if (existing) {
+      const enderecoMudou = existing.endereco !== ig.endereco;
+      const novoStatus = enderecoMudou
+        ? 'PENDENTE_REVISAO'
+        : existing.status;
+
+      const manterIntacto = !enderecoMudou && existing.status === 'VALIDADO';
+
       map.set(ig.codigo_totvs, {
         ...existing,
         desc_igreja: ig.desc_igreja,
@@ -207,15 +227,22 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
         municipio: ig.municipio,
         estado: ig.estado,
         cep: ig.cep,
-        link_google_maps: ig.link_google_maps,
-        latitude: ig.latitude !== null ? ig.latitude : existing.latitude,
-        longitude: ig.longitude !== null ? ig.longitude : existing.longitude,
+        link_google_maps: manterIntacto
+          ? existing.link_google_maps
+          : (ig.link_google_maps || existing.link_google_maps),
+        latitude: manterIntacto
+          ? existing.latitude
+          : (ig.latitude !== null ? ig.latitude : existing.latitude),
+        longitude: manterIntacto
+          ? existing.longitude
+          : (ig.longitude !== null ? ig.longitude : existing.longitude),
+        status: novoStatus,
         updated_at: new Date().toISOString(),
       });
     } else {
       map.set(ig.codigo_totvs, {
         ...ig,
-        status: ig.status || 'PENDENTE',
+        status: 'PENDENTE',
         updated_at: new Date().toISOString(),
       });
     }
