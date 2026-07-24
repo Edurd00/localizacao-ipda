@@ -55,12 +55,151 @@ export const PORTE_INFO: Record<string, { name: string; color: string; label: st
   'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano/Turquesa)' },
 };
 
+export const REGOES_ESTADUAIS = {
+  "Grande Sao Paulo - SP": [
+    { nome: "Sede Mundial", totvs: "" },
+    { nome: "Franco da Rocha - SP", totvs: "16332" },
+    { nome: "Guarulhos - SP", totvs: "16245" },
+    { nome: "Itaquaquecetuba - SP", totvs: "15937" },
+    { nome: "Maua - SP", totvs: "9289" },
+    { nome: "Mogi das Cruzes - SP", totvs: "15968" },
+    { nome: "Santo Andre - SP", totvs: "9318" },
+    { nome: "Sao Bernardo do Campo - SP", totvs: "9325" },
+    { nome: "Sao Mateus - SP", totvs: "16037" },
+    { nome: "Campo Limpo - SP", totvs: "16588" },
+    { nome: "Santo Amaro - SP", totvs: "16883" },
+    { nome: "Osasco - SP", totvs: "16501" }
+  ],
+  "Interior - SP": [
+    { nome: "Bauru - SP", totvs: "13753" },
+    { nome: "Campinas - SP", totvs: "13901" },
+    { nome: "Itapeva - SP", totvs: "14339" },
+    { nome: "Ribeirao Preto - SP", totvs: "14463" },
+    { nome: "Jundiai - SP", totvs: "14661" },
+    { nome: "Marilia - SP", totvs: "14756" },
+    { nome: "Piracicaba - SP", totvs: "15104" },
+    { nome: "Presidente Prudente - SP", totvs: "15213" },
+    { nome: "Registro - SP", totvs: "15252" },
+    { nome: "Sao Jose do Rio Preto - SP", totvs: "15449" },
+    { nome: "Sao Jose dos Campos - SP", totvs: "15463" },
+    { nome: "Sorocaba - SP", totvs: "15551" }
+  ],
+  "Litoral - SP": [
+    { nome: "Santos - SP", totvs: "15392" }
+  ],
+  "Espirito Santo": [
+    { nome: "Estadual Vitoria - ES", totvs: "17250" },
+    { nome: "Estadual Linhares - ES", totvs: "9740" }
+  ],
+  "Rio de Janeiro": [
+    { nome: "Estadual Sao Goncalo - RJ", totvs: "12528" },
+    { nome: "Estadual Campos dos Goytacazes - RJ", totvs: "12720" },
+    { nome: "Estadual Duque de Caxias - RJ", totvs: "12765" },
+    { nome: "Estadual Niteroi - RJ", totvs: "13061" },
+    { nome: "Estadual Nova Iguacu - RJ", totvs: "13103" },
+    { nome: "Estadual Petropolis - RJ", totvs: "13166" },
+    { nome: "Estadual Senador Pompeu - RJ", totvs: "17263" },
+    { nome: "Estadual Campo Grande - RJ", totvs: "12704" }
+  ],
+  "Minas Gerais": [
+    { nome: "Estadual Gameleira - Cabana - MG", totvs: "10248" },
+    { nome: "Estadual Belo Horizonte - Guaicurus - MG", totvs: "10848" },
+    { nome: "Estadual Governador Valadares - MG", totvs: "10808" },
+    { nome: "Estadual Juiz de Fora - MG", totvs: "11074" },
+    { nome: "Estadual Muriae - MG", totvs: "11548" },
+    { nome: "Estadual Uberlandia - MG", totvs: "12374" },
+    { nome: "Estadual Montes Claros - MG", totvs: "11502" }
+  ],
+  "Norte": [
+    { nome: "AC - Cruzeiro do Sul", totvs: "7468" },
+    { nome: "AC - Rio Branco", totvs: "17290" },
+    { nome: "AM - Manaus", totvs: "17290" },
+    { nome: "AM - Tabatinga", totvs: "7874" },
+    { nome: "AM - Tefe", totvs: "7881" },
+    { nome: "AM - Tonantins", totvs: "7897" },
+    { nome: "PA - Breves", totvs: "8141" },
+    { nome: "PA - Itaituba", totvs: "8339" },
+    { nome: "PA - Maraba", totvs: "8431" },
+    { nome: "PA - Belem", totvs: "17268" },
+    { nome: "PA - Santarem", totvs: "8706" },
+    { nome: "RO - Ji Parana", totvs: "8901" },
+    { nome: "RO - Porto Velho", totvs: "8933" },
+    { nome: "TO - Palmas", totvs: "9162" },
+    { nome: "AP - Macapa", totvs: "7932" },
+    { nome: "RR - Boa Vista", totvs: "17226" }
+  ],
+  "Nordeste": [
+    { nome: "Maceio", totvs: "4760" },
+    { nome: "Salvador", totvs: "5624" },
+    { nome: "Teixeira de Freitas", totvs: "5786" },
+    { nome: "Vitoria da Conquista", totvs: "5851" },
+    { nome: "Juazeiro do Norte", totvs: "6047" },
+    { nome: "Fortaleza", totvs: "6082" },
+    { nome: "Sobral", totvs: "6388" },
+    { nome: "Balsas", totvs: "6430" },
+    { nome: "Imperatriz", totvs: "6456" },
+    { nome: "Sao Luis", totvs: "6547" },
+    { nome: "Campina Grande", totvs: "6595" },
+    { nome: "Joao Pessoa", totvs: "6642" },
+    { nome: "Petrolina", totvs: "6895" },
+    { nome: "Natal", totvs: "7167" },
+    { nome: "Aracaju", totvs: "17229" },
+    { nome: "Recife", totvs: "17273" },
+    { nome: "Teresina", totvs: "17274" }
+  ],
+  "Centro-Oeste": [
+    { nome: "Estadual Brasilia - DF", totvs: "3408" },
+    { nome: "Estadual Goiania - GO", totvs: "3575" },
+    { nome: "Estadual Campo Grande - MS", totvs: "4232" },
+    { nome: "Estadual Confresa - MT", totvs: "4533" },
+    { nome: "Estadual Cuiaba - MT", totvs: "4554" }
+  ],
+  "Regiao Sul": [
+    { nome: "Estadual Cascavel - PR", totvs: "241" },
+    { nome: "Estadual Curitiba - PR", totvs: "363" },
+    { nome: "Estadual Guarapuava - PR", totvs: "509" },
+    { nome: "Estadual Londrina - PR", totvs: "748" },
+    { nome: "Estadual Ponta Grossa - PR", totvs: "988" },
+    { nome: "Estadual Caxias do Sul - RS", totvs: "1554" },
+    { nome: "Estadual Passo Fundo - RS", totvs: "1944" },
+    { nome: "Estadual Pelotas - RS", totvs: "1976" },
+    { nome: "Estadual Santana do Livramento - RS", totvs: "2093" },
+    { nome: "Estadual Porto Alegre - RS", totvs: "17262" },
+    { nome: "Estadual Santa Maria - RS", totvs: "17591" },
+    { nome: "Estadual Chapeco - SC", totvs: "2584" },
+    { nome: "Estadual Florianopolis - SC", totvs: "2933" },
+    { nome: "Estadual Lages - SC", totvs: "3033" },
+    { nome: "Estadual Joinville - SC", totvs: "3122" }
+  ]
+};
+
 // Component to recenter/refocus map programmatically when filters change
-function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
+function MapController({
+  center,
+  zoom,
+  flyToTarget,
+  onFlyToComplete,
+}: {
+  center: [number, number];
+  zoom: number;
+  flyToTarget: { center: [number, number]; zoom: number; totvs: string } | null;
+  onFlyToComplete: () => void;
+}) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
+    if (flyToTarget) {
+      map.flyTo(flyToTarget.center, flyToTarget.zoom, {
+        animate: true,
+        duration: 1.5,
+      });
+      const timer = setTimeout(() => {
+        onFlyToComplete();
+      }, 1600);
+      return () => clearTimeout(timer);
+    } else {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, flyToTarget, map, onFlyToComplete]);
   return null;
 }
 
@@ -77,6 +216,16 @@ export default function GeneralMapComponent() {
   const [selectedUF, setSelectedUF] = useState('ALL');
   const [selectedTipoImovel, setSelectedTipoImovel] = useState('ALL');
   const [selectedPortes, setSelectedPortes] = useState<string[]>([]);
+
+  // Hierarchical Region & Estadual filters
+  const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
+  const [selectedEstadual, setSelectedEstadual] = useState<string>('');
+
+  // Map focus / flyTo target state
+  const [flyToTarget, setFlyToTarget] = useState<{ center: [number, number]; zoom: number; totvs: string } | null>(null);
+
+  // Refs for markers to programmatically open popups
+  const markerRefs = useRef<Record<string, L.Marker | null>>({});
 
   // Toggle Filters visibility on mobile
   const [showFilters, setShowFilters] = useState(false);
@@ -157,6 +306,34 @@ export default function GeneralMapComponent() {
     });
   }, [igrejas, selectedUF, selectedTipoImovel, selectedPortes, searchQuery]);
 
+  // Handle selected reference Estadual change
+  const handleSelectEstadual = (totvs: string) => {
+    setSelectedEstadual(totvs);
+    if (!totvs) {
+      setFlyToTarget(null);
+      return;
+    }
+
+    // Try finding the church in full loaded list first
+    let found = igrejas.find((ig) => ig.codigo_totvs === totvs);
+
+    // Fallback search for Sede Mundial (or any other reference that might have empty totvs, or not fully matching, or special logic)
+    if (!found && totvs === "") {
+      // Find Sede Mundial by name
+      found = igrejas.find((ig) => ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL"));
+    }
+
+    if (found && found.latitude && found.longitude) {
+      setFlyToTarget({
+        center: [found.latitude, found.longitude],
+        zoom: 14,
+        totvs: found.codigo_totvs,
+      });
+    } else {
+      console.warn(`Estadual with TOTVS ${totvs} not found or has no coordinates.`);
+    }
+  };
+
   // Calculate dynamic map center based on filtered results, default to Brazil center
   const mapCenter = useMemo<[number, number]>(() => {
     if (filteredIgrejas.length === 1) {
@@ -204,12 +381,15 @@ export default function GeneralMapComponent() {
     setSelectedUF('ALL');
     setSelectedTipoImovel('ALL');
     setSelectedPortes([]);
+    setSelectedRegion('ALL');
+    setSelectedEstadual('');
+    setFlyToTarget(null);
   };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-zinc-50">
       {/* Header Panel */}
-      <header className="bg-white border-b border-zinc-200 z-30 shadow-xs px-4 py-3 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+      <header className="bg-white border-b border-zinc-200 z-[1020] shadow-xs px-4 py-3 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
         <div className="flex items-center space-x-3 w-full sm:w-auto">
           <a
             href="/"
@@ -277,87 +457,137 @@ export default function GeneralMapComponent() {
 
       {/* Real-time Filters panel (Desktop: always visible, Mobile: expandable) */}
       <section
-        className={`bg-white border-b border-zinc-200 px-4 py-3 sm:px-6 z-20 shadow-xs flex-col sm:flex flex-wrap sm:flex-row items-stretch sm:items-center gap-4 ${
-          showFilters ? 'flex' : 'hidden'
+        className={`bg-white border-b border-zinc-200 px-4 py-3 sm:px-6 z-[1010] shadow-xs flex flex-col gap-4 ${
+          showFilters ? 'flex' : 'hidden sm:flex'
         }`}
       >
-        {/* UF Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-            <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-            Estado (UF)
-          </label>
-          <select
-            value={selectedUF}
-            onChange={(e) => setSelectedUF(e.target.value)}
-            className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-40"
-          >
-            <option value="ALL">Todos os Estados</option>
-            {distinctUFs.map((uf) => (
-              <option key={uf} value={uf}>
-                {uf}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          {/* UF Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+              Estado (UF)
+            </label>
+            <select
+              value={selectedUF}
+              onChange={(e) => setSelectedUF(e.target.value)}
+              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-40"
+            >
+              <option value="ALL">Todos os Estados</option>
+              {distinctUFs.map((uf) => (
+                <option key={uf} value={uf}>
+                  {uf}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Real Estate Property Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-            <Building2 className="h-3.5 w-3.5 text-zinc-400" />
-            Imóvel
-          </label>
-          <select
-            value={selectedTipoImovel}
-            onChange={(e) => setSelectedTipoImovel(e.target.value)}
-            className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-40"
-          >
-            <option value="ALL">Todos</option>
-            <option value="PROPRIO">Próprio</option>
-            <option value="ALUGADO">Alugado</option>
-          </select>
-        </div>
+          {/* Real Estate Property Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <Building2 className="h-3.5 w-3.5 text-zinc-400" />
+              Imóvel
+            </label>
+            <select
+              value={selectedTipoImovel}
+              onChange={(e) => setSelectedTipoImovel(e.target.value)}
+              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-40"
+            >
+              <option value="ALL">Todos</option>
+              <option value="PROPRIO">Próprio</option>
+              <option value="ALUGADO">Alugado</option>
+            </select>
+          </div>
 
-        {/* Porte / Size Multi-selection tags */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-            <Filter className="h-3.5 w-3.5 text-zinc-400" />
-            Porte da Igreja
-          </label>
-          <div className="flex flex-wrap gap-1.5 items-center">
-            {Object.values(PORTE_INFO).map((item) => {
-              const active = selectedPortes.includes(item.name);
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => handleTogglePorte(item.name)}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1.5 ${
-                    active
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                      : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100'
-                  }`}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full border border-black/10 inline-block"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span>{item.name}</span>
-                </button>
-              );
-            })}
+          {/* Hierarchical Region Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <Layers className="h-3.5 w-3.5 text-zinc-400" />
+              Região
+            </label>
+            <select
+              value={selectedRegion}
+              onChange={(e) => {
+                setSelectedRegion(e.target.value);
+                setSelectedEstadual('');
+                setFlyToTarget(null);
+              }}
+              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-44"
+            >
+              <option value="ALL">Todas as Regiões</option>
+              {Object.keys(REGOES_ESTADUAIS).map((reg) => (
+                <option key={reg} value={reg}>
+                  {reg}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Hierarchical Estadual de Referência Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <Building2 className="h-3.5 w-3.5 text-zinc-400" />
+              Estadual de Ref.
+            </label>
+            <select
+              value={selectedEstadual}
+              disabled={selectedRegion === 'ALL'}
+              onChange={(e) => handleSelectEstadual(e.target.value)}
+              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-48 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Selecione uma Estadual</option>
+              {selectedRegion !== 'ALL' &&
+                REGOES_ESTADUAIS[selectedRegion as keyof typeof REGOES_ESTADUAIS]?.map((est) => (
+                  <option key={est.nome} value={est.totvs}>
+                    {est.nome} {est.totvs ? `(${est.totvs})` : ''}
+                  </option>
+                ))}
+            </select>
           </div>
         </div>
 
-        {/* Reset Filter Button */}
-        {(selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
-          <button
-            onClick={handleResetFilters}
-            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-bold rounded-xl flex items-center gap-1 self-start sm:self-center transition-all ml-auto shrink-0"
-          >
-            <X className="h-3 w-3" />
-            <span>Limpar Filtros</span>
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-4 border-t border-zinc-100 pt-3">
+          {/* Porte / Size Multi-selection tags */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <Filter className="h-3.5 w-3.5 text-zinc-400" />
+              Porte da Igreja
+            </label>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {Object.values(PORTE_INFO).map((item) => {
+                const active = selectedPortes.includes(item.name);
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => handleTogglePorte(item.name)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1.5 ${
+                      active
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                        : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100'
+                    }`}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full border border-black/10 inline-block"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>{item.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Reset Filter Button */}
+          {(selectedRegion !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
+            <button
+              onClick={handleResetFilters}
+              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-bold rounded-xl flex items-center gap-1 self-start sm:self-center transition-all ml-auto shrink-0"
+            >
+              <X className="h-3 w-3" />
+              <span>Limpar Filtros</span>
+            </button>
+          )}
+        </div>
       </section>
 
       {/* Main Workspace Map Block */}
@@ -393,7 +623,31 @@ export default function GeneralMapComponent() {
               scrollWheelZoom={true}
               className="w-full h-full z-10"
             >
-              <MapController center={mapCenter} zoom={mapZoom} />
+              <MapController
+                center={mapCenter}
+                zoom={mapZoom}
+                flyToTarget={flyToTarget}
+                onFlyToComplete={() => {
+                  if (flyToTarget) {
+                    const targetTotvs = flyToTarget.totvs;
+                    // Trigger popup of the focused marker after flyTo is done
+                    const markerInstance = markerRefs.current[targetTotvs];
+                    if (markerInstance) {
+                      markerInstance.openPopup();
+                    } else {
+                      // fallback: if not in ref, or if it is "Sede Mundial" without a totvs, check for Sede Mundial
+                      if (targetTotvs === "") {
+                        const smMarker = Object.values(markerRefs.current).find(
+                          (m) => m && m.options?.alt === "Sede Mundial"
+                        );
+                        if (smMarker) {
+                          smMarker.openPopup();
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
 
               {mapType === 'satellite' ? (
                 <TileLayer
@@ -453,12 +707,21 @@ export default function GeneralMapComponent() {
                 {filteredIgrejas.map((ig) => {
                   const porte = getPorte(ig.desc_igreja);
                   const icon = getMarkerIcon(porte);
+                  const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
 
                   return (
                     <Marker
                       key={ig.codigo_totvs}
                       position={[ig.latitude!, ig.longitude!]}
                       icon={icon}
+                      alt={isSedeMundial ? "Sede Mundial" : undefined}
+                      ref={(el) => {
+                        if (el) {
+                          markerRefs.current[ig.codigo_totvs] = el;
+                        } else {
+                          delete markerRefs.current[ig.codigo_totvs];
+                        }
+                      }}
                     >
                       {/* Leaflet Interactive Popup */}
                       <Popup className="custom-popup-styled max-w-xs sm:max-w-sm">
