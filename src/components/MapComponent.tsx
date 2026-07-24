@@ -9,6 +9,7 @@ interface MapComponentProps {
   latitude: number;
   longitude: number;
   onChangeCoords: (lat: number, lng: number) => void;
+  draggable?: boolean;
 }
 
 // Updater component to recenter map when latitude/longitude changes from outside
@@ -20,7 +21,7 @@ function ChangeMapView({ coords }: { coords: [number, number] }) {
   return null;
 }
 
-export default function MapComponent({ latitude, longitude, onChangeCoords }: MapComponentProps) {
+export default function MapComponent({ latitude, longitude, onChangeCoords, draggable = true }: MapComponentProps) {
   const [mapType, setMapType] = useState<'osm' | 'satellite'>('satellite');
 
   // Custom marker icon using an elegant inline SVG pin to avoid broken Leaflet default assets
@@ -85,7 +86,7 @@ export default function MapComponent({ latitude, longitude, onChangeCoords }: Ma
 
         {customIcon && (
           <Marker
-            draggable={true}
+            draggable={draggable}
             eventHandlers={eventHandlers}
             position={position}
             ref={markerRef}

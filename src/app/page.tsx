@@ -164,6 +164,7 @@ async function fetchGeocodeUnstructured(
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
+  const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
 
   // Database state
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
@@ -197,6 +198,11 @@ export default function Home() {
   // Dirigente Link Extractor state
   const [dirigenteLink, setDirigenteLink] = useState<string>('');
   const [dirigenteLoading, setDirigenteLoading] = useState<boolean>(false);
+
+  // Reset isRevalidating when selected church changes
+  useEffect(() => {
+    setIsRevalidating(false);
+  }, [currentIndex]);
 
   // Load operator name from localStorage on mount
   useEffect(() => {
@@ -310,6 +316,7 @@ export default function Home() {
 
   // Current church being validated
   const currentIgreja = igrejas[currentIndex];
+  const isLocked = currentIgreja?.status === 'VALIDADO' && !isRevalidating;
 
   // Quick search handler
   const handleSearchChurch = (e?: React.FormEvent) => {
@@ -840,6 +847,7 @@ export default function Home() {
                     <option value="PENDENTE">Pendentes</option>
                     <option value="VALIDADO">Validados</option>
                     <option value="DUVIDA">Dúvidas</option>
+                    <option value="PENDENTE_REVISAO">Revisões Pendentes</option>
                   </select>
                 </div>
               </div>
@@ -926,14 +934,22 @@ export default function Home() {
                       {/* Status pill badge */}
                       <span
                         className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                          currentIgreja.status === 'VALIDADO'
+                          (currentIgreja.status as string) === 'VALIDADO'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : currentIgreja.status === 'DUVIDA'
+                            : (currentIgreja.status as string) === 'DUVIDA'
                             ? 'bg-rose-50 text-rose-800 border-rose-200'
+                            : (currentIgreja.status as string) === 'PENDENTE_REVISAO'
+                            ? 'bg-purple-50 text-purple-800 border-purple-200'
                             : 'bg-amber-50 text-amber-800 border-amber-200'
                         }`}
                       >
-                        {currentIgreja.status === 'PENDENTE' ? 'Pendente' : currentIgreja.status === 'VALIDADO' ? 'Validado' : 'Dúvida'}
+                        {(currentIgreja.status as string) === 'PENDENTE'
+                          ? 'Pendente'
+                          : (currentIgreja.status as string) === 'VALIDADO'
+                          ? 'Validado'
+                          : (currentIgreja.status as string) === 'PENDENTE_REVISAO'
+                          ? 'Revisão Pendente'
+                          : 'Dúvida'}
                       </span>
                     </div>
 
@@ -1073,10 +1089,21 @@ export default function Home() {
 
                     {/* Real-time coordinates form */}
                     <div className="mt-6 pt-5 border-t border-zinc-100 space-y-4">
-                      <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-indigo-600" />
-                        Coordenadas Geográficas (Grau Decimal)
-                      </h4>
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5 text-indigo-600" />
+                          Coordenadas Geográficas (Grau Decimal)
+                        </h4>
+                        {currentIgreja?.status === 'VALIDADO' && !isRevalidating && (
+                          <button
+                            type="button"
+                            onClick={() => setIsRevalidating(true)}
+                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-lg transition-all flex items-center gap-1"
+                          >
+                            <span>🔄 Re-validar Endereço</span>
+                          </button>
+                        )}
+                      </div>
 
                       {hasNoInitialCoordinates && (
                         <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-xs flex items-start gap-2 border border-amber-200">
@@ -1097,11 +1124,12 @@ export default function Home() {
                             type="number"
                             step="any"
                             value={latInput}
+                            disabled={isLocked}
                             onChange={(e) => {
                               setLatInput(e.target.value);
                               setPrecision('EXACT');
                             }}
-                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1"
+                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
                           />
                         </div>
                         <div>
@@ -1110,11 +1138,12 @@ export default function Home() {
                             type="number"
                             step="any"
                             value={lngInput}
+                            disabled={isLocked}
                             onChange={(e) => {
                               setLngInput(e.target.value);
                               setPrecision('EXACT');
                             }}
-                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1"
+                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
                           />
                         </div>
                       </div>
@@ -1192,6 +1221,7 @@ export default function Home() {
                       latitude={finalLat}
                       longitude={finalLng}
                       onChangeCoords={handleMapCoordsChange}
+                      draggable={!isLocked}
                     />
                   </div>
                 </div>
