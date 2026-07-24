@@ -720,8 +720,8 @@ export default function Home() {
               )}
             </form>
 
-            {/* Tab switchers (3 Tabs) */}
-            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 shrink-0">
+            {/* Tab switchers (4 Tabs / Links) */}
+            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 shrink-0 gap-0.5">
               <button
                 onClick={() => setActiveTab('validation')}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
@@ -755,6 +755,13 @@ export default function Home() {
                 <Layers className="h-3.5 w-3.5" />
                 <span>Importar</span>
               </button>
+              <a
+                href="/mapa-geral"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-indigo-600 hover:bg-indigo-50"
+              >
+                <MapPin className="h-3.5 w-3.5 text-indigo-600 fill-indigo-100" />
+                <span className="font-bold">📍 Mapa Geral</span>
+              </a>
             </div>
           </div>
         </div>
