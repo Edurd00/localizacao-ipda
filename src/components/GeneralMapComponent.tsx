@@ -408,7 +408,48 @@ export default function GeneralMapComponent() {
               )}
 
               {/* Marker Clustering with react-leaflet-cluster */}
-              <MarkerClusterGroup chunkedLoading>
+              <MarkerClusterGroup
+                chunkedLoading
+                iconCreateFunction={(cluster: any) => {
+                  const count = cluster.getChildCount();
+                  let size = 35;
+                  let bg = '#6D28D9'; // Solid violet-700
+
+                  if (count > 100) {
+                    size = 55;
+                    bg = '#4C1D95'; // Darker violet-900 for huge counts
+                  } else if (count > 10) {
+                    size = 45;
+                    bg = '#5B21B6'; // Violet-800
+                  }
+
+                  return L.divIcon({
+                    html: `
+                      <div style="
+                        background-color: ${bg};
+                        color: #ffffff;
+                        font-weight: bold;
+                        border-radius: 50%;
+                        border: 3px solid #ffffff;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+                        font-size: 14px;
+                        width: ${size}px;
+                        height: ${size}px;
+                        cursor: pointer;
+                        user-select: none;
+                      ">
+                        ${count}
+                      </div>
+                    `,
+                    className: 'custom-cluster-icon-parent',
+                    iconSize: L.point(size, size),
+                    iconAnchor: [size / 2, size / 2],
+                  });
+                }}
+              >
                 {filteredIgrejas.map((ig) => {
                   const porte = getPorte(ig.desc_igreja);
                   const icon = getMarkerIcon(porte);
