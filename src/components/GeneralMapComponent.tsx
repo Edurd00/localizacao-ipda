@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   RefreshCw,
   SlidersHorizontal,
+  GitBranch,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 
@@ -227,6 +228,10 @@ export default function GeneralMapComponent() {
   // Refs for markers to programmatically open popups
   const markerRefs = useRef<Record<string, L.Marker | null>>({});
 
+  // Connection path tracking: array of coordinates for drawing polylines [ [lat, lng], [lat, lng], ... ]
+  const [selectedConnectionPath, setSelectedConnectionPath] = useState<[number, number][] | null>(null);
+  const [connectionPathSource, setConnectionPathSource] = useState<string | null>(null);
+
   // Toggle Filters visibility on mobile
   const [showFilters, setShowFilters] = useState(false);
 
@@ -334,6 +339,44 @@ export default function GeneralMapComponent() {
     }
   };
 
+  // Helper function to build vertical hierarchy connection line up to the root parent/Estadual
+  const handleTraceConnectionMesh = (startChurch: Igreja) => {
+    const pathCoords: [number, number][] = [];
+
+    // If the selected church has coordinates, add them as start point
+    if (startChurch.latitude && startChurch.longitude) {
+      pathCoords.push([startChurch.latitude, startChurch.longitude]);
+    }
+
+    let current: Igreja | undefined = startChurch;
+    const visited = new Set<string>();
+
+    while (current && current.codigo_totvs_pai) {
+      if (visited.has(current.codigo_totvs)) {
+        break; // break circular reference
+      }
+      visited.add(current.codigo_totvs);
+
+      const parentCode: string = current.codigo_totvs_pai;
+      const parentChurch = igrejas.find((ig) => ig.codigo_totvs === parentCode);
+
+      if (parentChurch && parentChurch.latitude && parentChurch.longitude) {
+        pathCoords.push([parentChurch.latitude, parentChurch.longitude]);
+        current = parentChurch;
+      } else {
+        break; // stop if parent can't be resolved or has no coordinates
+      }
+    }
+
+    if (pathCoords.length > 1) {
+      setSelectedConnectionPath(pathCoords);
+      setConnectionPathSource(startChurch.codigo_totvs);
+    } else {
+      setSelectedConnectionPath(null);
+      setConnectionPathSource(null);
+    }
+  };
+
   // Calculate dynamic map center based on filtered results, default to Brazil center
   const mapCenter = useMemo<[number, number]>(() => {
     if (filteredIgrejas.length === 1) {
@@ -384,6 +427,8 @@ export default function GeneralMapComponent() {
     setSelectedRegion('ALL');
     setSelectedEstadual('');
     setFlyToTarget(null);
+    setSelectedConnectionPath(null);
+    setConnectionPathSource(null);
   };
 
   return (
@@ -661,6 +706,17 @@ export default function GeneralMapComponent() {
                 />
               )}
 
+              {/* Render Connection Polyline on the Map layer if calculated */}
+              {selectedConnectionPath && (
+                <Polyline
+                  positions={selectedConnectionPath}
+                  color="#6366f1"
+                  weight={4}
+                  opacity={0.8}
+                  dashArray="5, 10"
+                />
+              )}
+
               {/* Marker Clustering with react-leaflet-cluster */}
               <MarkerClusterGroup
                 chunkedLoading
@@ -708,6 +764,11 @@ export default function GeneralMapComponent() {
                   const porte = getPorte(ig.desc_igreja);
                   const icon = getMarkerIcon(porte);
                   const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
+
+                  // Resolve the parent's actual description
+                  const parentChurch = ig.codigo_totvs_pai
+                    ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
+                    : null;
 
                   return (
                     <Marker
@@ -769,6 +830,22 @@ export default function GeneralMapComponent() {
                               </span>
                             </p>
 
+                            {/* Coligada Hierarchical Info */}
+                            {ig.codigo_totvs_pai && (
+                              <p className="flex items-start gap-1.5 text-[11px] bg-zinc-50 p-1.5 rounded-md border border-zinc-200">
+                                <GitBranch className="h-3.5 w-3.5 text-indigo-500 mt-0.5 shrink-0" />
+                                <span>
+                                  <span className="font-bold text-zinc-500 block text-[9px] uppercase tracking-wider">Coligada a:</span>
+                                  <strong className="text-zinc-900 font-bold block leading-tight">
+                                    {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
+                                  </strong>
+                                  <span className="text-[10px] text-zinc-500 font-mono">
+                                    Código: {ig.codigo_totvs_pai}
+                                  </span>
+                                </span>
+                              </p>
+                            )}
+
                             {((ig as any).validado_em || ig.updated_at) && (
                               <p className="text-[10px] text-zinc-500">
                                 <span className="font-semibold">Data de Validação:</span>{' '}
@@ -789,8 +866,24 @@ export default function GeneralMapComponent() {
                             )}
                           </div>
 
-                          {/* Google Maps Link */}
-                          <div className="pt-2 border-t border-zinc-100 flex justify-end">
+                          {/* Google Maps Link & Connection mesh trigger */}
+                          <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
+                            {ig.codigo_totvs_pai ? (
+                              <button
+                                type="button"
+                                onClick={() => handleTraceConnectionMesh(ig)}
+                                className={`px-2 py-1.5 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                                  connectionPathSource === ig.codigo_totvs
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
+                                }`}
+                              >
+                                <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+                                <span>{connectionPathSource === ig.codigo_totvs ? 'Malha Ativa' : 'Ver Malha de Conexão'}</span>
+                              </button>
+                            ) : (
+                              <div />
+                            )}
                             <a
                               href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
                               target="_blank"

@@ -73,9 +73,53 @@ export default function SpreadsheetUpload({ onUploadSuccess }: SpreadsheetUpload
           const parsedChurches: Igreja[] = [];
           let skippedCount = 0;
 
+          // Track current parent node in each hierarchy tier
+          let currentEstadual: Igreja | null = null;
+          let currentSetorial: Igreja | null = null;
+          let currentCentral: Igreja | null = null;
+          let currentRegional: Igreja | null = null;
+
           for (const row of rawRows) {
             const parsed = parseSpreadsheetRow(row);
             if (parsed) {
+              const desc = (parsed.desc_igreja || '').toUpperCase();
+
+              // Resolve Porte/Type of church to calculate vertical hierarchy
+              if (desc.includes('ESTADUAL')) {
+                currentEstadual = parsed;
+                currentSetorial = null;
+                currentCentral = null;
+                currentRegional = null;
+                parsed.codigo_totvs_pai = null;
+              } else if (desc.includes('SETORIAL')) {
+                currentSetorial = parsed;
+                currentCentral = null;
+                currentRegional = null;
+                parsed.codigo_totvs_pai = currentEstadual ? currentEstadual.codigo_totvs : null;
+              } else if (desc.includes('CENTRAL')) {
+                currentCentral = parsed;
+                currentRegional = null;
+                parsed.codigo_totvs_pai = currentSetorial
+                  ? currentSetorial.codigo_totvs
+                  : (currentEstadual ? currentEstadual.codigo_totvs : null);
+              } else if (desc.includes('REGIONAL')) {
+                currentRegional = parsed;
+                parsed.codigo_totvs_pai = currentCentral
+                  ? currentCentral.codigo_totvs
+                  : (currentSetorial
+                      ? currentSetorial.codigo_totvs
+                      : (currentEstadual ? currentEstadual.codigo_totvs : null));
+              } else {
+                // LOCAL, CASA DE ORAÇÃO, ALDEIA INDIGENA
+                parsed.codigo_totvs_pai = currentRegional
+                  ? currentRegional.codigo_totvs
+                  : (currentCentral
+                      ? currentCentral.codigo_totvs
+                      : (currentSetorial
+                          ? currentSetorial.codigo_totvs
+                          : (currentEstadual ? currentEstadual.codigo_totvs : null)));
+              }
+
               parsedChurches.push(parsed);
             } else {
               skippedCount++;
