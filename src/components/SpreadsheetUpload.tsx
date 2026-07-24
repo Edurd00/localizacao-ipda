@@ -65,81 +65,31 @@ export default function SpreadsheetUpload({ onUploadSuccess }: SpreadsheetUpload
       reader.onload = async (e) => {
         try {
           const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet);
-
-          const parsedChurches: Igreja[] = [];
-          let skippedCount = 0;
-
-          // Track current parent node in each hierarchy tier
-          let currentEstadual: Igreja | null = null;
-          let currentSetorial: Igreja | null = null;
-          let currentCentral: Igreja | null = null;
-          let currentRegional: Igreja | null = null;
-
-          for (const row of rawRows) {
-            const parsed = parseSpreadsheetRow(row);
-            if (parsed) {
-              const desc = (parsed.desc_igreja || '').toUpperCase();
-
-              // Resolve Porte/Type of church to calculate vertical hierarchy
-              if (desc.includes('ESTADUAL')) {
-                currentEstadual = parsed;
-                currentSetorial = null;
-                currentCentral = null;
-                currentRegional = null;
-                parsed.codigo_totvs_pai = null;
-              } else if (desc.includes('SETORIAL')) {
-                currentSetorial = parsed;
-                currentCentral = null;
-                currentRegional = null;
-                parsed.codigo_totvs_pai = currentEstadual ? currentEstadual.codigo_totvs : null;
-              } else if (desc.includes('CENTRAL')) {
-                currentCentral = parsed;
-                currentRegional = null;
-                parsed.codigo_totvs_pai = currentSetorial
-                  ? currentSetorial.codigo_totvs
-                  : (currentEstadual ? currentEstadual.codigo_totvs : null);
-              } else if (desc.includes('REGIONAL')) {
-                currentRegional = parsed;
-                parsed.codigo_totvs_pai = currentCentral
-                  ? currentCentral.codigo_totvs
-                  : (currentSetorial
-                      ? currentSetorial.codigo_totvs
-                      : (currentEstadual ? currentEstadual.codigo_totvs : null));
-              } else {
-                // LOCAL, CASA DE ORAÇÃO, ALDEIA INDIGENA
-                parsed.codigo_totvs_pai = currentRegional
-                  ? currentRegional.codigo_totvs
-                  : (currentCentral
-                      ? currentCentral.codigo_totvs
-                      : (currentSetorial
-                          ? currentSetorial.codigo_totvs
-                          : (currentEstadual ? currentEstadual.codigo_totvs : null)));
-              }
-
-              parsedChurches.push(parsed);
-            } else {
-              skippedCount++;
-            }
-          }
-
-          if (parsedChurches.length === 0) {
-            setStatus({
-              type: 'error',
-              message: 'Nenhum registro válido foi encontrado ou mapeado na planilha.',
-            });
+          if (!data) {
+            setStatus({ type: 'error', message: 'Dados da planilha vazios ou inválidos.' });
             setLoading(false);
             return;
           }
+
+          // Read the sheet binaries as string
+          let binaryString = '';
+          if (typeof data === 'string') {
+            binaryString = data;
+          } else {
+            const bytes = new Uint8Array(data as ArrayBuffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binaryString += String.fromCharCode(bytes[i]);
+            }
+          }
+
+          // We can read file as base64 string to process multiple sheets natively on the server-side
+          const base64Data = btoa(binaryString);
 
           // Send to the backend
           const res = await fetch('/api/igrejas/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ igrejas: parsedChurches }),
+            body: JSON.stringify({ fileData: base64Data }),
           });
 
           const result = await res.json();
@@ -147,9 +97,7 @@ export default function SpreadsheetUpload({ onUploadSuccess }: SpreadsheetUpload
           if (result.success) {
             setStatus({
               type: 'success',
-              message: `Sucesso! ${result.count} igrejas foram importadas/atualizadas. ${
-                skippedCount > 0 ? `(${skippedCount} linhas ignoradas por falta de Código/Totvs).` : ''
-              }`,
+              message: `Sucesso! ${result.count} igrejas foram processadas, validadas e importadas/atualizadas com mapeamento vertical de coligações.`,
               parsedCount: result.count,
             });
             onUploadSuccess();
