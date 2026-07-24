@@ -19,6 +19,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
+import { Toaster, toast } from 'sonner';
 
 // Strict Church classification by porte based on 'desc_igreja'
 export function getPorte(desc: string): string {
@@ -204,6 +205,22 @@ function MapController({
   return null;
 }
 
+// Component to dynamically fit bounds of connection paths
+function MapBoundsController({ bounds }: { bounds: [number, number][] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (bounds && bounds.length >= 2) {
+      map.fitBounds(bounds, {
+        padding: [100, 100],
+        maxZoom: 15,
+        animate: true,
+        duration: 1.2,
+      });
+    }
+  }, [bounds, map]);
+  return null;
+}
+
 export default function GeneralMapComponent() {
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,42 +356,42 @@ export default function GeneralMapComponent() {
     }
   };
 
-  // Helper function to build vertical hierarchy connection line up to the root parent/Estadual
+  // Helper function to build vertical hierarchy connection line to the parent church
   const handleTraceConnectionMesh = (startChurch: Igreja) => {
-    const pathCoords: [number, number][] = [];
+    // 1. Clear any previous connection line layer
+    setSelectedConnectionPath(null);
+    setConnectionPathSource(null);
 
-    // If the selected church has coordinates, add them as start point
-    if (startChurch.latitude && startChurch.longitude) {
-      pathCoords.push([startChurch.latitude, startChurch.longitude]);
+    if (!startChurch.codigo_totvs_pai) {
+      toast.error('Esta igreja não possui registro de vinculação hierárquica.');
+      return;
     }
 
-    let current: Igreja | undefined = startChurch;
-    const visited = new Set<string>();
+    const parentCode = startChurch.codigo_totvs_pai;
+    const parentChurch = igrejas.find((ig) => ig.codigo_totvs === parentCode);
 
-    while (current && current.codigo_totvs_pai) {
-      if (visited.has(current.codigo_totvs)) {
-        break; // break circular reference
-      }
-      visited.add(current.codigo_totvs);
-
-      const parentCode: string = current.codigo_totvs_pai;
-      const parentChurch = igrejas.find((ig) => ig.codigo_totvs === parentCode);
-
-      if (parentChurch && parentChurch.latitude && parentChurch.longitude) {
-        pathCoords.push([parentChurch.latitude, parentChurch.longitude]);
-        current = parentChurch;
-      } else {
-        break; // stop if parent can't be resolved or has no coordinates
-      }
+    // 2. Validate coordinates of both entities
+    if (!startChurch.latitude || !startChurch.longitude) {
+      toast.error('A igreja selecionada não possui coordenadas de geolocalização válidas.');
+      return;
     }
 
-    if (pathCoords.length > 1) {
-      setSelectedConnectionPath(pathCoords);
+    if (!parentChurch || !parentChurch.latitude || !parentChurch.longitude) {
+      toast.error(`A igreja mãe (Código ${parentCode}) ainda não possui coordenadas validadas para traçar a malha.`);
+      return;
+    }
+
+    // 3. Trace straight connection path after clearing to ensure previous layers are removed
+    setTimeout(() => {
+      const path: [number, number][] = [
+        [startChurch.latitude!, startChurch.longitude!],
+        [parentChurch.latitude!, parentChurch.longitude!],
+      ];
+
+      setSelectedConnectionPath(path);
       setConnectionPathSource(startChurch.codigo_totvs);
-    } else {
-      setSelectedConnectionPath(null);
-      setConnectionPathSource(null);
-    }
+      toast.success(`Malha de conexão traçada com sucesso!`);
+    }, 50);
   };
 
   // Calculate dynamic map center based on filtered results, default to Brazil center
@@ -433,6 +450,9 @@ export default function GeneralMapComponent() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-zinc-50">
+      {/* Toast Notification Container */}
+      <Toaster position="top-right" richColors closeButton />
+
       {/* Header Panel */}
       <header className="bg-white border-b border-zinc-200 z-[1020] shadow-xs px-4 py-3 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
         <div className="flex items-center space-x-3 w-full sm:w-auto">
@@ -694,6 +714,8 @@ export default function GeneralMapComponent() {
                 }}
               />
 
+              <MapBoundsController bounds={selectedConnectionPath} />
+
               {mapType === 'satellite' ? (
                 <TileLayer
                   attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
@@ -710,10 +732,10 @@ export default function GeneralMapComponent() {
               {selectedConnectionPath && (
                 <Polyline
                   positions={selectedConnectionPath}
-                  color="#6366f1"
+                  color="#4F46E5"
                   weight={4}
-                  opacity={0.8}
-                  dashArray="5, 10"
+                  opacity={0.9}
+                  dashArray="8, 8"
                 />
               )}
 

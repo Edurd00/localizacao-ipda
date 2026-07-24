@@ -442,3 +442,51 @@ https://react.dev/link/hydration-mismatch
  GET /mapa-geral 200 in 241ms (next.js: 122ms, application-code: 120ms)
  GET /api/igrejas/validadas 200 in 76ms (next.js: 69ms, application-code: 7ms)
  GET /api/igrejas/validadas 200 in 9ms (next.js: 3ms, application-code: 7ms)
+ GET / 200 in 835ms (next.js: 115ms, application-code: 720ms)
+ GET /api/igrejas?status=PENDENTE 200 in 72ms (next.js: 7ms, application-code: 66ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>
+      <HTTPAccessFallbackErrorBoundary pathname="/" notFound={{...}} forbidden={undefined} unauthorized={undefined} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+              <SegmentViewNode type="page" pagePath="src/page.tsx">
+                <SegmentTrieNode>
+                <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+                  <Home params={Promise} searchParams={Promise}>
+                    <div className="min-h-scre...">
+                      <Toaster>
+                      <header className="bg-white b...">
+                        <div className="max-w-7xl ...">
+                          <div className="flex flex-...">
+                            <div>
+                            <form onSubmit={function handleSearchChurch} className="relative f...">
+                              <Search>
+                              <input
+                                type="text"
+                                placeholder="Buscar por Código TOTVS, Nome ou Rua..."
+                                value=""
+                                onChange={function onChange}
+                                className="w-full bg-zinc-100 border border-zinc-200 rounded-xl pl-8 pr-8 py-1.5 text-..."
+-                               style={{caret-color:"transparent"}}
+                              >
+                            ...
+                      ...
+              ...
+            ...
+
+ GET /mapa-geral 200 in 177ms (next.js: 23ms, application-code: 154ms)
+ GET /api/igrejas/validadas 200 in 11ms (next.js: 5ms, application-code: 7ms)
+ GET /api/igrejas/validadas 200 in 8ms (next.js: 3ms, application-code: 5ms)
