@@ -3,6 +3,9 @@ import { saveIgrejasBulk, Igreja } from '@/lib/db';
 
 import * as XLSX from 'xlsx';
 
+export const maxDuration = 60; // Increase server timeout on compatible hosts (like Vercel Pro)
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     // Determine the content-type.
