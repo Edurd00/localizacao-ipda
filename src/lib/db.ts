@@ -155,59 +155,70 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
   if (pool) {
     const client = await pool.connect();
     try {
-      await client.query('BEGIN');
-      for (const ig of igrejas) {
-        await client.query(
-          `INSERT INTO igrejas (
-            codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-          ON CONFLICT (codigo_totvs) DO UPDATE SET
-            desc_igreja = EXCLUDED.desc_igreja,
-            tipo_imovel = EXCLUDED.tipo_imovel,
-            bairro = EXCLUDED.bairro,
-            municipio = EXCLUDED.municipio,
-            estado = EXCLUDED.estado,
-            cep = EXCLUDED.cep,
-            status = CASE
-              WHEN igrejas.endereco <> EXCLUDED.endereco THEN 'PENDENTE_REVISAO'
-              ELSE igrejas.status
-            END,
-            latitude = CASE
-              WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.latitude
-              ELSE COALESCE(EXCLUDED.latitude, igrejas.latitude)
-            END,
-            longitude = CASE
-              WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.longitude
-              ELSE COALESCE(EXCLUDED.longitude, igrejas.longitude)
-            END,
-            link_google_maps = CASE
-              WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.link_google_maps
-              ELSE COALESCE(NULLIF(EXCLUDED.link_google_maps, ''), igrejas.link_google_maps)
-            END,
-            endereco = EXCLUDED.endereco,
-            codigo_totvs_pai = EXCLUDED.codigo_totvs_pai,
-            updated_at = CURRENT_TIMESTAMP`,
-          [
-            ig.codigo_totvs,
-            ig.desc_igreja,
-            ig.tipo_imovel,
-            ig.endereco,
-            ig.bairro,
-            ig.municipio,
-            ig.estado,
-            ig.cep,
-            ig.link_google_maps,
-            ig.latitude,
-            ig.longitude,
-            ig.status || 'PENDENTE',
-            ig.codigo_totvs_pai || null,
-          ]
-        );
+      // Chunk size to split database operations and prevent parameterized limits
+      const CHUNK_SIZE = 500;
+
+      for (let i = 0; i < igrejas.length; i += CHUNK_SIZE) {
+        const chunk = igrejas.slice(i, i + CHUNK_SIZE);
+
+        await client.query('BEGIN');
+        for (const ig of chunk) {
+          await client.query(
+            `INSERT INTO igrejas (
+              codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            ON CONFLICT (codigo_totvs) DO UPDATE SET
+              desc_igreja = EXCLUDED.desc_igreja,
+              tipo_imovel = EXCLUDED.tipo_imovel,
+              bairro = EXCLUDED.bairro,
+              municipio = EXCLUDED.municipio,
+              estado = EXCLUDED.estado,
+              cep = EXCLUDED.cep,
+              status = CASE
+                WHEN igrejas.endereco <> EXCLUDED.endereco THEN 'PENDENTE_REVISAO'
+                ELSE igrejas.status
+              END,
+              latitude = CASE
+                WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.latitude
+                ELSE COALESCE(EXCLUDED.latitude, igrejas.latitude)
+              END,
+              longitude = CASE
+                WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.longitude
+                ELSE COALESCE(EXCLUDED.longitude, igrejas.longitude)
+              END,
+              link_google_maps = CASE
+                WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.link_google_maps
+                ELSE COALESCE(NULLIF(EXCLUDED.link_google_maps, ''), igrejas.link_google_maps)
+              END,
+              endereco = EXCLUDED.endereco,
+              codigo_totvs_pai = EXCLUDED.codigo_totvs_pai,
+              updated_at = CURRENT_TIMESTAMP`,
+            [
+              ig.codigo_totvs,
+              ig.desc_igreja,
+              ig.tipo_imovel,
+              ig.endereco,
+              ig.bairro,
+              ig.municipio,
+              ig.estado,
+              ig.cep,
+              ig.link_google_maps,
+              ig.latitude,
+              ig.longitude,
+              ig.status || 'PENDENTE',
+              ig.codigo_totvs_pai || null,
+            ]
+          );
+        }
+        await client.query('COMMIT');
       }
-      await client.query('COMMIT');
       return;
     } catch (err) {
-      await client.query('ROLLBACK');
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        console.error('Failed to rollback transaction:', rollbackErr);
+      }
       console.error('Postgres error during bulk insert:', err);
       throw err;
     } finally {
