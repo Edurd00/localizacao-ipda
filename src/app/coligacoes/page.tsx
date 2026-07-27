@@ -25,15 +25,15 @@ import {
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
 
-// Precise official colors mapping
+// Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
-  ESTADUAL: { name: 'ESTADUAL', color: '#8FAADC', label: 'Estadual (Azul)' },
-  SETORIAL: { name: 'SETORIAL', color: '#FFFF00', label: 'Setorial (Amarelo)' },
-  CENTRAL: { name: 'CENTRAL', color: '#F8CBAD', label: 'Central (Laranja)' },
-  REGIONAL: { name: 'REGIONAL', color: '#A9D08E', label: 'Regional (Verde)' },
-  LOCAL: { name: 'LOCAL', color: '#A6A6A6', label: 'Local (Cinza)' },
-  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#D9B8C4', label: 'Casa de Oração (Rosa)' },
-  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano)' },
+  ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual (Azul)' },
+  SETORIAL: { name: 'SETORIAL', color: '#EAB308', label: 'Setorial (Amarelo)' },
+  CENTRAL: { name: 'CENTRAL', color: '#F97316', label: 'Central (Laranja)' },
+  REGIONAL: { name: 'REGIONAL', color: '#22C55E', label: 'Regional (Verde)' },
+  LOCAL: { name: 'LOCAL', color: '#8B5CF6', label: 'Local (Roxo Suave)' },
+  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#EC4899', label: 'Casa de Oração (Rosa/Carmesim)' },
+  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano/Turquesa)' },
 };
 
 // Strict size classification based on description text

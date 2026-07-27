@@ -47,14 +47,14 @@ export function getPorte(desc: string): string {
   return 'LOCAL';
 }
 
-// Map of precise official colors (as requested)
+// Map of precise official colors (as requested for high-contrast on satellite imagery)
 export const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
-  ESTADUAL: { name: 'ESTADUAL', color: '#8FAADC', label: 'Estadual (Azul)' },
-  SETORIAL: { name: 'SETORIAL', color: '#FFFF00', label: 'Setorial (Amarelo)' },
-  CENTRAL: { name: 'CENTRAL', color: '#F8CBAD', label: 'Central (Laranja/Pêssego)' },
-  REGIONAL: { name: 'REGIONAL', color: '#A9D08E', label: 'Regional (Verde/Menta)' },
-  LOCAL: { name: 'LOCAL', color: '#A6A6A6', label: 'Local (Cinza)' },
-  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#D9B8C4', label: 'Casa de Oração (Rosa/Lilás)' },
+  ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual (Azul)' },
+  SETORIAL: { name: 'SETORIAL', color: '#EAB308', label: 'Setorial (Amarelo)' },
+  CENTRAL: { name: 'CENTRAL', color: '#F97316', label: 'Central (Laranja)' },
+  REGIONAL: { name: 'REGIONAL', color: '#22C55E', label: 'Regional (Verde)' },
+  LOCAL: { name: 'LOCAL', color: '#8B5CF6', label: 'Local (Roxo Suave)' },
+  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#EC4899', label: 'Casa de Oração (Rosa/Carmesim)' },
   'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano/Turquesa)' },
 };
 
@@ -582,44 +582,67 @@ export default function GeneralMapComponent() {
     return 4;
   }, [filteredIgrejas, selectedUF]);
 
-  // Custom marker icon builder using exact hex colors and dark outline stroke
+  // Custom marker icon builder using exact hex colors and solid pure white border
   const getMarkerIcon = (porte: string) => {
     const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
+
+    // Size hierarchy: Estadual/Setorial (36px), Central/Regional (32px), Local/Others (28px)
+    let w = 28;
+    let h = 28;
+    if (porte === 'ESTADUAL' || porte === 'SETORIAL') {
+      w = 36;
+      h = 36;
+    } else if (porte === 'CENTRAL' || porte === 'REGIONAL') {
+      w = 32;
+      h = 32;
+    }
+
     return L.divIcon({
       html: `
-        <div class="relative flex flex-col items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#27272a" stroke-width="1.5" class="w-8 h-8 drop-shadow-md">
+        <div class="relative flex flex-col items-center justify-center" style="width: ${w}px; height: ${h}px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.6));" class="z-20">
             <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
           </svg>
         </div>
       `,
       className: '',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
+      iconSize: [w, h],
+      iconAnchor: [w / 2, h],
+      popupAnchor: [0, -h],
     });
   };
 
-  // Highlighted custom icon builder with cyan/neon pulsing outline
+  // Highlighted custom icon builder with neon pulsing outline
   const getHighlightedMarkerIcon = (porte: string, isSource: boolean) => {
     const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
-    const strokeColor = isSource ? '#6366F1' : '#00FFFF'; // Purple Neon for source, Cyan for parents
-    const strokeWidth = 2.5;
-    const ringAnim = isSource ? 'animate-ping opacity-75' : '';
+
+    // Highlighted sizes are slightly larger for distinct visualization
+    let w = 32;
+    let h = 32;
+    if (porte === 'ESTADUAL' || porte === 'SETORIAL') {
+      w = 40;
+      h = 40;
+    } else if (porte === 'CENTRAL' || porte === 'REGIONAL') {
+      w = 36;
+      h = 36;
+    }
+
+    const ringAnim = isSource ? 'animate-ping' : 'animate-pulse';
+    const ringColor = isSource ? '#6366F1' : '#00FFFF';
 
     return L.divIcon({
       html: `
-        <div class="relative flex flex-col items-center">
-          <div class="absolute -top-1 w-10 h-10 rounded-full bg-cyan-400/20 ${ringAnim} border border-cyan-400/40 pointer-events-none"></div>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" class="w-9 h-9 drop-shadow-lg z-50">
+        <div class="relative flex flex-col items-center justify-center" style="width: ${w}px; height: ${h}px;">
+          <div class="absolute rounded-full bg-transparent border-2 border-dashed ${ringAnim} pointer-events-none" style="border-color: ${ringColor}; width: ${w + 10}px; height: ${h + 10}px;"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.7));" class="z-50">
             <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
           </svg>
         </div>
       `,
       className: '',
-      iconSize: [36, 36],
-      iconAnchor: [18, 36],
-      popupAnchor: [0, -36],
+      iconSize: [w, h],
+      iconAnchor: [w / 2, h],
+      popupAnchor: [0, -h],
     });
   };
 
@@ -975,13 +998,23 @@ export default function GeneralMapComponent() {
 
               {/* Render Connection Polyline on the Map layer if calculated */}
               {selectedConnectionPath && (
-                <Polyline
-                  positions={selectedConnectionPath}
-                  color="#6366F1"
-                  weight={4}
-                  opacity={0.9}
-                  dashArray="6, 6"
-                />
+                <>
+                  {/* Thick solid black background stroke for 3D depth and absolute contrast over satellite backgrounds */}
+                  <Polyline
+                    positions={selectedConnectionPath}
+                    color="#000000"
+                    weight={7}
+                    opacity={0.6}
+                  />
+                  {/* Bright neon yellow high-contrast foreground dashed line */}
+                  <Polyline
+                    positions={selectedConnectionPath}
+                    color="#FACC15"
+                    weight={4}
+                    opacity={0.95}
+                    dashArray="8, 8"
+                  />
+                </>
               )}
 
               {/* Highlighted active family tree path markers (rendered OUTSIDE clusters to stand out) */}
