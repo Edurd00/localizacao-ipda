@@ -61,7 +61,7 @@ export default function LoginPage() {
           <img
             src="/img/logo.png"
             alt="GEO-VALIG IPDA"
-            className="h-16 w-auto object-contain rounded-xl shadow-md"
+            className="h-16 w-auto object-contain shadow-md"
           />
         </div>
         <h2 className="mt-6 text-center text-2xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
