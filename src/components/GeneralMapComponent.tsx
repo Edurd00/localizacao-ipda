@@ -17,6 +17,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
   GitBranch,
+  Lock,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
@@ -386,7 +387,7 @@ export default function GeneralMapComponent() {
   // Floating Region Legend collapsible state
   const [regionLegendOpen, setRegionLegendOpen] = useState(false);
 
-  // Toggle Filters visibility on mobile
+  // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
   // Fetch validated churches on mount
@@ -660,190 +661,221 @@ export default function GeneralMapComponent() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-zinc-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-zinc-50 relative">
       {/* Toast Notification Container */}
       <Toaster position="top-right" richColors closeButton />
 
-      {/* Header Panel */}
-      <header className="bg-white border-b border-zinc-200 z-[1020] shadow-xs px-4 py-3 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-        <div className="flex items-center space-x-3 w-full sm:w-auto">
-          <a
-            href="/"
-            className="p-2 hover:bg-zinc-100 rounded-xl transition-all border border-zinc-200 text-zinc-600 hover:text-zinc-950 flex items-center justify-center shrink-0"
-            title="Voltar para a Validação"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </a>
-          <div>
-            <h1 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-              📍 Mapa Geral de Igrejas Validadas
-              <span className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full font-bold border border-indigo-100">
-                {filteredIgrejas.length} no mapa
-              </span>
-            </h1>
-            <p className="text-[10px] text-zinc-500 font-medium">
-              Geolocalização oficial e monitoramento de igrejas marcadas como VALIDADAS
-            </p>
+      {/* Modern Compact Floating Header Overlay */}
+      <header className="absolute top-4 left-4 right-4 z-[1020] bg-white/80 backdrop-blur-md border border-zinc-200 shadow-md rounded-2xl p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
+        {/* Left Section: Logo & Counter */}
+        <div className="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
+          <div className="flex items-center space-x-2">
+            <img
+              src="/img/logo.png"
+              alt="IPDA"
+              className="h-8 w-auto object-contain rounded-md"
+            />
+            <div>
+              <h1 className="text-xs font-black text-zinc-950 tracking-tight leading-tight">
+                GEO-VALIG IPDA
+              </h1>
+              <p className="text-[9px] text-zinc-500 font-semibold">MAPA DE VALIDAÇÃO</p>
+            </div>
           </div>
+          <span className="text-[10px] bg-indigo-50 border border-indigo-150 text-indigo-700 font-bold px-2 py-0.5 rounded-full">
+            {filteredIgrejas.length} no mapa
+          </span>
         </div>
 
-        {/* Search & Actions */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-80">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Buscar por código, nome ou município..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-100 border border-zinc-200 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-medium transition-all"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-600 p-0.5"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+        {/* Center Section: Compact Quick Search */}
+        <div className="relative w-full md:max-w-md flex-1">
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+          <input
+            type="text"
+            placeholder="Buscar por código TOTVS, nome, rua ou município..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white font-medium transition-all"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 p-0.5"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
 
+        {/* Right Section: Actions & Access Buttons */}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          {/* Collapsible Popover Filters Trigger Button */}
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`p-2 rounded-xl border sm:hidden flex items-center justify-center transition-all ${
+            onClick={() => {
+              setShowFilters(!showFilters);
+              toast.dismiss();
+            }}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 ${
               showFilters
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
             }`}
           >
-            <SlidersHorizontal className="h-4 w-4" />
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>Filtros</span>
           </button>
+
+          <a
+            href="/coligacoes"
+            className="p-1.5 bg-white text-zinc-650 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
+            title="Ir para Gestão de Coligações"
+          >
+            <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="text-xs font-semibold hidden sm:inline">🌳 Coligações</span>
+          </a>
+
+          <a
+            href="/validacao"
+            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm"
+            title="Acessar Área Restrita"
+          >
+            <Lock className="h-3.5 w-3.5 text-white" />
+            <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
+          </a>
 
           <button
             onClick={fetchValidatedChurches}
             disabled={loading}
-            className="p-2 bg-white text-zinc-600 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
+            className="p-1.5 bg-white text-zinc-600 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
             title="Atualizar dados do banco"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </header>
 
-      {/* Real-time Filters panel (Desktop: always visible, Mobile: expandable) */}
-      <section
-        className={`bg-white border-b border-zinc-200 px-4 py-3 sm:px-6 z-[1010] shadow-xs flex flex-col gap-4 ${
-          showFilters ? 'flex' : 'hidden sm:flex'
-        }`}
-      >
-        <div className="flex flex-wrap items-center gap-4">
-          {/* UF Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-              <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-              Estado (UF)
-            </label>
-            <select
-              value={selectedUF}
-              onChange={(e) => setSelectedUF(e.target.value)}
-              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-40"
+      {/* Floating Collapsible Filters Popover Card */}
+      {showFilters && (
+        <section className="absolute top-[140px] md:top-20 right-4 z-[1015] bg-white/95 backdrop-blur-md border border-zinc-200 shadow-xl rounded-2xl p-4 w-full max-w-sm space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+            <span className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
+              🎛️ Painel de Filtros Rápidos
+            </span>
+            <button
+              onClick={() => setShowFilters(false)}
+              className="text-zinc-400 hover:text-zinc-600 p-1 hover:bg-zinc-100 rounded-md"
             >
-              <option value="ALL">Todos os Estados</option>
-              {distinctUFs.map((uf) => (
-                <option key={uf} value={uf}>
-                  {uf}
-                </option>
-              ))}
-            </select>
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
-          {/* Real Estate Property Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-              <Building2 className="h-3.5 w-3.5 text-zinc-400" />
-              Imóvel
-            </label>
-            <select
-              value={selectedTipoImovel}
-              onChange={(e) => setSelectedTipoImovel(e.target.value)}
-              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-40"
-            >
-              <option value="ALL">Todos</option>
-              <option value="PROPRIO">Próprio</option>
-              <option value="ALUGADO">Alugado</option>
-            </select>
-          </div>
-
-          {/* Hierarchical Region Selector */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-              <Layers className="h-3.5 w-3.5 text-zinc-400" />
-              Região
-            </label>
-            <select
-              value={selectedRegion}
-              onChange={(e) => {
-                setSelectedRegion(e.target.value);
-                setSelectedEstadual('');
-                setFlyToTarget(null);
-              }}
-              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-44"
-            >
-              <option value="ALL">Todas as Regiões</option>
-              {Object.keys(REGOES_ESTADUAIS).map((reg) => (
-                <option key={reg} value={reg}>
-                  {reg}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Hierarchical Estadual de Referência Selector */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
-              <Building2 className="h-3.5 w-3.5 text-zinc-400" />
-              Estadual de Ref.
-            </label>
-            <select
-              value={selectedEstadual}
-              disabled={selectedRegion === 'ALL'}
-              onChange={(e) => handleSelectEstadual(e.target.value)}
-              className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-48 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">Selecione uma Estadual</option>
-              {selectedRegion !== 'ALL' &&
-                REGOES_ESTADUAIS[selectedRegion as keyof typeof REGOES_ESTADUAIS]?.map((est) => (
-                  <option key={est.nome} value={est.totvs}>
-                    {est.nome} {est.totvs ? `(${est.totvs})` : ''}
+          <div className="grid grid-cols-2 gap-3">
+            {/* UF Filter */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-zinc-400" />
+                Estado (UF)
+              </label>
+              <select
+                value={selectedUF}
+                onChange={(e) => setSelectedUF(e.target.value)}
+                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+              >
+                <option value="ALL">Todos os Estados</option>
+                {distinctUFs.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
                   </option>
                 ))}
-            </select>
-          </div>
-        </div>
+              </select>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-4 border-t border-zinc-100 pt-3">
+            {/* Real Estate Property Filter */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Building2 className="h-3 w-3 text-zinc-400" />
+                Imóvel
+              </label>
+              <select
+                value={selectedTipoImovel}
+                onChange={(e) => setSelectedTipoImovel(e.target.value)}
+                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+              >
+                <option value="ALL">Todos</option>
+                <option value="PROPRIO">Próprio</option>
+                <option value="ALUGADO">Alugado</option>
+              </select>
+            </div>
+
+            {/* Hierarchical Region Selector */}
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Layers className="h-3 w-3 text-zinc-400" />
+                Região Geográfica
+              </label>
+              <select
+                value={selectedRegion}
+                onChange={(e) => {
+                  setSelectedRegion(e.target.value);
+                  setSelectedEstadual('');
+                  setFlyToTarget(null);
+                }}
+                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+              >
+                <option value="ALL">Todas as Regiões</option>
+                {Object.keys(REGOES_ESTADUAIS).map((reg) => (
+                  <option key={reg} value={reg}>
+                    {reg}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Hierarchical Estadual de Referência Selector */}
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Building2 className="h-3 w-3 text-zinc-400" />
+                Estadual de Referência
+              </label>
+              <select
+                value={selectedEstadual}
+                disabled={selectedRegion === 'ALL'}
+                onChange={(e) => handleSelectEstadual(e.target.value)}
+                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">Selecione uma Estadual</option>
+                {selectedRegion !== 'ALL' &&
+                  REGOES_ESTADUAIS[selectedRegion as keyof typeof REGOES_ESTADUAIS]?.map((est) => (
+                    <option key={est.nome} value={est.totvs}>
+                      {est.nome} {est.totvs ? `(${est.totvs})` : ''}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+
           {/* Porte / Size Multi-selection tags */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+          <div className="space-y-1.5 border-t border-zinc-100 pt-3">
+            <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
               <Filter className="h-3.5 w-3.5 text-zinc-400" />
-              Porte da Igreja
+              Porte da Igreja (Classificação)
             </label>
-            <div className="flex flex-wrap gap-1.5 items-center">
+            <div className="flex flex-wrap gap-1">
               {Object.values(PORTE_INFO).map((item) => {
                 const active = selectedPortes.includes(item.name);
                 return (
                   <button
                     key={item.name}
                     onClick={() => handleTogglePorte(item.name)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1.5 ${
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-bold border transition-all flex items-center gap-1 ${
                       active
                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                         : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100'
                     }`}
                   >
                     <span
-                      className="w-2 h-2 rounded-full border border-black/10 inline-block"
+                      className="w-1.5 h-1.5 rounded-full border border-black/10 inline-block"
                       style={{ backgroundColor: item.color }}
                     />
                     <span>{item.name}</span>
@@ -855,19 +887,21 @@ export default function GeneralMapComponent() {
 
           {/* Reset Filter Button */}
           {(selectedRegion !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
-            <button
-              onClick={handleResetFilters}
-              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-bold rounded-xl flex items-center gap-1 self-start sm:self-center transition-all ml-auto shrink-0"
-            >
-              <X className="h-3 w-3" />
-              <span>Limpar Filtros</span>
-            </button>
+            <div className="pt-2 border-t border-zinc-150 flex justify-end">
+              <button
+                onClick={handleResetFilters}
+                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-bold rounded-xl flex items-center gap-1 transition-all shadow-2xs"
+              >
+                <X className="h-3.5 w-3.5" />
+                <span>Limpar Filtros</span>
+              </button>
+            </div>
           )}
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Main Workspace Map Block */}
-      <div className="flex-1 relative flex items-stretch">
+      <div className="flex-1 w-full h-full relative z-10">
         {loading ? (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-50 flex flex-col items-center justify-center p-4">
             <svg className="animate-spin h-9 w-9 text-indigo-600 mb-3" fill="none" viewBox="0 0 24 24">

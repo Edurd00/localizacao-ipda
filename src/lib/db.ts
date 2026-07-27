@@ -12,7 +12,7 @@ export interface Igreja {
   link_google_maps: string;
   latitude: number | null;
   longitude: number | null;
-  status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO';
+  status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO';
   usuario_validador?: string | null;
   codigo_totvs_pai?: string | null;
   updated_at?: string;
@@ -114,7 +114,7 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
         link_google_maps: row.link_google_maps,
         latitude: row.latitude === 0 ? null : row.latitude,
         longitude: row.longitude === 0 ? null : row.longitude,
-        status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO',
+        status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO',
         usuario_validador: row.usuario_validador,
         codigo_totvs_pai: row.codigo_totvs_pai,
         updated_at: row.updated_at,
