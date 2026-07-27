@@ -206,16 +206,31 @@ function MapController({
 }
 
 // Component to dynamically fit bounds of connection paths
-function MapBoundsController({ bounds }: { bounds: [number, number][] | null }) {
+function MapBoundsController({ bounds }: { bounds: any[] | null }) {
   const map = useMap();
   useEffect(() => {
-    if (bounds && bounds.length >= 2) {
-      map.fitBounds(bounds, {
-        padding: [50, 50],
-        maxZoom: 15,
-        animate: true,
-        duration: 1.2,
-      });
+    if (bounds && bounds.length > 0) {
+      // Safely flatten any 2D segment arrays to a single flat LatLngExpression list
+      const flatPoints: [number, number][] = [];
+
+      const processItem = (item: any) => {
+        if (Array.isArray(item) && typeof item[0] === 'number' && typeof item[1] === 'number') {
+          flatPoints.push(item as [number, number]);
+        } else if (Array.isArray(item)) {
+          item.forEach(processItem);
+        }
+      };
+
+      bounds.forEach(processItem);
+
+      if (flatPoints.length >= 2) {
+        map.fitBounds(flatPoints, {
+          padding: [50, 50],
+          maxZoom: 15,
+          animate: true,
+          duration: 1.2,
+        });
+      }
     }
   }, [bounds, map]);
   return null;
@@ -479,7 +494,7 @@ export default function GeneralMapComponent() {
     }
   };
 
-  // Helper function to build vertical hierarchy connection line traversing recursively up to root Estadual
+  // Helper function to build vertical hierarchy connection line traversing recursively up and down the complete family tree
   const handleTraceConnectionMesh = (startChurch: Igreja) => {
     // 1. Clear any previous connection line layer
     setSelectedConnectionPath(null);
@@ -491,45 +506,65 @@ export default function GeneralMapComponent() {
       return;
     }
 
-    // 2. Trace coordinates up the complete vertical family tree sequentially
+    // 2. Trace coordinates up and down the family tree sequentially
     setTimeout(() => {
-      const pathCoords: [number, number][] = [[startChurch.latitude!, startChurch.longitude!]];
-      const chainCodes: string[] = [startChurch.codigo_totvs];
-      let current: Igreja | undefined = startChurch;
-      const visited = new Set<string>();
+      const chainCodes = new Set<string>();
+      const pathSegments: [number, number][][] = [];
 
-      while (current && current.codigo_totvs_pai) {
-        if (visited.has(current.codigo_totvs)) {
-          console.warn('Circular hierarchy reference detected in church tree.');
-          break; // break circular reference
-        }
-        visited.add(current.codigo_totvs);
+      // A) Trace UPWARD (Ascending)
+      let currentUp: Igreja | undefined = startChurch;
+      const visitedUp = new Set<string>();
+      while (currentUp && currentUp.codigo_totvs_pai) {
+        if (visitedUp.has(currentUp.codigo_totvs)) break;
+        visitedUp.add(currentUp.codigo_totvs);
 
-        const parentCode: string = current.codigo_totvs_pai;
+        const parentCode: string = currentUp.codigo_totvs_pai;
         const parentChurch = igrejas.find((ig) => ig.codigo_totvs === parentCode);
 
         if (parentChurch) {
-          if (parentChurch.latitude && parentChurch.longitude) {
-            pathCoords.push([parentChurch.latitude, parentChurch.longitude]);
-            chainCodes.push(parentCode);
+          if (currentUp.latitude && currentUp.longitude && parentChurch.latitude && parentChurch.longitude) {
+            pathSegments.push([
+              [currentUp.latitude, currentUp.longitude],
+              [parentChurch.latitude, parentChurch.longitude],
+            ]);
+            chainCodes.add(currentUp.codigo_totvs);
+            chainCodes.add(parentChurch.codigo_totvs);
           } else {
-            console.warn(`Parent church ${parentCode} has missing coordinates.`);
-            toast.warning(`A igreja mãe (${parentChurch.desc_igreja} - Código ${parentCode}) ainda não possui coordenadas validadas para traçar a malha.`);
+            console.warn(`Missing coordinates between ${currentUp.codigo_totvs} and parent ${parentCode}`);
           }
-          current = parentChurch;
+          currentUp = parentChurch;
         } else {
-          toast.warning(`A igreja mãe (Código ${parentCode}) não foi localizada nos registros.`);
-          break; // stop if parent can't be resolved
+          break;
         }
       }
 
-      if (pathCoords.length > 1) {
-        setSelectedConnectionPath(pathCoords);
+      // B) Trace DOWNWARD (Descending)
+      const findDescendants = (parentCode: string) => {
+        const children = igrejas.filter((ig) => ig.codigo_totvs_pai === parentCode);
+        for (const child of children) {
+          const parent = igrejas.find((ig) => ig.codigo_totvs === parentCode);
+          if (parent && parent.latitude && parent.longitude && child.latitude && child.longitude) {
+            pathSegments.push([
+              [parent.latitude, parent.longitude],
+              [child.latitude, child.longitude],
+            ]);
+            chainCodes.add(parent.codigo_totvs);
+            chainCodes.add(child.codigo_totvs);
+          }
+          findDescendants(child.codigo_totvs);
+        }
+      };
+
+      // Trigger descending search starting from startChurch
+      findDescendants(startChurch.codigo_totvs);
+
+      if (pathSegments.length > 0) {
+        setSelectedConnectionPath(pathSegments as any);
         setConnectionPathSource(startChurch.codigo_totvs);
-        setActiveChainCodes(chainCodes);
-        toast.success(`Árvore de conexões traçada com sucesso! (${pathCoords.length} nós conectados)`);
+        setActiveChainCodes(Array.from(chainCodes));
+        toast.success(`Malha de conexões traçada com sucesso! (${chainCodes.size} nós conectados)`);
       } else {
-        toast.error('Não há igrejas superiores com geolocalização validada para traçar o caminho.');
+        toast.error('Esta igreja não possui outras coligações com geolocalização validada para traçar o caminho.');
       }
     }, 50);
   };
@@ -588,6 +623,22 @@ export default function GeneralMapComponent() {
       iconAnchor: [18, 36],
       popupAnchor: [0, -36],
     });
+  };
+
+  // Helper function to resolve cluster background colors dynamically based on State/UF of markers within each group
+  const getClusterColorByState = (uf: string): string => {
+    const normalized = (uf || '').toUpperCase().trim();
+
+    if (normalized === 'SP') return '#F59E0B'; // SP: Amarelo Dourado
+    if (normalized === 'MG') return '#EA580C'; // MG: Laranja
+    if (normalized === 'ES' || normalized === 'RJ') return '#DC2626'; // ES e RJ: Vermelho
+
+    if (['PR', 'RS', 'SC'].includes(normalized)) return '#2563EB'; // Sul: Azul
+    if (['AC', 'AM', 'RO', 'PA', 'AP', 'RR', 'TO'].includes(normalized)) return '#059669'; // Norte: Verde
+    if (['AL', 'BA', 'CE', 'RN', 'PE', 'PI', 'MA', 'PB', 'SE'].includes(normalized)) return '#7C3AED'; // Nordeste: Roxo
+    if (['MT', 'DF', 'GO', 'MS'].includes(normalized)) return '#0891B2'; // Centro-Oeste: Ciano
+
+    return '#6D28D9'; // Default solid violet fallback
   };
 
   // Toggle selected size/porte helper
@@ -922,6 +973,7 @@ export default function GeneralMapComponent() {
                         ref={(el) => {
                           if (el) {
                             markerRefs.current[ig.codigo_totvs] = el;
+                            (el as any).estado = ig.estado;
                           } else {
                             delete markerRefs.current[ig.codigo_totvs];
                           }
@@ -938,15 +990,35 @@ export default function GeneralMapComponent() {
                 iconCreateFunction={(cluster: any) => {
                   const count = cluster.getChildCount();
                   let size = 35;
-                  let bg = '#6D28D9'; // Solid violet-700
-
                   if (count > 100) {
                     size = 55;
-                    bg = '#4C1D95'; // Darker violet-900 for huge counts
                   } else if (count > 10) {
                     size = 45;
-                    bg = '#5B21B6'; // Violet-800
                   }
+
+                  // 1. Gather UFs from all child markers in the cluster
+                  const childMarkers = cluster.getAllChildMarkers();
+                  const stateCounts: Record<string, number> = {};
+
+                  childMarkers.forEach((m: any) => {
+                    const uf = m.estado || '';
+                    if (uf) {
+                      stateCounts[uf] = (stateCounts[uf] || 0) + 1;
+                    }
+                  });
+
+                  // 2. Find the majority State/UF
+                  let majorityUF = '';
+                  let maxCount = 0;
+                  Object.keys(stateCounts).forEach((uf) => {
+                    if (stateCounts[uf] > maxCount) {
+                      maxCount = stateCounts[uf];
+                      majorityUF = uf;
+                    }
+                  });
+
+                  // 3. Resolve region-based background color
+                  const bg = getClusterColorByState(majorityUF);
 
                   return L.divIcon({
                     html: `
@@ -991,6 +1063,7 @@ export default function GeneralMapComponent() {
                         ref={(el) => {
                           if (el) {
                             markerRefs.current[ig.codigo_totvs] = el;
+                            (el as any).estado = ig.estado;
                           } else {
                             delete markerRefs.current[ig.codigo_totvs];
                           }
