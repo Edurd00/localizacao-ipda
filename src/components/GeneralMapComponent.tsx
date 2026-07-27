@@ -720,6 +720,15 @@ export default function GeneralMapComponent() {
             <SlidersHorizontal className="h-4 w-4" />
           </button>
 
+          <a
+            href="/coligacoes"
+            className="p-2 bg-white text-zinc-650 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
+            title="Ir para Gestão de Coligações"
+          >
+            <GitBranch className="h-4 w-4 text-indigo-600" />
+            <span className="text-xs font-semibold hidden sm:inline">🌳 Coligações</span>
+          </a>
+
           <button
             onClick={fetchValidatedChurches}
             disabled={loading}

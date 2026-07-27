@@ -29,6 +29,7 @@ import {
   Sparkles,
   Link,
   Clipboard,
+  GitBranch,
 } from 'lucide-react';
 
 export function limparEndereco(endereco: string): string {
@@ -755,6 +756,13 @@ export default function Home() {
                 <Layers className="h-3.5 w-3.5" />
                 <span>Importar</span>
               </button>
+              <a
+                href="/coligacoes"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-indigo-600 hover:bg-indigo-50"
+              >
+                <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="font-bold">🌳 Coligações</span>
+              </a>
               <a
                 href="/mapa-geral"
                 className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-indigo-600 hover:bg-indigo-50"

@@ -939,7 +939,7 @@ export default function ColigacoesPage() {
             </div>
 
             {/* Switchers */}
-            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-0.5">
+            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-0.5 items-center">
               <button
                 onClick={() => {
                   setActiveTab('tree');
@@ -951,7 +951,7 @@ export default function ColigacoesPage() {
                     : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
-                <GitBranch className="h-3.5 w-3.5" />
+                <GitBranch className="h-3.5 w-3.5 animate-pulse" />
                 <span>Ver Árvore Hierárquica</span>
               </button>
               <button
@@ -965,6 +965,19 @@ export default function ColigacoesPage() {
                 <Upload className="h-3.5 w-3.5" />
                 <span>Importar Planilha</span>
               </button>
+              <div className="w-px h-5 bg-zinc-300 mx-1 hidden sm:block" />
+              <a
+                href="/"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200 hidden sm:block"
+              >
+                Validação
+              </a>
+              <a
+                href="/mapa-geral"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200 hidden sm:block"
+              >
+                📍 Mapa Geral
+              </a>
             </div>
           </div>
         </div>
