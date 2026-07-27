@@ -332,22 +332,18 @@ export default function GeneralMapComponent() {
 
           {/* Google Maps Link & Connection mesh trigger */}
           <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
-            {ig.codigo_totvs_pai ? (
-              <button
-                type="button"
-                onClick={() => handleTraceConnectionMesh(ig)}
-                className={`px-2 py-1.5 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
-                  connectionPathSource === ig.codigo_totvs
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
-                }`}
-              >
-                <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
-                <span>{connectionPathSource === ig.codigo_totvs ? 'Malha Ativa' : 'Ver Malha de Conexão'}</span>
-              </button>
-            ) : (
-              <div />
-            )}
+            <button
+              type="button"
+              onClick={() => handleTraceConnectionMesh(ig)}
+              className={`px-2 py-1.5 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                connectionPathSource === ig.codigo_totvs
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
+              }`}
+            >
+              <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+              <span>{connectionPathSource === ig.codigo_totvs ? 'Malha Ativa' : 'Ver Malha de Conexão'}</span>
+            </button>
             <a
               href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
               target="_blank"
@@ -386,6 +382,9 @@ export default function GeneralMapComponent() {
   const [selectedConnectionPath, setSelectedConnectionPath] = useState<[number, number][] | null>(null);
   const [connectionPathSource, setConnectionPathSource] = useState<string | null>(null);
   const [activeChainCodes, setActiveChainCodes] = useState<string[]>([]);
+
+  // Floating Region Legend collapsible state
+  const [regionLegendOpen, setRegionLegendOpen] = useState(false);
 
   // Toggle Filters visibility on mobile
   const [showFilters, setShowFilters] = useState(false);
@@ -538,8 +537,12 @@ export default function GeneralMapComponent() {
         }
       }
 
-      // B) Trace DOWNWARD (Descending)
+      // B) Trace DOWNWARD (Descending) with circular protection
+      const visitedDown = new Set<string>();
       const findDescendants = (parentCode: string) => {
+        if (visitedDown.has(parentCode)) return;
+        visitedDown.add(parentCode);
+
         const children = igrejas.filter((ig) => ig.codigo_totvs_pai === parentCode);
         for (const child of children) {
           const parent = igrejas.find((ig) => ig.codigo_totvs === parentCode);
@@ -1100,6 +1103,67 @@ export default function GeneralMapComponent() {
               >
                 Mapa (OSM)
               </button>
+            </div>
+
+            {/* Collapsible Regions Legend Card */}
+            <div className="absolute bottom-[280px] left-6 z-[1000] bg-white border border-zinc-200 rounded-2xl shadow-xl max-w-xs transition-all duration-300 overflow-hidden">
+              {regionLegendOpen ? (
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-1.5 gap-4">
+                    <h3 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Layers className="h-4 w-4 text-indigo-600" />
+                      🎨 Regiões (Agrupamentos)
+                    </h3>
+                    <button
+                      onClick={() => setRegionLegendOpen(false)}
+                      className="text-zinc-400 hover:text-zinc-650 font-bold text-xs p-1 rounded hover:bg-zinc-100 transition-all"
+                      title="Minimizar Legenda"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-semibold text-zinc-700">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#F59E0B] shrink-0" />
+                      <span>SP</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#EA580C] shrink-0" />
+                      <span>MG</span>
+                    </div>
+                    <div className="flex items-center space-x-2 col-span-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#DC2626] shrink-0" />
+                      <span>ES / RJ</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#2563EB] shrink-0" />
+                      <span>Sul</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#059669] shrink-0" />
+                      <span>Norte</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#7C3AED] shrink-0" />
+                      <span>Nordeste</span>
+                    </div>
+                    <div className="flex items-center space-x-2 col-span-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#0891B2] shrink-0" />
+                      <span>Centro-Oeste</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setRegionLegendOpen(true)}
+                  className="px-3 py-2 flex items-center space-x-2 text-[10px] font-bold text-zinc-700 hover:text-zinc-950 bg-white hover:bg-zinc-50 rounded-xl transition-all"
+                  title="Expandir Legenda de Regiões"
+                >
+                  <span>🎨</span>
+                  <span>Regiões (Agrupamentos)</span>
+                </button>
+              )}
             </div>
 
             {/* Floating Legend Card (Lower Left Corner) */}
