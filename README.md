@@ -9,6 +9,9 @@ Sistema Web interativo desenvolvido em Next.js para gerenciamento, localização
 ```
 Localizar/
 ├── public/                     # Arquivos estáticos acessíveis publicamente
+│   ├── img/                    # Ícones e logotipo da aplicação
+│   │   ├── favicon.jpg         # Favicon principal
+│   │   └── logo.png            # Logotipo oficial
 │   ├── file.svg
 │   ├── globe.svg
 │   ├── next.svg
@@ -21,22 +24,26 @@ Localizar/
 │   │   │       ├── save/
 │   │   │       │   └── route.ts  # POST: Salva a validação manual de uma igreja (lat/lng, status, operador, link)
 │   │   │       ├── upload/
-│   │   │       │   └── route.ts  # POST: Importação em lote via upload de planilha (.xlsx/.csv)
+│   │   │       │   └── route.ts  # POST: Importação em lote e cálculo hierárquico vertical de coligações
+│   │   │       ├── validadas/
+│   │   │       │   └── route.ts  # GET: Retorna as igrejas validadas otimizadas para o Mapa Geral
 │   │   │       └── route.ts      # GET: Lista igrejas filtradas por estado/status e lista de estados distintos
+│   │   ├── mapa-geral/
+│   │   │   └── page.tsx        # Página do "📍 Mapa Geral de Igrejas Validadas" (Lazy loading, ssr: false)
 │   │   ├── favicon.ico         # Favicon original do Next.js
 │   │   ├── globals.css         # Estilos globais e configuração Tailwind CSS v4
-│   │   ├── layout.tsx          # Layout raiz da aplicação (Fontes Geist, Meta tags e estrutura global)
+│   │   ├── layout.tsx          # Layout raiz da aplicação (Fontes Geist, Favicon e Meta tags globais)
 │   │   └── page.tsx            # Página principal / Painel split-screen de validação e importador de planilhas
 │   ├── components/             # Componentes de interface do usuário (UI)
 │   │   ├── MapComponent.tsx    # Componente de mapa Leaflet (Camadas Esri Satélite / OpenStreetMap e Marker arrastável)
 │   │   ├── MapWrapper.tsx      # Wrapper dynamic import (ssr: false) para carregar o Leaflet apenas no navegador
-│   │   └── SpreadsheetUpload.tsx # Drag & Drop e leitor de planilhas Excel/CSV via SheetJS (xlsx)
-│   ├── img/                    # Imagens de identidade visual do projeto
-│   │   ├── favicon.jpg         # Favicon e ícone da aplicação "Localização IPDA"
-│   │   └── logo.png            # Logotipo oficial "Localização IPDA"
+│   │   ├── GeneralMapComponent.tsx # Painel principal do Mapa Geral (Filtros, Legenda retrátil, Malhas de conexão)
+│   │   ├── DashboardView.tsx   # Dashboard analítico de progresso da validação
+│   │   └── SpreadsheetUpload.tsx # Drag & Drop e leitor de planilhas Excel/CSV com envio base64
 │   └── lib/                    # Camada de serviços, utilitários e dados
-│       ├── db.ts               # Conexão com PostgreSQL (Neón/Postgres) com fallback automático em memória
-│       └── parser.ts           # Normalizador e conversor de colunas de planilhas Excel para a estrutura de Igreja
+│       ├── db.ts               # Conexão com PostgreSQL (Neon DB) com fallback automático em memória e alter table dinâmico
+│       ├── parser.ts           # Normalizador e conversor de colunas de planilhas Excel para a estrutura de Igreja
+│       └── geocoding.ts        # Utilitários de normalização geográfica e travas de estado (UFs)
 ├── .gitignore                  # Arquivos e pastas ignorados pelo Git
 ├── AGENTS.md                   # Regras e diretrizes para os agentes de IA
 ├── CLAUDE.md                   # Instruções secundárias para assistente de código
@@ -45,20 +52,9 @@ Localizar/
 ├── package-lock.json           # Lockfile de dependências do npm
 ├── package.json                # Dependências e scripts do projeto
 ├── postcss.config.mjs          # Configuração do PostCSS para Tailwind
-├── README.md                   # Documentação oficial do projeto
+├── README.md                   # Documentação oficial do projeto (Este arquivo)
 └── tsconfig.json               # Configurações do compilador TypeScript
 ```
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-- **Framework**: Next.js 16 (App Router) + React 19 + TypeScript
-- **Estilização**: Tailwind CSS v4 + Lucide React (Ícones)
-- **Mapas**: Leaflet + React-Leaflet + Tiles Esri World Imagery (Satélite) & OpenStreetMap
-- **Banco de Dados**: PostgreSQL (driver `pg`) com suporte ao Neon Serverless e fallback resiliente em memória
-- **Geocodificação Gratuita**: OpenStreetMap Nominatim API + ViaCEP API (Processamento em cascata e sem custo de API)
-- **Leitura de Planilhas**: SheetJS (`xlsx`)
 
 ---
 
@@ -87,32 +83,41 @@ Abra o navegador em `http://localhost:3000`.
 
 ---
 
-## 📌 Principais Recursos e Funcionalidades
+## 📌 Principais Recursos e Funcionalidades Implementadas
 
-1. **Painel de Validação em Tela Dividida (Split-Screen)**:
-   - Exibição sequencial dos dados de cada igreja (Código TOTVS, Descrição, Endereço, Bairro, Município, Estado, CEP).
-   - Indicação visual do nível de precisão da geolocalização (`Localização Exata`, `Aproximada`, `Município` ou `Não Localizado`).
-   - Assinatura do operador/validador salva localmente no navegador (`localStorage`).
-   - Botões de ação rápida (`Salvar e Próxima` e `Marcar como Dúvida`).
+### 1. 📍 Mapa Geral de Igrejas Validadas (`/mapa-geral`)
+Um dashboard geoespacial em tela cheia projetado para supervisores monitorarem todos os pontos geolocalizados consolidados no sistema.
+- **Visualização Dual**: Alternância entre mapa de ruas (OpenStreetMap) e imagens de alta resolução (Esri Satélite) por cima de overlays z-index calibrados.
+- **Legenda Fixa**: Card de portes de igreja oficiais mapeado estritamente por cores.
+- **Painel de Filtros Rápidos**: Pesquisa de texto reativa (TOTVS/Nome), filtro por Estado (UF), Tipo de Imóvel, e seleção por tags de Porte.
+- **Filtro Hierárquico Regional**: Dropdowns inteligentes baseados na constante `REGOES_ESTADUAIS` que executam um enquadramento de câmera (`flyTo`) no ponto selecionado com zoom de alta precisão e abrem seu Popup automaticamente.
 
-2. **Geocodificação Automática em Cascata (Grátis)**:
-   - Consulta em tempo real via OpenStreetMap (Nominatim) / ViaCEP com limpeza de sufixos (ex: remove `S/N`, `antigo endereço`, parênteses).
-   - Preenchimento automático de Latitude, Longitude e geração dinâmica de link direto para o Google Maps (`https://www.google.com/maps?q=lat,lng`).
+### 2. 🎨 Agrupamentos (Clusters) Inteligentes e Cores por Estado
+Para organizar milhares de pontos no zoom global/estadual, implementamos o **Marker Clustering** altamente customizado:
+- **Cores por Região Geográfica**: A cor de fundo de cada bolha de agrupamento é definida dinamicamente com base no Estado (UF) da maioria das igrejas contidas dentro daquele grupo:
+  - 🟡 **Sudeste - SP** (`SP`): Amarelo Dourado (`#F59E0B`)
+  - 🟧 **Sudeste - MG** (`MG`): Laranja (`#EA580C`)
+  - 🔴 **Sudeste - ES e RJ** (`ES`, `RJ`): Vermelho (`#DC2626`)
+  - 🔵 **Região Sul** (`PR`, `RS`, `SC`): Azul (`#2563EB`)
+  - 🟢 **Região Norte** (`AC`, `AM`, `RO`, `PA`, `AP`, `RR`, `TO`): Verde (`#059669`)
+  - 🟣 **Região Nordeste** (`AL`, `BA`, `CE`, `RN`, `PE`, `PI`, `MA`, `PB`, `SE`): Roxo (`#7C3AED`)
+  - 🩵 **Região Centro-Oeste** (`MT`, `DF`, `GO`, `MS`): Ciano (`#0891B2`)
+- **Estilização Moderna**: Círculo perfeito, número de contagem em **Branco Negrito (`#FFFFFF`)**, borda branca de `3px` sólida para alto contraste no satélite e sombras projetadas.
+- **Legenda Retrátil (Sanfona)**: Painel flutuante compacto e retrátil no mapa que exibe este mapeamento de cores sem ocupar espaço visual.
 
-3. **Mapa de Satélite Interativo**:
-   - Visualização em alta resolução via Esri World Imagery.
-   - Marcador (Pin) arrastável em tempo real que atualiza instantaneamente a latitude e longitude nos campos do formulário.
+### 3. 🕸️ Teia de Coligações e Malha de Conexão (Grafo Multinível)
+As coligações representam o encadeamento hierárquico corporativo vertical:
+$$\text{LOCAL} \rightarrow \text{REGIONAL} \rightarrow \text{CENTRAL} \rightarrow \text{SETORIAL} \rightarrow \text{ESTADUAL}$$
 
-4. **Importador Inteligente de Planilhas**:
-   - Suporte a arquivos `.xlsx`, `.xls` e `.csv`.
-   - Mapeamento flexível de cabeçalhos de colunas (aceita variações como `Codigo`, `Desc Igreja`, `Lat e Long`, `Endereco www`).
+- **Desenho Dinâmico da Malha**: Ao clicar em **"Ver Malha de Conexão"** no Popup de qualquer igreja:
+  - **Se for ESTADUAL (ou nó superior)**: O sistema calcula a **teia de cobertura completa** conectando todos os nós filhos e netos do estado inteiro simultaneamente até seus respectivos pais diretos, gerando um grafo geoespacial brilhante na tela.
+  - **Se for LOCAL / REGIONAL / CENTRAL / SETORIAL**: Traça o caminho linear ascendente direto passando por cada nível até atingir a Estadual de referência.
+- **Destaque Visual**: Todos os nós participantes da malha ativa são exibidos fora de clusters de agrupamento com pins neon pulsantes em alta prioridade (`zIndexOffset: 1000`).
+- **Segmentos de Linha**: Polilinhas Leaflet (`L.polyline`) estilizadas em roxo/azul neon vibrante (`#6366F1`), espessura de `4px`, tracejado (`dashArray: "6, 6"`) e opacidade `0.9`.
+- **Enquadramento de Câmera (`fitBounds`)**: Centralização automática com padding de `[50, 50]` englobando 100% da árvore conectada simultaneamente na tela.
 
----
-
-## 🤖 Guia de Referência Rápida para IAs (Jules / Antigravity)
-
-Ao realizar modificações ou expansões no projeto:
-1. **Regras do Next.js**: Atente-se às convenções do Next.js 16 (App Router, Server Actions / Route Handlers em `src/app/api/...`).
-2. **Resiliência do Banco de Dados (`src/lib/db.ts`)**: Sempre mantenha o fallback para `memoryDb` ativo para que a aplicação funcione em ambientes sem PostgreSQL configurado.
-3. **Geocodificação 100% Gratuita**: Não adicione APIs pagas que exijam chave de API (como Google Maps Geocoding API). Utilize a cascata grátis com Nominatim / ViaCEP.
-4. **Tratamento de Coordenadas Nulas ou 0**: Garantir que `latitude` ou `longitude` iguais a `0`, `null` ou fora dos limites do Brasil sejam tratadas como coordenadas pendentes de geolocalização.
+### 4. 🗄️ Estrutura do Banco de Dados (Neon DB)
+Damos suporte às relações hierárquicas através da coluna adicionada:
+- **`codigo_totvs_pai` (VARCHAR(100))**: Armazena o código TOTVS do nó pai hierarquicamente superior direto para cada igreja.
+- **Uploader Resiliente**: O importador de planilhas no servidor (`/api/igrejas/upload`) lê múltiplas abas, ignora cabeçalhos flutuantes de legendas, e utiliza o remapeamento sequencial vertical por blocos vazios para calcular esta coligação de forma automatizada e gravá-la em lotes otimizados de **500 registros por vez** (Bulk Upsert), eliminando erros de payload e timeout.
+- **Modificações de Esquema**: O banco Neon DB executa um `ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS codigo_totvs_pai VARCHAR(100);` automaticamente ao inicializar a base, mantendo plena integridade.
