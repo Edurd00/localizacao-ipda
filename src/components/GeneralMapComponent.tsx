@@ -206,16 +206,31 @@ function MapController({
 }
 
 // Component to dynamically fit bounds of connection paths
-function MapBoundsController({ bounds }: { bounds: [number, number][] | null }) {
+function MapBoundsController({ bounds }: { bounds: any[] | null }) {
   const map = useMap();
   useEffect(() => {
-    if (bounds && bounds.length >= 2) {
-      map.fitBounds(bounds, {
-        padding: [100, 100],
-        maxZoom: 15,
-        animate: true,
-        duration: 1.2,
-      });
+    if (bounds && bounds.length > 0) {
+      // Safely flatten any 2D segment arrays to a single flat LatLngExpression list
+      const flatPoints: [number, number][] = [];
+
+      const processItem = (item: any) => {
+        if (Array.isArray(item) && typeof item[0] === 'number' && typeof item[1] === 'number') {
+          flatPoints.push(item as [number, number]);
+        } else if (Array.isArray(item)) {
+          item.forEach(processItem);
+        }
+      };
+
+      bounds.forEach(processItem);
+
+      if (flatPoints.length >= 2) {
+        map.fitBounds(flatPoints, {
+          padding: [50, 50],
+          maxZoom: 15,
+          animate: true,
+          duration: 1.2,
+        });
+      }
     }
   }, [bounds, map]);
   return null;
@@ -225,6 +240,124 @@ export default function GeneralMapComponent() {
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to render uniform descriptive Leaflet popups
+  const renderChurchPopup = (ig: Igreja) => {
+    const porte = getPorte(ig.desc_igreja);
+    const parentChurch = ig.codigo_totvs_pai
+      ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
+      : null;
+
+    return (
+      <Popup className="custom-popup-styled max-w-xs sm:max-w-sm">
+        <div className="p-2 space-y-3 font-sans">
+          {/* Title banner */}
+          <div className="border-b border-zinc-150 pb-2">
+            <h3 className="text-xs font-bold text-zinc-900 leading-tight">
+              {ig.desc_igreja}
+            </h3>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded border border-zinc-200">
+                TOTVS: {ig.codigo_totvs}
+              </span>
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border text-white"
+                style={{
+                  backgroundColor: PORTE_INFO[porte]?.color || '#A6A6A6',
+                  borderColor: 'rgba(0,0,0,0.1)',
+                }}
+              >
+                {porte}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick details */}
+          <div className="space-y-1.5 text-[11px] text-zinc-700">
+            {ig.tipo_imovel && (
+              <p className="flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                <span className="font-semibold text-zinc-500">Tipo de Imóvel:</span>
+                <span className="font-bold text-zinc-950">{ig.tipo_imovel}</span>
+              </p>
+            )}
+
+            <p className="flex items-start gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-zinc-500 mt-0.5 shrink-0" />
+              <span>
+                <span className="font-semibold text-zinc-500">Endereço:</span>{' '}
+                <strong className="text-zinc-950 font-semibold">
+                  {ig.endereco}
+                  {ig.bairro ? `, ${ig.bairro}` : ''}, {ig.municipio} - {ig.estado}
+                </strong>{' '}
+                {ig.cep ? `(${ig.cep})` : ''}
+              </span>
+            </p>
+
+            {/* Coligada Hierarchical Info */}
+            {ig.codigo_totvs_pai && (
+              <p className="flex items-start gap-1.5 text-[11px] bg-zinc-50 p-1.5 rounded-md border border-zinc-200">
+                <GitBranch className="h-3.5 w-3.5 text-indigo-500 mt-0.5 shrink-0" />
+                <span>
+                  <span className="font-bold text-zinc-500 block text-[9px] uppercase tracking-wider">Coligada a:</span>
+                  <strong className="text-zinc-900 font-bold block leading-tight">
+                    {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
+                  </strong>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    Código: {ig.codigo_totvs_pai}
+                  </span>
+                </span>
+              </p>
+            )}
+
+            {((ig as any).validado_em || ig.updated_at) && (
+              <p className="text-[10px] text-zinc-500">
+                <span className="font-semibold">Data de Validação:</span>{' '}
+                {new Date((ig as any).validado_em || ig.updated_at!).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            )}
+
+            {(ig.usuario_validador || (ig as any).validado_por) && (
+              <p className="text-[10px] text-zinc-500">
+                <span className="font-semibold">Validador:</span> {ig.usuario_validador || (ig as any).validado_por}
+              </p>
+            )}
+          </div>
+
+          {/* Google Maps Link & Connection mesh trigger */}
+          <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleTraceConnectionMesh(ig)}
+              className={`px-2 py-1.5 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                connectionPathSource === ig.codigo_totvs
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
+              }`}
+            >
+              <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+              <span>{connectionPathSource === ig.codigo_totvs ? 'Malha Ativa' : 'Ver Malha de Conexão'}</span>
+            </button>
+            <a
+              href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg transition-all flex items-center gap-1 shadow-xs hover:shadow-sm"
+            >
+              <span>Abrir no Google Maps</span>
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        </div>
+      </Popup>
+    );
+  };
 
   // Map Tile layer type
   const [mapType, setMapType] = useState<'satellite' | 'osm'>('satellite');
@@ -248,6 +381,10 @@ export default function GeneralMapComponent() {
   // Connection path tracking: array of coordinates for drawing polylines [ [lat, lng], [lat, lng], ... ]
   const [selectedConnectionPath, setSelectedConnectionPath] = useState<[number, number][] | null>(null);
   const [connectionPathSource, setConnectionPathSource] = useState<string | null>(null);
+  const [activeChainCodes, setActiveChainCodes] = useState<string[]>([]);
+
+  // Floating Region Legend collapsible state
+  const [regionLegendOpen, setRegionLegendOpen] = useState(false);
 
   // Toggle Filters visibility on mobile
   const [showFilters, setShowFilters] = useState(false);
@@ -356,41 +493,76 @@ export default function GeneralMapComponent() {
     }
   };
 
-  // Helper function to build vertical hierarchy connection line to the parent church
+  // Helper function to build vertical hierarchy connection line traversing recursively up and down the complete family tree
   const handleTraceConnectionMesh = (startChurch: Igreja) => {
     // 1. Clear any previous connection line layer
     setSelectedConnectionPath(null);
     setConnectionPathSource(null);
+    setActiveChainCodes([]);
 
-    if (!startChurch.codigo_totvs_pai) {
-      toast.error('Esta igreja não possui registro de vinculação hierárquica.');
-      return;
-    }
-
-    const parentCode = startChurch.codigo_totvs_pai;
-    const parentChurch = igrejas.find((ig) => ig.codigo_totvs === parentCode);
-
-    // 2. Validate coordinates of both entities
     if (!startChurch.latitude || !startChurch.longitude) {
       toast.error('A igreja selecionada não possui coordenadas de geolocalização válidas.');
       return;
     }
 
-    if (!parentChurch || !parentChurch.latitude || !parentChurch.longitude) {
-      toast.error(`A igreja mãe (Código ${parentCode}) ainda não possui coordenadas validadas para traçar a malha.`);
-      return;
-    }
-
-    // 3. Trace straight connection path after clearing to ensure previous layers are removed
     setTimeout(() => {
-      const path: [number, number][] = [
-        [startChurch.latitude!, startChurch.longitude!],
-        [parentChurch.latitude!, parentChurch.longitude!],
-      ];
+      // 1. Set to keep track of all church IDs involved in the active connection mesh
+      const chainCodes = new Set<string>();
+      const pathSegments: Array<[ [number, number], [number, number] ]> = [];
 
-      setSelectedConnectionPath(path);
-      setConnectionPathSource(startChurch.codigo_totvs);
-      toast.success(`Malha de conexão traçada com sucesso!`);
+      // A) Build the processing group
+      const isEstadual = startChurch.desc_igreja.toUpperCase().includes('ESTADUAL');
+
+      if (isEstadual) {
+        // For ESTADUAL (root node): Find all churches belonging to the same state (UF) field
+        const stateChurches = igrejas.filter((ig) => ig.estado === startChurch.estado);
+        stateChurches.forEach((ig) => {
+          chainCodes.add(ig.codigo_totvs);
+        });
+      } else {
+        // For child nodes (LOCAL, REGIONAL, CENTRAL, SETORIAL): Climb recursively up to the top Estadul/root
+        let current: Igreja | undefined = startChurch;
+        const visited = new Set<string>();
+
+        while (current) {
+          if (visited.has(current.codigo_totvs)) {
+            break; // prevent infinite loop
+          }
+          visited.add(current.codigo_totvs);
+          chainCodes.add(current.codigo_totvs);
+
+          if (!current.codigo_totvs_pai) break;
+          current = igrejas.find((ig) => ig.codigo_totvs === current!.codigo_totvs_pai);
+        }
+      }
+
+      // B) For each church in the processing set, trace a segment line ONLY to its direct parent
+      chainCodes.forEach((codigoTotvs) => {
+        const daughter = igrejas.find((ig) => ig.codigo_totvs === codigoTotvs);
+
+        if (daughter && daughter.codigo_totvs_pai) {
+          const parent = igrejas.find((ig) => ig.codigo_totvs === daughter.codigo_totvs_pai);
+
+          if (daughter.latitude && daughter.longitude && parent?.latitude && parent?.longitude) {
+            pathSegments.push([
+              [Number(daughter.latitude), Number(daughter.longitude)],
+              [Number(parent.latitude), Number(parent.longitude)]
+            ]);
+            // Ensure parent is also included in active chain highlights
+            chainCodes.add(parent.codigo_totvs);
+          }
+        }
+      });
+
+      // C) Update states to render segments and bounds
+      if (pathSegments.length > 0) {
+        setSelectedConnectionPath(pathSegments as any);
+        setConnectionPathSource(startChurch.codigo_totvs);
+        setActiveChainCodes(Array.from(chainCodes));
+        toast.success(`Malha de conexões traçada com sucesso! (${chainCodes.size} nós conectados)`);
+      } else {
+        toast.error('Não foram encontradas igrejas coligadas com geolocalização validada para traçar o caminho.');
+      }
     }, 50);
   };
 
@@ -425,6 +597,45 @@ export default function GeneralMapComponent() {
       iconAnchor: [16, 32],
       popupAnchor: [0, -32],
     });
+  };
+
+  // Highlighted custom icon builder with cyan/neon pulsing outline
+  const getHighlightedMarkerIcon = (porte: string, isSource: boolean) => {
+    const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
+    const strokeColor = isSource ? '#6366F1' : '#00FFFF'; // Purple Neon for source, Cyan for parents
+    const strokeWidth = 2.5;
+    const ringAnim = isSource ? 'animate-ping opacity-75' : '';
+
+    return L.divIcon({
+      html: `
+        <div class="relative flex flex-col items-center">
+          <div class="absolute -top-1 w-10 h-10 rounded-full bg-cyan-400/20 ${ringAnim} border border-cyan-400/40 pointer-events-none"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" class="w-9 h-9 drop-shadow-lg z-50">
+            <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+          </svg>
+        </div>
+      `,
+      className: '',
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      popupAnchor: [0, -36],
+    });
+  };
+
+  // Helper function to resolve cluster background colors dynamically based on State/UF of markers within each group
+  const getClusterColorByState = (uf: string): string => {
+    const normalized = (uf || '').toUpperCase().trim();
+
+    if (normalized === 'SP') return '#F59E0B'; // SP: Amarelo Dourado
+    if (normalized === 'MG') return '#EA580C'; // MG: Laranja
+    if (normalized === 'ES' || normalized === 'RJ') return '#DC2626'; // ES e RJ: Vermelho
+
+    if (['PR', 'RS', 'SC'].includes(normalized)) return '#2563EB'; // Sul: Azul
+    if (['AC', 'AM', 'RO', 'PA', 'AP', 'RR', 'TO'].includes(normalized)) return '#059669'; // Norte: Verde
+    if (['AL', 'BA', 'CE', 'RN', 'PE', 'PI', 'MA', 'PB', 'SE'].includes(normalized)) return '#7C3AED'; // Nordeste: Roxo
+    if (['MT', 'DF', 'GO', 'MS'].includes(normalized)) return '#0891B2'; // Centro-Oeste: Ciano
+
+    return '#6D28D9'; // Default solid violet fallback
   };
 
   // Toggle selected size/porte helper
@@ -732,12 +943,43 @@ export default function GeneralMapComponent() {
               {selectedConnectionPath && (
                 <Polyline
                   positions={selectedConnectionPath}
-                  color="#4F46E5"
+                  color="#6366F1"
                   weight={4}
                   opacity={0.9}
-                  dashArray="8, 8"
+                  dashArray="6, 6"
                 />
               )}
+
+              {/* Highlighted active family tree path markers (rendered OUTSIDE clusters to stand out) */}
+              {selectedConnectionPath &&
+                igrejas
+                  .filter((ig) => activeChainCodes.includes(ig.codigo_totvs) && ig.latitude && ig.longitude)
+                  .map((ig) => {
+                    const porte = getPorte(ig.desc_igreja);
+                    const isSource = ig.codigo_totvs === connectionPathSource;
+                    const icon = getHighlightedMarkerIcon(porte, isSource);
+                    const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
+
+                    return (
+                      <Marker
+                        key={`highlighted-${ig.codigo_totvs}`}
+                        position={[ig.latitude!, ig.longitude!]}
+                        icon={icon}
+                        alt={isSedeMundial ? "Sede Mundial" : undefined}
+                        zIndexOffset={1000}
+                        ref={(el) => {
+                          if (el) {
+                            markerRefs.current[ig.codigo_totvs] = el;
+                            (el as any).estado = ig.estado;
+                          } else {
+                            delete markerRefs.current[ig.codigo_totvs];
+                          }
+                        }}
+                      >
+                        {renderChurchPopup(ig)}
+                      </Marker>
+                    );
+                  })}
 
               {/* Marker Clustering with react-leaflet-cluster */}
               <MarkerClusterGroup
@@ -745,15 +987,35 @@ export default function GeneralMapComponent() {
                 iconCreateFunction={(cluster: any) => {
                   const count = cluster.getChildCount();
                   let size = 35;
-                  let bg = '#6D28D9'; // Solid violet-700
-
                   if (count > 100) {
                     size = 55;
-                    bg = '#4C1D95'; // Darker violet-900 for huge counts
                   } else if (count > 10) {
                     size = 45;
-                    bg = '#5B21B6'; // Violet-800
                   }
+
+                  // 1. Gather UFs from all child markers in the cluster
+                  const childMarkers = cluster.getAllChildMarkers();
+                  const stateCounts: Record<string, number> = {};
+
+                  childMarkers.forEach((m: any) => {
+                    const uf = m.estado || '';
+                    if (uf) {
+                      stateCounts[uf] = (stateCounts[uf] || 0) + 1;
+                    }
+                  });
+
+                  // 2. Find the majority State/UF
+                  let majorityUF = '';
+                  let maxCount = 0;
+                  Object.keys(stateCounts).forEach((uf) => {
+                    if (stateCounts[uf] > maxCount) {
+                      maxCount = stateCounts[uf];
+                      majorityUF = uf;
+                    }
+                  });
+
+                  // 3. Resolve region-based background color
+                  const bg = getClusterColorByState(majorityUF);
 
                   return L.divIcon({
                     html: `
@@ -782,145 +1044,32 @@ export default function GeneralMapComponent() {
                   });
                 }}
               >
-                {filteredIgrejas.map((ig) => {
-                  const porte = getPorte(ig.desc_igreja);
-                  const icon = getMarkerIcon(porte);
-                  const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
+                {filteredIgrejas
+                  .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
+                  .map((ig) => {
+                    const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
+                    const porte = getPorte(ig.desc_igreja);
+                    const icon = getMarkerIcon(porte);
 
-                  // Resolve the parent's actual description
-                  const parentChurch = ig.codigo_totvs_pai
-                    ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
-                    : null;
-
-                  return (
-                    <Marker
-                      key={ig.codigo_totvs}
-                      position={[ig.latitude!, ig.longitude!]}
-                      icon={icon}
-                      alt={isSedeMundial ? "Sede Mundial" : undefined}
-                      ref={(el) => {
-                        if (el) {
-                          markerRefs.current[ig.codigo_totvs] = el;
-                        } else {
-                          delete markerRefs.current[ig.codigo_totvs];
-                        }
-                      }}
-                    >
-                      {/* Leaflet Interactive Popup */}
-                      <Popup className="custom-popup-styled max-w-xs sm:max-w-sm">
-                        <div className="p-2 space-y-3 font-sans">
-                          {/* Title banner */}
-                          <div className="border-b border-zinc-150 pb-2">
-                            <h3 className="text-xs font-bold text-zinc-900 leading-tight">
-                              {ig.desc_igreja}
-                            </h3>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded border border-zinc-200">
-                                TOTVS: {ig.codigo_totvs}
-                              </span>
-                              <span
-                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border text-white"
-                                style={{
-                                  backgroundColor: PORTE_INFO[porte]?.color || '#A6A6A6',
-                                  borderColor: 'rgba(0,0,0,0.1)',
-                                }}
-                              >
-                                {porte}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Quick details */}
-                          <div className="space-y-1.5 text-[11px] text-zinc-700">
-                            {ig.tipo_imovel && (
-                              <p className="flex items-center gap-1.5">
-                                <Building2 className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
-                                <span className="font-semibold text-zinc-500">Tipo de Imóvel:</span>
-                                <span className="font-bold text-zinc-950">{ig.tipo_imovel}</span>
-                              </p>
-                            )}
-
-                            <p className="flex items-start gap-1.5">
-                              <MapPin className="h-3.5 w-3.5 text-zinc-500 mt-0.5 shrink-0" />
-                              <span>
-                                <span className="font-semibold text-zinc-500">Endereço:</span>{' '}
-                                <strong className="text-zinc-950 font-semibold">
-                                  {ig.endereco}
-                                  {ig.bairro ? `, ${ig.bairro}` : ''}, {ig.municipio} - {ig.estado}
-                                </strong>{' '}
-                                {ig.cep ? `(${ig.cep})` : ''}
-                              </span>
-                            </p>
-
-                            {/* Coligada Hierarchical Info */}
-                            {ig.codigo_totvs_pai && (
-                              <p className="flex items-start gap-1.5 text-[11px] bg-zinc-50 p-1.5 rounded-md border border-zinc-200">
-                                <GitBranch className="h-3.5 w-3.5 text-indigo-500 mt-0.5 shrink-0" />
-                                <span>
-                                  <span className="font-bold text-zinc-500 block text-[9px] uppercase tracking-wider">Coligada a:</span>
-                                  <strong className="text-zinc-900 font-bold block leading-tight">
-                                    {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
-                                  </strong>
-                                  <span className="text-[10px] text-zinc-500 font-mono">
-                                    Código: {ig.codigo_totvs_pai}
-                                  </span>
-                                </span>
-                              </p>
-                            )}
-
-                            {((ig as any).validado_em || ig.updated_at) && (
-                              <p className="text-[10px] text-zinc-500">
-                                <span className="font-semibold">Data de Validação:</span>{' '}
-                                {new Date((ig as any).validado_em || ig.updated_at!).toLocaleDateString('pt-BR', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </p>
-                            )}
-
-                            {(ig.usuario_validador || (ig as any).validado_por) && (
-                              <p className="text-[10px] text-zinc-500">
-                                <span className="font-semibold">Validador:</span> {ig.usuario_validador || (ig as any).validado_por}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Google Maps Link & Connection mesh trigger */}
-                          <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
-                            {ig.codigo_totvs_pai ? (
-                              <button
-                                type="button"
-                                onClick={() => handleTraceConnectionMesh(ig)}
-                                className={`px-2 py-1.5 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
-                                  connectionPathSource === ig.codigo_totvs
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
-                                }`}
-                              >
-                                <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
-                                <span>{connectionPathSource === ig.codigo_totvs ? 'Malha Ativa' : 'Ver Malha de Conexão'}</span>
-                              </button>
-                            ) : (
-                              <div />
-                            )}
-                            <a
-                              href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg transition-all flex items-center gap-1 shadow-xs hover:shadow-sm"
-                            >
-                              <span>Abrir no Google Maps</span>
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          </div>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
+                    return (
+                      <Marker
+                        key={ig.codigo_totvs}
+                        position={[ig.latitude!, ig.longitude!]}
+                        icon={icon}
+                        alt={isSedeMundial ? "Sede Mundial" : undefined}
+                        ref={(el) => {
+                          if (el) {
+                            markerRefs.current[ig.codigo_totvs] = el;
+                            (el as any).estado = ig.estado;
+                          } else {
+                            delete markerRefs.current[ig.codigo_totvs];
+                          }
+                        }}
+                      >
+                        {renderChurchPopup(ig)}
+                      </Marker>
+                    );
+                  })}
               </MarkerClusterGroup>
             </MapContainer>
 
@@ -948,6 +1097,67 @@ export default function GeneralMapComponent() {
               >
                 Mapa (OSM)
               </button>
+            </div>
+
+            {/* Collapsible Regions Legend Card */}
+            <div className="absolute bottom-[280px] left-6 z-[1000] bg-white border border-zinc-200 rounded-2xl shadow-xl max-w-xs transition-all duration-300 overflow-hidden">
+              {regionLegendOpen ? (
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-1.5 gap-4">
+                    <h3 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Layers className="h-4 w-4 text-indigo-600" />
+                      🎨 Regiões (Agrupamentos)
+                    </h3>
+                    <button
+                      onClick={() => setRegionLegendOpen(false)}
+                      className="text-zinc-400 hover:text-zinc-650 font-bold text-xs p-1 rounded hover:bg-zinc-100 transition-all"
+                      title="Minimizar Legenda"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-semibold text-zinc-700">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#F59E0B] shrink-0" />
+                      <span>SP</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#EA580C] shrink-0" />
+                      <span>MG</span>
+                    </div>
+                    <div className="flex items-center space-x-2 col-span-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#DC2626] shrink-0" />
+                      <span>ES / RJ</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#2563EB] shrink-0" />
+                      <span>Sul</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#059669] shrink-0" />
+                      <span>Norte</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#7C3AED] shrink-0" />
+                      <span>Nordeste</span>
+                    </div>
+                    <div className="flex items-center space-x-2 col-span-2">
+                      <span className="w-3.5 h-3.5 rounded-md border border-zinc-300 bg-[#0891B2] shrink-0" />
+                      <span>Centro-Oeste</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setRegionLegendOpen(true)}
+                  className="px-3 py-2 flex items-center space-x-2 text-[10px] font-bold text-zinc-700 hover:text-zinc-950 bg-white hover:bg-zinc-50 rounded-xl transition-all"
+                  title="Expandir Legenda de Regiões"
+                >
+                  <span>🎨</span>
+                  <span>Regiões (Agrupamentos)</span>
+                </button>
+              )}
             </div>
 
             {/* Floating Legend Card (Lower Left Corner) */}
