@@ -17,6 +17,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
   GitBranch,
+  Lock,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
@@ -727,6 +728,15 @@ export default function GeneralMapComponent() {
           >
             <GitBranch className="h-4 w-4 text-indigo-600" />
             <span className="text-xs font-semibold hidden sm:inline">🌳 Coligações</span>
+          </a>
+
+          <a
+            href="/validacao"
+            className="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
+            title="Acessar Área Restrita"
+          >
+            <Lock className="h-4 w-4 text-white" />
+            <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
           </a>
 
           <button
