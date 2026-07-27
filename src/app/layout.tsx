@@ -13,12 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Localização IPDA - Sistema de Validação",
-  description: "Sistema de Validação de Geolocalização das Igrejas IPDA",
+  title: "GEO-VALIG | Geolocalização e Mapeamento Oficial",
+  description: "Sistema oficial de geolocalização e gestão da malha de coligações IPDA",
   icons: {
-    icon: "/img/favicon.jpg",
-    shortcut: "/img/favicon.jpg",
-    apple: "/img/favicon.jpg",
+    icon: "/favicon.ico",
   },
 };
 

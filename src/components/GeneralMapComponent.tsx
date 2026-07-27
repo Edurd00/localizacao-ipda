@@ -696,7 +696,7 @@ export default function GeneralMapComponent() {
             <img
               src="/img/logo.png"
               alt="IPDA"
-              className="h-8 w-auto object-contain rounded-md"
+              className="h-10 w-auto object-contain"
             />
             <div>
               <h1 className="text-xs font-black text-zinc-950 tracking-tight leading-tight">

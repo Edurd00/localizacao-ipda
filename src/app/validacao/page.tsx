@@ -713,7 +713,7 @@ export default function ValidacaoPage() {
               <img
                 src="/img/logo.png"
                 alt="Localização IPDA"
-                className="h-10 w-auto object-contain rounded-md shadow-sm"
+                className="h-10 w-auto object-contain shadow-sm"
               />
               <div>
                 <h1 className="text-base font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">
