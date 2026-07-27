@@ -505,61 +505,76 @@ export default function GeneralMapComponent() {
       return;
     }
 
-    // 2. Trace coordinates up and down the family tree sequentially
+    // 2. Determine if start church is a root ESTADUAL or has no parent (scenarios that trigger the complete descending graph)
+    const isRootNode = !startChurch.codigo_totvs_pai || startChurch.desc_igreja.toUpperCase().includes('ESTADUAL');
+
     setTimeout(() => {
       const chainCodes = new Set<string>();
       const pathSegments: [number, number][][] = [];
 
-      // A) Trace UPWARD (Ascending)
-      let currentUp: Igreja | undefined = startChurch;
-      const visitedUp = new Set<string>();
-      while (currentUp && currentUp.codigo_totvs_pai) {
-        if (visitedUp.has(currentUp.codigo_totvs)) break;
-        visitedUp.add(currentUp.codigo_totvs);
+      if (isRootNode) {
+        // --- 1. ESTADUAL / NÓS SUPERIORES: Complete Multilevel Graph / Teia de Cobertura ---
+        // Step A: Recursively find ALL direct and indirect descendant churches of any depth
+        const descendants: Igreja[] = [];
+        const visitedDown = new Set<string>();
 
-        const parentCode: string = currentUp.codigo_totvs_pai;
-        const parentChurch = igrejas.find((ig) => ig.codigo_totvs === parentCode);
+        const findDescendants = (parentCode: string) => {
+          if (visitedDown.has(parentCode)) return;
+          visitedDown.add(parentCode);
 
-        if (parentChurch) {
-          if (currentUp.latitude && currentUp.longitude && parentChurch.latitude && parentChurch.longitude) {
-            pathSegments.push([
-              [currentUp.latitude, currentUp.longitude],
-              [parentChurch.latitude, parentChurch.longitude],
-            ]);
-            chainCodes.add(currentUp.codigo_totvs);
-            chainCodes.add(parentChurch.codigo_totvs);
-          } else {
-            console.warn(`Missing coordinates between ${currentUp.codigo_totvs} and parent ${parentCode}`);
+          const children = igrejas.filter((ig) => ig.codigo_totvs_pai === parentCode);
+          for (const child of children) {
+            descendants.push(child);
+            findDescendants(child.codigo_totvs);
           }
-          currentUp = parentChurch;
-        } else {
-          break;
+        };
+        findDescendants(startChurch.codigo_totvs);
+
+        // Step B: For each church found in the descendants list plus the Sede/Estadual, link to its direct parent
+        const allFamily = [startChurch, ...descendants];
+        for (const ig of allFamily) {
+          if (ig.codigo_totvs_pai) {
+            const parentCode = ig.codigo_totvs_pai;
+            const parentChurch = igrejas.find((p) => p.codigo_totvs === parentCode);
+
+            if (parentChurch && ig.latitude && ig.longitude && parentChurch.latitude && parentChurch.longitude) {
+              pathSegments.push([
+                [ig.latitude, ig.longitude],
+                [parentChurch.latitude, parentChurch.longitude]
+              ]);
+              chainCodes.add(ig.codigo_totvs);
+              chainCodes.add(parentChurch.codigo_totvs);
+            }
+          }
+        }
+      } else {
+        // --- 2. LOCAL / REGIONAL / CENTRAL / SETORIAL: Upward recursive path ---
+        let currentUp: Igreja | undefined = startChurch;
+        const visitedUp = new Set<string>();
+        while (currentUp && currentUp.codigo_totvs_pai) {
+          if (visitedUp.has(currentUp.codigo_totvs)) break;
+          visitedUp.add(currentUp.codigo_totvs);
+
+          const parentCode: string = currentUp.codigo_totvs_pai;
+          const parentChurch = igrejas.find((ig) => ig.codigo_totvs === parentCode);
+
+          if (parentChurch) {
+            if (currentUp.latitude && currentUp.longitude && parentChurch.latitude && parentChurch.longitude) {
+              pathSegments.push([
+                [currentUp.latitude, currentUp.longitude],
+                [parentChurch.latitude, parentChurch.longitude],
+              ]);
+              chainCodes.add(currentUp.codigo_totvs);
+              chainCodes.add(parentChurch.codigo_totvs);
+            } else {
+              console.warn(`Missing coordinates between ${currentUp.codigo_totvs} and parent ${parentCode}`);
+            }
+            currentUp = parentChurch;
+          } else {
+            break;
+          }
         }
       }
-
-      // B) Trace DOWNWARD (Descending) with circular protection
-      const visitedDown = new Set<string>();
-      const findDescendants = (parentCode: string) => {
-        if (visitedDown.has(parentCode)) return;
-        visitedDown.add(parentCode);
-
-        const children = igrejas.filter((ig) => ig.codigo_totvs_pai === parentCode);
-        for (const child of children) {
-          const parent = igrejas.find((ig) => ig.codigo_totvs === parentCode);
-          if (parent && parent.latitude && parent.longitude && child.latitude && child.longitude) {
-            pathSegments.push([
-              [parent.latitude, parent.longitude],
-              [child.latitude, child.longitude],
-            ]);
-            chainCodes.add(parent.codigo_totvs);
-            chainCodes.add(child.codigo_totvs);
-          }
-          findDescendants(child.codigo_totvs);
-        }
-      };
-
-      // Trigger descending search starting from startChurch
-      findDescendants(startChurch.codigo_totvs);
 
       if (pathSegments.length > 0) {
         setSelectedConnectionPath(pathSegments as any);
