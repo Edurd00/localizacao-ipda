@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+import { verifySessionToken } from '@/lib/auth';
+
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('session_token');
 
@@ -15,7 +17,8 @@ export function middleware(request: NextRequest) {
   );
 
   if (isProtected) {
-    if (!token || token.value !== 'geo-valig-admin-session') {
+    const isValid = verifySessionToken(token?.value);
+    if (!isValid) {
       const loginUrl = new URL('/login', request.url);
       return NextResponse.redirect(loginUrl);
     }

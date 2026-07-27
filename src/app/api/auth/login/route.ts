@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { generateSessionToken } from '@/lib/auth';
+
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
@@ -13,8 +15,10 @@ export async function POST(request: Request) {
         message: 'Autenticação realizada com sucesso!',
       });
 
+      const secureToken = generateSessionToken(email);
+
       // Set cookie for session token
-      response.cookies.set('session_token', 'geo-valig-admin-session', {
+      response.cookies.set('session_token', secureToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

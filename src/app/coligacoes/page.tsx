@@ -938,53 +938,96 @@ export default function ColigacoesPage() {
               </div>
             </div>
 
-            {/* Switchers */}
-            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-0.5 items-center">
-              <button
-                onClick={() => {
-                  setActiveTab('tree');
-                  setSelectedChurch(null);
-                }}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center space-x-1.5 ${
-                  activeTab === 'tree'
-                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
-                    : 'text-zinc-600 hover:text-zinc-900'
-                }`}
-              >
-                <GitBranch className="h-3.5 w-3.5 animate-pulse" />
-                <span>Ver Árvore Hierárquica</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('import')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center space-x-1.5 ${
-                  activeTab === 'import'
-                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
-                    : 'text-zinc-600 hover:text-zinc-900'
-                }`}
-              >
-                <Upload className="h-3.5 w-3.5" />
-                <span>Importar Planilha</span>
-              </button>
-              <div className="w-px h-5 bg-zinc-300 mx-1 hidden sm:block" />
-              <a
-                href="/"
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200 hidden sm:block"
-              >
-                Validação
-              </a>
-              <a
-                href="/mapa-geral"
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200 hidden sm:block"
-              >
-                📍 Mapa Geral
-              </a>
+            {/* Unified Navigation Layout */}
+            <div className="flex flex-wrap items-center gap-3 shrink-0 mt-3 sm:mt-0">
+              {/* Block 1: Visualização */}
+              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 items-center">
+                <a
+                  href="/"
+                  className="px-3 py-1.5 text-xs font-bold text-indigo-750 hover:text-indigo-900 bg-white rounded-lg shadow-2xs border border-zinc-200/50 flex items-center space-x-1 transition-all"
+                >
+                  <span>🗺️ Mapa Geral</span>
+                </a>
+              </div>
+
+              {/* Block 2: Gestão (Pill Bar Segmentada) */}
+              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-0.5 items-center">
+                <a
+                  href="/validacao?tab=validation"
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
+                >
+                  <span>📍 Validação</span>
+                </a>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('tree');
+                    setSelectedChurch(null);
+                  }}
+                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                    activeTab === 'tree' || activeTab === 'import'
+                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
+                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
+                  }`}
+                >
+                  <span>🌳 Coligações</span>
+                </button>
+
+                <a
+                  href="/validacao?tab=dashboard"
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
+                >
+                  <span>📊 Dashboard</span>
+                </a>
+
+                <a
+                  href="/validacao?tab=upload"
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
+                >
+                  <span>📥 Importar</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main content workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Sub-header Tab Segment for internal Coligacoes views */}
+        <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 max-w-sm shrink-0 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('tree');
+              setSelectedChurch(null);
+            }}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-150 flex items-center justify-center space-x-1.5 ${
+              activeTab === 'tree'
+                ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200/50'
+                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+            }`}
+          >
+            <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+            <span>Árvore Hierárquica</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('import');
+              setSelectedChurch(null);
+            }}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-150 flex items-center justify-center space-x-1.5 ${
+              activeTab === 'import'
+                ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200/50'
+                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+            }`}
+          >
+            <Upload className="h-3.5 w-3.5 text-indigo-600" />
+            <span>Importação em Lotes</span>
+          </button>
+        </div>
+
         {activeTab === 'import' ? (
           /* UNLIMITED SHEET CLIENT UPLOADER PANEL */
           <div className="max-w-xl mx-auto w-full bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-6">

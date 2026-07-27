@@ -168,6 +168,17 @@ export default function ValidacaoPage() {
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
 
+  // Load tab from query params if present
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'dashboard' || tab === 'upload' || tab === 'validation') {
+        setActiveTab(tab as any);
+      }
+    }
+  }, []);
+
   // Database state
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [states, setStates] = useState<string[]>([]);
@@ -733,56 +744,63 @@ export default function ValidacaoPage() {
               )}
             </form>
 
-            {/* Tab switchers (4 Tabs / Links) */}
-            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 shrink-0 gap-0.5 items-center">
-              <button
-                onClick={() => setActiveTab('validation')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
-                  activeTab === 'validation'
-                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
-                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
-                }`}
-              >
-                <MapPin className="h-3.5 w-3.5" />
-                <span>Validação</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
-                  activeTab === 'dashboard'
-                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
-                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
-                }`}
-              >
-                <BarChart3 className="h-3.5 w-3.5 text-indigo-600" />
-                <span>Dashboard</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('upload')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 ${
-                  activeTab === 'upload'
-                    ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200'
-                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
-                }`}
-              >
-                <Layers className="h-3.5 w-3.5" />
-                <span>Importar</span>
-              </button>
-              <a
-                href="/coligacoes"
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-indigo-600 hover:bg-indigo-50"
-              >
-                <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
-                <span className="font-bold">🌳 Coligações</span>
-              </a>
-              <a
-                href="/"
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center space-x-1.5 text-indigo-600 hover:bg-indigo-50"
-              >
-                <Layers className="h-3.5 w-3.5 text-indigo-600" />
-                <span className="font-bold">📍 Mapa Geral</span>
-              </a>
-              <div className="w-px h-5 bg-zinc-300 mx-1" />
+            {/* Unified Navigation Layout */}
+            <div className="flex flex-wrap items-center gap-3 shrink-0 mt-3 sm:mt-0">
+              {/* Block 1: Visualização */}
+              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 items-center">
+                <a
+                  href="/"
+                  className="px-3 py-1.5 text-xs font-bold text-indigo-750 hover:text-indigo-900 bg-white rounded-lg shadow-2xs border border-zinc-200/50 flex items-center space-x-1 transition-all"
+                >
+                  <span>🗺️ Mapa Geral</span>
+                </a>
+              </div>
+
+              {/* Block 2: Gestão (Pill Bar Segmentada) */}
+              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-0.5 items-center">
+                <button
+                  onClick={() => setActiveTab('validation')}
+                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                    activeTab === 'validation'
+                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
+                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
+                  }`}
+                >
+                  <span>📍 Validação</span>
+                </button>
+
+                <a
+                  href="/coligacoes"
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
+                >
+                  <span>🌳 Coligações</span>
+                </a>
+
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                    activeTab === 'dashboard'
+                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
+                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
+                  }`}
+                >
+                  <span>📊 Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                    activeTab === 'upload'
+                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
+                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
+                  }`}
+                >
+                  <span>📥 Importar</span>
+                </button>
+              </div>
+
+              <div className="w-px h-5 bg-zinc-300 mx-1 hidden lg:block" />
+
               <button
                 onClick={handleLogout}
                 className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0"
