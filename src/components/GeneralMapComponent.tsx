@@ -58,6 +58,16 @@ export const PORTE_INFO: Record<string, { name: string; color: string; label: st
   'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano/Turquesa)' },
 };
 
+export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
+  'Sudeste - SP': ['SP'],
+  'Sudeste - MG': ['MG'],
+  'Sudeste - ES e RJ': ['ES', 'RJ'],
+  'Sul': ['PR', 'RS', 'SC'],
+  'Norte': ['AC', 'AM', 'RO', 'PA', 'AP', 'RR', 'TO'],
+  'Nordeste': ['AL', 'BA', 'CE', 'RN', 'PE', 'PI', 'MA', 'PB', 'SE'],
+  'Centro-Oeste': ['MT', 'DF', 'GO', 'MS'],
+};
+
 export const REGOES_ESTADUAIS = {
   "Grande Sao Paulo - SP": [
     { nome: "Sede Mundial", totvs: "" },
@@ -203,6 +213,31 @@ function MapController({
       map.setView(center, zoom);
     }
   }, [center, zoom, flyToTarget, map, onFlyToComplete]);
+  return null;
+}
+
+// Component to dynamically fit bounds of the selected Region Filter
+function RegionBoundsController({ region, igrejas }: { region: string; igrejas: Igreja[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (region && region !== 'ALL') {
+      const ufs = REGIAO_GEOGRAFICA_MAPPING[region];
+      if (ufs && ufs.length > 0) {
+        const regionChurches = igrejas.filter(
+          (ig) => ufs.includes(ig.estado) && ig.latitude && ig.longitude
+        );
+        if (regionChurches.length > 0) {
+          const points = regionChurches.map((ig) => [ig.latitude!, ig.longitude!] as [number, number]);
+          map.fitBounds(points, {
+            padding: [50, 50],
+            maxZoom: 12,
+            animate: true,
+            duration: 1.2,
+          });
+        }
+      }
+    }
+  }, [region, igrejas, map]);
   return null;
 }
 
@@ -365,6 +400,7 @@ export default function GeneralMapComponent() {
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegionGeo, setSelectedRegionGeo] = useState<string>('ALL');
   const [selectedUF, setSelectedUF] = useState('ALL');
   const [selectedTipoImovel, setSelectedTipoImovel] = useState('ALL');
   const [selectedPortes, setSelectedPortes] = useState<string[]>([]);
@@ -372,6 +408,16 @@ export default function GeneralMapComponent() {
   // Hierarchical Region & Estadual filters
   const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
   const [selectedEstadual, setSelectedEstadual] = useState<string>('');
+
+  const handleRegionGeoChange = (val: string) => {
+    setSelectedRegionGeo(val);
+    if (val !== 'ALL') {
+      const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[val] || [];
+      if (selectedUF !== 'ALL' && !allowedUFs.includes(selectedUF)) {
+        setSelectedUF('ALL');
+      }
+    }
+  };
 
   // Map focus / flyTo target state
   const [flyToTarget, setFlyToTarget] = useState<{ center: [number, number]; zoom: number; totvs: string } | null>(null);
@@ -416,9 +462,13 @@ export default function GeneralMapComponent() {
 
   // Compute distinct States/UFs from loaded validated churches for filter dropdown
   const distinctUFs = useMemo(() => {
-    const ufs = Array.from(new Set(igrejas.map((ig) => ig.estado).filter(Boolean)));
+    let ufs = Array.from(new Set(igrejas.map((ig) => ig.estado).filter(Boolean)));
+    if (selectedRegionGeo !== 'ALL') {
+      const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[selectedRegionGeo] || [];
+      ufs = ufs.filter((uf) => allowedUFs.includes(uf));
+    }
     return ufs.sort();
-  }, [igrejas]);
+  }, [igrejas, selectedRegionGeo]);
 
   // Compute filtered churches list in-realtime
   const filteredIgrejas = useMemo(() => {
@@ -426,6 +476,14 @@ export default function GeneralMapComponent() {
       // 1. Coordinates validation
       if (ig.latitude === null || ig.longitude === null || ig.latitude === 0 || ig.longitude === 0) {
         return false;
+      }
+
+      // 1b. Region filter
+      if (selectedRegionGeo !== 'ALL') {
+        const ufs = REGIAO_GEOGRAFICA_MAPPING[selectedRegionGeo];
+        if (ufs && !ufs.includes(ig.estado)) {
+          return false;
+        }
       }
 
       // 2. State/UF filter
@@ -673,6 +731,7 @@ export default function GeneralMapComponent() {
 
   const handleResetFilters = () => {
     setSearchQuery('');
+    setSelectedRegionGeo('ALL');
     setSelectedUF('ALL');
     setSelectedTipoImovel('ALL');
     setSelectedPortes([]);
@@ -794,6 +853,26 @@ export default function GeneralMapComponent() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
+            {/* New Region Geographic Filter */}
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Layers className="h-3 w-3 text-zinc-400" />
+                Região
+              </label>
+              <select
+                value={selectedRegionGeo}
+                onChange={(e) => handleRegionGeoChange(e.target.value)}
+                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+              >
+                <option value="ALL">Todas as Regiões</option>
+                {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
+                  <option key={reg} value={reg}>
+                    {reg}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* UF Filter */}
             <div className="flex flex-col gap-1">
               <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
@@ -909,7 +988,7 @@ export default function GeneralMapComponent() {
           </div>
 
           {/* Reset Filter Button */}
-          {(selectedRegion !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
+          {(selectedRegionGeo !== 'ALL' || selectedRegion !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
             <div className="pt-2 border-t border-zinc-150 flex justify-end">
               <button
                 onClick={handleResetFilters}
@@ -981,6 +1060,8 @@ export default function GeneralMapComponent() {
                   }
                 }}
               />
+
+              <RegionBoundsController region={selectedRegionGeo} igrejas={igrejas} />
 
               <MapBoundsController bounds={selectedConnectionPath} />
 

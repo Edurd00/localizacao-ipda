@@ -193,6 +193,7 @@ export default function ValidacaoPage() {
   const [showBatchModal, setShowBatchModal] = useState(false);
 
   // Filters
+  const [filterRegiao, setFilterRegiao] = useState<string>('ALL');
   const [filterEstado, setFilterEstado] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('PENDENTE');
 
@@ -211,6 +212,26 @@ export default function ValidacaoPage() {
   // Dirigente Link Extractor state
   const [dirigenteLink, setDirigenteLink] = useState<string>('');
   const [dirigenteLoading, setDirigenteLoading] = useState<boolean>(false);
+
+  const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
+    'Sudeste - SP': ['SP'],
+    'Sudeste - MG': ['MG'],
+    'Sudeste - ES e RJ': ['ES', 'RJ'],
+    'Sul': ['PR', 'RS', 'SC'],
+    'Norte': ['AC', 'AM', 'RO', 'PA', 'AP', 'RR', 'TO'],
+    'Nordeste': ['AL', 'BA', 'CE', 'RN', 'PE', 'PI', 'MA', 'PB', 'SE'],
+    'Centro-Oeste': ['MT', 'DF', 'GO', 'MS'],
+  };
+
+  const handleRegiaoChange = (val: string) => {
+    setFilterRegiao(val);
+    if (val !== 'ALL') {
+      const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[val] || [];
+      if (filterEstado !== 'ALL' && !allowedUFs.includes(filterEstado)) {
+        setFilterEstado('ALL');
+      }
+    }
+  };
 
   // Reset isRevalidating when selected church changes
   useEffect(() => {
@@ -292,8 +313,11 @@ export default function ValidacaoPage() {
     setLoading(true);
     try {
       const query = new URLSearchParams();
+      // For api query, if a Region is selected, we fetch all, then filter client-side. Or if filterEstado is selected, use that.
       if (filterEstado && filterEstado !== 'ALL') {
         query.set('estado', filterEstado);
+      } else if (filterRegiao && filterRegiao !== 'ALL') {
+        // Fetch all, then client-side filter
       }
       if (filterStatus && filterStatus !== 'ALL') {
         query.set('status', filterStatus);
@@ -303,10 +327,24 @@ export default function ValidacaoPage() {
       const data = await res.json();
 
       if (data.success) {
-        setIgrejas(data.igrejas || []);
-        setStates(data.states || []);
+        let list: Igreja[] = data.igrejas || [];
 
-        const list = data.igrejas || [];
+        // Client-side Region filtering on fetched list
+        if (filterRegiao && filterRegiao !== 'ALL') {
+          const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
+          list = list.filter((ig) => allowedUFs.includes(ig.estado));
+        }
+
+        setIgrejas(list);
+
+        // Filter states list by allowed region states if a region is active
+        let availableStates = data.states || [];
+        if (filterRegiao && filterRegiao !== 'ALL') {
+          const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
+          availableStates = availableStates.filter((st: string) => allowedUFs.includes(st));
+        }
+        setStates(availableStates);
+
         if (list.length > 0) {
           if (forceSelectCode) {
             const idx = list.findIndex((ig: Igreja) => ig.codigo_totvs === forceSelectCode);
@@ -331,7 +369,7 @@ export default function ValidacaoPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterEstado, filterStatus]);
+  }, [filterRegiao, filterEstado, filterStatus]);
 
   // Initial fetch and fetch on filter change
   useEffect(() => {
@@ -872,6 +910,23 @@ export default function ValidacaoPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* Region Selector */}
+                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Região:</label>
+                  <select
+                    value={filterRegiao}
+                    onChange={(e) => handleRegiaoChange(e.target.value)}
+                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-40"
+                  >
+                    <option value="ALL">Todas as Regiões</option>
+                    {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
+                      <option key={reg} value={reg}>
+                        {reg}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* State selector */}
                 <div className="flex items-center space-x-1.5 w-full sm:w-auto">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Estado:</label>
