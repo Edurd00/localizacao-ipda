@@ -539,6 +539,10 @@ export default function ColigacoesPage() {
     const totalCount = parsedChurchesBuffer.length;
     const totalChunks = Math.ceil(totalCount / CHUNK_SIZE);
 
+    let totalNovas = 0;
+    let totalAtualizadas = 0;
+    let totalPreservadas = 0;
+
     try {
       for (let i = 0; i < totalChunks; i++) {
         setUploadProgress({
@@ -563,11 +567,19 @@ export default function ColigacoesPage() {
         if (!result.success) {
           throw new Error(result.error || 'Erro no envio do lote.');
         }
+
+        if (result.report) {
+          totalNovas += result.report.novas || 0;
+          totalAtualizadas += result.report.atualizadas || 0;
+          totalPreservadas += result.report.preservadas || 0;
+        }
       }
 
-      toast.success(
-        `Importação finalizada! ${totalCount} igrejas foram inseridas/atualizadas com sucesso.`
-      );
+      const summaryMsg = totalNovas > 0 || totalAtualizadas > 0 || totalPreservadas > 0
+        ? `Importação finalizada! Relatório: ${totalNovas} novas cadastradas, ${totalAtualizadas} atualizadas, ${totalPreservadas} validadas/coligadas PRESERVADAS (protegidas contra alteração).`
+        : `Importação finalizada! ${totalCount} igrejas processadas com sucesso.`;
+
+      toast.success(summaryMsg);
       setParsedChurchesBuffer([]);
       setSelectedFileName('');
       setUploadProgress(null);

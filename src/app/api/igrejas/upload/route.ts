@@ -51,12 +51,13 @@ export async function POST(request: Request) {
       });
     }
 
-    await saveIgrejasBulk(parsedChurches);
+    const report = await saveIgrejasBulk(parsedChurches);
 
     return NextResponse.json({
       success: true,
       count: parsedChurches.length,
-      message: `${parsedChurches.length} igrejas importadas/atualizadas com sucesso com cálculo hierárquico de coligações.`,
+      report,
+      message: `${parsedChurches.length} igrejas processadas com sucesso. Relatório: ${report.novas} novas, ${report.atualizadas} atualizadas, ${report.preservadas} preservadas (protegidas contra alteração).`,
     });
   } catch (err: unknown) {
     console.error('API Error in POST /api/igrejas/upload:', err);

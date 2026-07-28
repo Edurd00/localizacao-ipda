@@ -150,11 +150,32 @@ export async function getDistinctStates(): Promise<string[]> {
   return states.sort();
 }
 
-export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
+export interface BulkImportReport {
+  novas: number;
+  atualizadas: number;
+  preservadas: number;
+}
+
+export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportReport> {
   await ensurePostgresTable();
+  const report: BulkImportReport = { novas: 0, atualizadas: 0, preservadas: 0 };
+
   if (pool) {
     const client = await pool.connect();
     try {
+      // Retrieve existing rows to determine action type and protect work
+      const keys = igrejas.map((ig) => ig.codigo_totvs);
+      const existingRes = await client.query(
+        'SELECT codigo_totvs, status, codigo_totvs_pai FROM igrejas WHERE codigo_totvs = ANY($1)',
+        [keys]
+      );
+      const existingMap = new Map(
+        existingRes.rows.map((row) => [
+          row.codigo_totvs,
+          { status: row.status, codigo_totvs_pai: row.codigo_totvs_pai },
+        ])
+      );
+
       // Chunk size to split database operations and prevent parameterized limits
       const CHUNK_SIZE = 500;
 
@@ -163,6 +184,21 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
 
         await client.query('BEGIN');
         for (const ig of chunk) {
+          const existing = existingMap.get(ig.codigo_totvs);
+
+          if (!existing) {
+            report.novas++;
+          } else {
+            const isStatusValidado = existing.status === 'VALIDADO';
+            const isParentSet = existing.codigo_totvs_pai !== null && existing.codigo_totvs_pai !== undefined && existing.codigo_totvs_pai !== '';
+
+            if (isStatusValidado || isParentSet) {
+              report.preservadas++;
+            } else {
+              report.atualizadas++;
+            }
+          }
+
           await client.query(
             `INSERT INTO igrejas (
               codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai
@@ -175,24 +211,35 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
               estado = EXCLUDED.estado,
               cep = EXCLUDED.cep,
               status = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN 'VALIDADO'
                 WHEN igrejas.endereco <> EXCLUDED.endereco THEN 'PENDENTE_REVISAO'
                 ELSE igrejas.status
               END,
               latitude = CASE
-                WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.latitude
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.latitude
                 ELSE COALESCE(EXCLUDED.latitude, igrejas.latitude)
               END,
               longitude = CASE
-                WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.longitude
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.longitude
                 ELSE COALESCE(EXCLUDED.longitude, igrejas.longitude)
               END,
+              usuario_validador = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.usuario_validador
+                ELSE EXCLUDED.usuario_validador
+              END,
               link_google_maps = CASE
-                WHEN igrejas.endereco = EXCLUDED.endereco AND igrejas.status = 'VALIDADO' THEN igrejas.link_google_maps
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.link_google_maps
                 ELSE COALESCE(NULLIF(EXCLUDED.link_google_maps, ''), igrejas.link_google_maps)
               END,
               endereco = EXCLUDED.endereco,
-              codigo_totvs_pai = EXCLUDED.codigo_totvs_pai,
-              updated_at = CURRENT_TIMESTAMP`,
+              codigo_totvs_pai = CASE
+                WHEN igrejas.codigo_totvs_pai IS NOT NULL AND igrejas.codigo_totvs_pai <> '' THEN igrejas.codigo_totvs_pai
+                ELSE EXCLUDED.codigo_totvs_pai
+              END,
+              updated_at = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.updated_at
+                ELSE CURRENT_TIMESTAMP
+              END`,
             [
               ig.codigo_totvs,
               ig.desc_igreja,
@@ -212,7 +259,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
         }
         await client.query('COMMIT');
       }
-      return;
+      return report;
     } catch (err) {
       try {
         await client.query('ROLLBACK');
@@ -233,12 +280,21 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
   igrejas.forEach((ig) => {
     const existing = map.get(ig.codigo_totvs);
     if (existing) {
-      const enderecoMudou = existing.endereco !== ig.endereco;
-      const novoStatus = enderecoMudou
-        ? 'PENDENTE_REVISAO'
-        : existing.status;
+      const isStatusValidado = existing.status === 'VALIDADO';
+      const isParentSet = existing.codigo_totvs_pai !== null && existing.codigo_totvs_pai !== undefined && existing.codigo_totvs_pai !== '';
 
-      const manterIntacto = !enderecoMudou && existing.status === 'VALIDADO';
+      if (isStatusValidado || isParentSet) {
+        report.preservadas++;
+      } else {
+        report.atualizadas++;
+      }
+
+      const enderecoMudou = existing.endereco !== ig.endereco;
+      const novoStatus = isStatusValidado
+        ? 'VALIDADO'
+        : (enderecoMudou ? 'PENDENTE_REVISAO' : existing.status);
+
+      const manterIntacto = isStatusValidado;
 
       map.set(ig.codigo_totvs, {
         ...existing,
@@ -259,10 +315,16 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
           ? existing.longitude
           : (ig.longitude !== null ? ig.longitude : existing.longitude),
         status: novoStatus,
-        codigo_totvs_pai: ig.codigo_totvs_pai || existing.codigo_totvs_pai,
-        updated_at: new Date().toISOString(),
+        usuario_validador: manterIntacto
+          ? existing.usuario_validador
+          : ig.usuario_validador || existing.usuario_validador,
+        codigo_totvs_pai: isParentSet
+          ? existing.codigo_totvs_pai
+          : ig.codigo_totvs_pai || existing.codigo_totvs_pai,
+        updated_at: manterIntacto ? existing.updated_at : new Date().toISOString(),
       });
     } else {
+      report.novas++;
       map.set(ig.codigo_totvs, {
         ...ig,
         status: 'PENDENTE',
@@ -272,6 +334,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<void> {
   });
 
   memoryDb = Array.from(map.values());
+  return report;
 }
 
 export async function saveIgrejaSingle(codigo_totvs: string, update: Partial<Igreja>): Promise<void> {
