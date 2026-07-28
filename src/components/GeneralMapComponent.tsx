@@ -68,6 +68,27 @@ export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
   'Centro-Oeste': ['MT', 'DF', 'GO', 'MS'],
 };
 
+export const REGIAO_BOUNDS: Record<string, [[number, number], [number, number]]> = {
+  'Sudeste - SP': [[-25.3, -53.1], [-19.7, -44.1]],
+  'Sudeste - MG': [[-23.0, -51.1], [-14.2, -39.8]],
+  'Sudeste - ES e RJ': [[-23.4, -44.9], [-17.8, -39.6]],
+  'Sul': [[-33.8, -57.6], [-22.5, -48.0]],
+  'Norte': [[-13.7, -74.0], [5.3, -46.0]],
+  'Nordeste': [[-18.4, -48.8], [-1.0, -34.7]],
+  'Centro-Oeste': [[-24.0, -61.6], [-12.5, -46.0]],
+  'ALL': [[-33.8, -74.0], [5.3, -34.7]],
+};
+
+export const REGIAO_TO_ESTADUAIS: Record<string, string[]> = {
+  'Sudeste - SP': ["Grande Sao Paulo - SP", "Interior - SP"],
+  'Sudeste - MG': ["Regiao Minas Gerais"],
+  'Sudeste - ES e RJ': ["Regiao Rio de Janeiro / Espirito Santo"],
+  'Sul': ["Regiao Sul"],
+  'Norte': ["Regiao Norte"],
+  'Nordeste': ["Regiao Nordeste"],
+  'Centro-Oeste': ["Regiao Centro-Oeste"],
+};
+
 export const REGOES_ESTADUAIS = {
   "Grande Sao Paulo - SP": [
     { nome: "Sede Mundial", totvs: "" },
@@ -220,20 +241,49 @@ function MapController({
 function RegionBoundsController({ region, igrejas }: { region: string; igrejas: Igreja[] }) {
   const map = useMap();
   useEffect(() => {
-    if (region && region !== 'ALL') {
-      const ufs = REGIAO_GEOGRAFICA_MAPPING[region];
-      if (ufs && ufs.length > 0) {
-        const regionChurches = igrejas.filter(
-          (ig) => ufs.includes(ig.estado) && ig.latitude && ig.longitude
-        );
-        if (regionChurches.length > 0) {
-          const points = regionChurches.map((ig) => [ig.latitude!, ig.longitude!] as [number, number]);
-          map.fitBounds(points, {
-            padding: [50, 50],
-            maxZoom: 12,
-            animate: true,
-            duration: 1.2,
-          });
+    if (!region) return;
+
+    if (region === 'ALL') {
+      const validChurches = igrejas.filter((ig) => ig.latitude && ig.longitude);
+      if (validChurches.length > 0) {
+        const points = validChurches.map((ig) => [ig.latitude!, ig.longitude!] as [number, number]);
+        map.fitBounds(points, {
+          padding: [50, 50],
+          maxZoom: 6,
+          animate: true,
+          duration: 1.2,
+        });
+      } else {
+        // Fallback to static Brazil Bounding Box
+        map.fitBounds(REGIAO_BOUNDS['ALL'], {
+          padding: [50, 50],
+          animate: true,
+          duration: 1.2,
+        });
+      }
+    } else {
+      const staticBounds = REGIAO_BOUNDS[region];
+      if (staticBounds) {
+        map.fitBounds(staticBounds, {
+          padding: [50, 50],
+          animate: true,
+          duration: 1.2,
+        });
+      } else {
+        const ufs = REGIAO_GEOGRAFICA_MAPPING[region];
+        if (ufs && ufs.length > 0) {
+          const regionChurches = igrejas.filter(
+            (ig) => ufs.includes(ig.estado) && ig.latitude && ig.longitude
+          );
+          if (regionChurches.length > 0) {
+            const points = regionChurches.map((ig) => [ig.latitude!, ig.longitude!] as [number, number]);
+            map.fitBounds(points, {
+              padding: [50, 50],
+              maxZoom: 12,
+              animate: true,
+              duration: 1.2,
+            });
+          }
         }
       }
     }
@@ -746,12 +796,21 @@ export default function GeneralMapComponent() {
               onClick={() => handleTraceConnectionMesh(ig)}
               className={`px-2 py-1.5 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
                 connectionPathSource === ig.codigo_totvs
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                   : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
               }`}
             >
-              <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
-              <span>{connectionPathSource === ig.codigo_totvs ? 'Malha Ativa' : 'Ver Malha de Conexão'}</span>
+              {connectionPathSource === ig.codigo_totvs ? (
+                <>
+                  <X className="h-3.5 w-3.5 text-rose-600" />
+                  <span>[ ❌ Ocultar Malha ]</span>
+                </>
+              ) : (
+                <>
+                  <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>Ver Malha de Conexão</span>
+                </>
+              )}
             </button>
             <a
               href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
@@ -779,11 +838,12 @@ export default function GeneralMapComponent() {
   const [selectedPortes, setSelectedPortes] = useState<string[]>([]);
 
   // Hierarchical Region & Estadual filters
-  const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
   const [selectedEstadual, setSelectedEstadual] = useState<string>('');
 
   const handleRegionGeoChange = (val: string) => {
     setSelectedRegionGeo(val);
+    setSelectedEstadual('');
+    setFlyToTarget(null);
     if (val !== 'ALL') {
       const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[val] || [];
       if (selectedUF !== 'ALL' && !allowedUFs.includes(selectedUF)) {
@@ -927,6 +987,14 @@ export default function GeneralMapComponent() {
 
   // Helper function to build vertical hierarchy connection line traversing recursively up and down the complete family tree
   const handleTraceConnectionMesh = (startChurch: Igreja) => {
+    if (connectionPathSource === startChurch.codigo_totvs) {
+      setSelectedConnectionPath(null);
+      setConnectionPathSource(null);
+      setActiveChainCodes([]);
+      toast.info('Malha de conexões ocultada.');
+      return;
+    }
+
     // 1. Clear any previous connection line layer
     setSelectedConnectionPath(null);
     setConnectionPathSource(null);
@@ -1102,13 +1170,33 @@ export default function GeneralMapComponent() {
     }
   };
 
+  const handleClearAllLines = () => {
+    setSelectedConnectionPath(null);
+    setConnectionPathSource(null);
+    setActiveChainCodes([]);
+    setRoutePath(null);
+    setRouteMeta(null);
+    setActiveRouteOrigin(null);
+    setActiveRouteDest(null);
+    setComparisonMode(false);
+    setFixedDest(null);
+    setSedeCandidataA(null);
+    setSedeCandidataB(null);
+    setRouteAtual(null);
+    setRouteCandidataA(null);
+    setRouteCandidataB(null);
+    setMetaAtual(null);
+    setMetaCandidataA(null);
+    setMetaCandidataB(null);
+    toast.success('Todas as linhas de malha e rotas foram limpas do mapa.');
+  };
+
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedRegionGeo('ALL');
     setSelectedUF('ALL');
     setSelectedTipoImovel('ALL');
     setSelectedPortes([]);
-    setSelectedRegion('ALL');
     setSelectedEstadual('');
     setFlyToTarget(null);
     setSelectedConnectionPath(null);
@@ -1225,108 +1313,92 @@ export default function GeneralMapComponent() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {/* New Region Geographic Filter */}
-            <div className="flex flex-col gap-1 col-span-2">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                <Layers className="h-3 w-3 text-zinc-400" />
-                Região
-              </label>
-              <select
-                value={selectedRegionGeo}
-                onChange={(e) => handleRegionGeoChange(e.target.value)}
-                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
-              >
-                <option value="ALL">Todas as Regiões</option>
-                {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
-                  <option key={reg} value={reg}>
-                    {reg}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* UF Filter */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                <MapPin className="h-3 w-3 text-zinc-400" />
-                Estado (UF)
-              </label>
-              <select
-                value={selectedUF}
-                onChange={(e) => setSelectedUF(e.target.value)}
-                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
-              >
-                <option value="ALL">Todos os Estados</option>
-                {distinctUFs.map((uf) => (
-                  <option key={uf} value={uf}>
-                    {uf}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Real Estate Property Filter */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                <Building2 className="h-3 w-3 text-zinc-400" />
-                Imóvel
-              </label>
-              <select
-                value={selectedTipoImovel}
-                onChange={(e) => setSelectedTipoImovel(e.target.value)}
-                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
-              >
-                <option value="ALL">Todos</option>
-                <option value="PROPRIO">Próprio</option>
-                <option value="ALUGADO">Alugado</option>
-              </select>
-            </div>
-
-            {/* Hierarchical Region Selector */}
-            <div className="flex flex-col gap-1 col-span-2">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                <Layers className="h-3 w-3 text-zinc-400" />
-                Região Geográfica
-              </label>
-              <select
-                value={selectedRegion}
-                onChange={(e) => {
-                  setSelectedRegion(e.target.value);
-                  setSelectedEstadual('');
-                  setFlyToTarget(null);
-                }}
-                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
-              >
-                <option value="ALL">Todas as Regiões</option>
-                {Object.keys(REGOES_ESTADUAIS).map((reg) => (
-                  <option key={reg} value={reg}>
-                    {reg}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Hierarchical Estadual de Referência Selector */}
-            <div className="flex flex-col gap-1 col-span-2">
-              <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                <Building2 className="h-3 w-3 text-zinc-400" />
-                Estadual de Referência
-              </label>
-              <select
-                value={selectedEstadual}
-                disabled={selectedRegion === 'ALL'}
-                onChange={(e) => handleSelectEstadual(e.target.value)}
-                className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">Selecione uma Estadual</option>
-                {selectedRegion !== 'ALL' &&
-                  REGOES_ESTADUAIS[selectedRegion as keyof typeof REGOES_ESTADUAIS]?.map((est) => (
-                    <option key={est.nome} value={est.totvs}>
-                      {est.nome} {est.totvs ? `(${est.totvs})` : ''}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Coluna 1 */}
+            <div className="space-y-3">
+              {/* Região Geográfica */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <Layers className="h-3 w-3 text-zinc-400" />
+                  Região
+                </label>
+                <select
+                  value={selectedRegionGeo}
+                  onChange={(e) => handleRegionGeoChange(e.target.value)}
+                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                >
+                  <option value="ALL">Todas as Regiões</option>
+                  {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
+                    <option key={reg} value={reg}>
+                      {reg}
                     </option>
                   ))}
-              </select>
+                </select>
+              </div>
+
+              {/* Estado (UF) */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <MapPin className="h-3 w-3 text-zinc-400" />
+                  Estado (UF)
+                </label>
+                <select
+                  value={selectedUF}
+                  onChange={(e) => setSelectedUF(e.target.value)}
+                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                >
+                  <option value="ALL">Todos os Estados</option>
+                  {distinctUFs.map((uf) => (
+                    <option key={uf} value={uf}>
+                      {uf}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Coluna 2 */}
+            <div className="space-y-3">
+              {/* Estadual de Referência */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <Building2 className="h-3 w-3 text-zinc-400" />
+                  Estadual Ref.
+                </label>
+                <select
+                  value={selectedEstadual}
+                  disabled={selectedRegionGeo === 'ALL'}
+                  onChange={(e) => handleSelectEstadual(e.target.value)}
+                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione...</option>
+                  {selectedRegionGeo !== 'ALL' &&
+                    (REGIAO_TO_ESTADUAIS[selectedRegionGeo] || []).flatMap((subReg) =>
+                      REGOES_ESTADUAIS[subReg as keyof typeof REGOES_ESTADUAIS] || []
+                    ).map((est) => (
+                      <option key={est.nome} value={est.totvs}>
+                        {est.nome} {est.totvs ? `(${est.totvs})` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Tipo de Imóvel */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                  <Building2 className="h-3 w-3 text-zinc-400" />
+                  Imóvel
+                </label>
+                <select
+                  value={selectedTipoImovel}
+                  onChange={(e) => setSelectedTipoImovel(e.target.value)}
+                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                >
+                  <option value="ALL">Todos</option>
+                  <option value="PROPRIO">Próprio</option>
+                  <option value="ALUGADO">Alugado</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1361,7 +1433,7 @@ export default function GeneralMapComponent() {
           </div>
 
           {/* Reset Filter Button */}
-          {(selectedRegionGeo !== 'ALL' || selectedRegion !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
+          {(selectedRegionGeo !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
             <div className="pt-2 border-t border-zinc-150 flex justify-end">
               <button
                 onClick={handleResetFilters}
@@ -1649,6 +1721,22 @@ export default function GeneralMapComponent() {
                   })}
               </MarkerClusterGroup>
             </MapContainer>
+
+            {/* Global floating button to clear connection lines and routes */}
+            {(selectedConnectionPath !== null ||
+              routePath !== null ||
+              routeAtual !== null ||
+              routeCandidataA !== null ||
+              routeCandidataB !== null) && (
+              <button
+                type="button"
+                onClick={handleClearAllLines}
+                className="absolute top-16 right-3 z-[1005] bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-black px-4 py-2.5 rounded-xl shadow-2xl border border-rose-500 hover:shadow-rose-500/20 transition-all flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+                title="Limpar todas as linhas de conexões e rotas ativas do mapa"
+              >
+                <span>🧹 [ Limpar Linhas do Mapa ]</span>
+              </button>
+            )}
 
             {/* Map Layer Overlay Selector */}
             <div className="absolute top-3 right-3 z-[1000] flex bg-white rounded-xl shadow-md border border-zinc-200 overflow-hidden text-[11px] font-bold">
