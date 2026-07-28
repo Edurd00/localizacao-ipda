@@ -241,10 +241,20 @@ function RegionBoundsController({ region, igrejas }: { region: string; igrejas: 
   return null;
 }
 
-// Component to dynamically fit bounds of connection paths
-function MapBoundsController({ bounds }: { bounds: any[] | null }) {
+// Component to dynamically fit bounds of connection paths or routes
+function MapBoundsController({ bounds, routePath }: { bounds: any[] | null; routePath: [number, number][] | null }) {
   const map = useMap();
   useEffect(() => {
+    if (routePath && routePath.length >= 2) {
+      map.fitBounds(routePath, {
+        padding: [50, 50],
+        maxZoom: 15,
+        animate: true,
+        duration: 1.2,
+      });
+      return;
+    }
+
     if (bounds && bounds.length > 0) {
       // Safely flatten any 2D segment arrays to a single flat LatLngExpression list
       const flatPoints: [number, number][] = [];
@@ -268,14 +278,78 @@ function MapBoundsController({ bounds }: { bounds: any[] | null }) {
         });
       }
     }
-  }, [bounds, map]);
+  }, [bounds, routePath, map]);
   return null;
+}
+
+export interface RouteMeta {
+  distance: string; // in km
+  duration: string; // formatted time
+  originName: string;
+  destinationName: string;
+  originCoords: [number, number];
+  destinationCoords: [number, number];
 }
 
 export default function GeneralMapComponent() {
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // OSRM terrestrial route states
+  const [routePath, setRoutePath] = useState<[number, number][] | null>(null);
+  const [routeMeta, setRouteMeta] = useState<RouteMeta | null>(null);
+  const [customRouteOrigin, setCustomRouteOrigin] = useState<Igreja | null>(null);
+
+  const fetchTerrestrialRoute = async (origin: Igreja, dest: Igreja) => {
+    if (!origin.latitude || !origin.longitude || !dest.latitude || !dest.longitude) {
+      toast.error('Uma das igrejas selecionadas não possui coordenadas de geolocalização válidas.');
+      return;
+    }
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson`;
+
+    toast.info('Calculando trajeto terrestre real via OSRM...');
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('OSRM API Error');
+      const data = await res.json();
+
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const coords: [number, number][] = route.geometry.coordinates.map((c: any) => [c[1], c[0]]);
+
+        const distanceKm = (route.distance / 1000).toFixed(1);
+
+        const durationSeconds = route.duration;
+        let durationFormatted = '';
+        if (durationSeconds >= 3600) {
+          const hours = Math.floor(durationSeconds / 3600);
+          const mins = Math.round((durationSeconds % 3600) / 60);
+          durationFormatted = `${hours}h ${mins}min`;
+        } else {
+          durationFormatted = `${Math.round(durationSeconds / 60)} min`;
+        }
+
+        setRoutePath(coords);
+        setRouteMeta({
+          distance: distanceKm,
+          duration: durationFormatted,
+          originName: origin.desc_igreja,
+          destinationName: dest.desc_igreja,
+          originCoords: [origin.latitude, origin.longitude],
+          destinationCoords: [dest.latitude, dest.longitude],
+        });
+
+        toast.success('Rota terrestre traçada com sucesso!');
+      } else {
+        toast.error('Não foi possível encontrar uma rota terrestre viável entre essas igrejas.');
+      }
+    } catch (err) {
+      console.error('Error fetching OSRM route:', err);
+      toast.error('Erro ao conectar com o motor de roteamento terrestre. Tente novamente mais tarde.');
+    }
+  };
 
   // Helper function to render uniform descriptive Leaflet popups
   const renderChurchPopup = (ig: Igreja) => {
@@ -363,6 +437,55 @@ export default function GeneralMapComponent() {
               <p className="text-[10px] text-zinc-500">
                 <span className="font-semibold">Validador:</span> {ig.usuario_validador || (ig as any).validado_por}
               </p>
+            )}
+          </div>
+
+          {/* Terrestrial Route calculation buttons */}
+          <div className="pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-1.5">
+            {ig.codigo_totvs_pai && parentChurch && (
+              <button
+                type="button"
+                onClick={() => fetchTerrestrialRoute(ig, parentChurch)}
+                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                title="Traçar rota rodoviária real até a igreja superior coligada"
+              >
+                <span>🚗 Rota até Superior</span>
+              </button>
+            )}
+
+            {!customRouteOrigin ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomRouteOrigin(ig);
+                  toast.success(`Origem definida: ${ig.desc_igreja}. Abra o popup da igreja de destino e clique em "Traçar Rota terrestre".`);
+                }}
+                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+              >
+                <span>📍 Definir Origem</span>
+              </button>
+            ) : customRouteOrigin.codigo_totvs !== ig.codigo_totvs ? (
+              <button
+                type="button"
+                onClick={() => {
+                  fetchTerrestrialRoute(customRouteOrigin, ig);
+                  setCustomRouteOrigin(null); // Reset origin after calculating
+                }}
+                className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+              >
+                <span>🏁 Traçar Rota terrestre</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomRouteOrigin(null);
+                  toast.info('Origem de rota redefinida.');
+                }}
+                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+              >
+                <span>❌ Cancelar Origem</span>
+              </button>
             )}
           </div>
 
@@ -1063,7 +1186,27 @@ export default function GeneralMapComponent() {
 
               <RegionBoundsController region={selectedRegionGeo} igrejas={igrejas} />
 
-              <MapBoundsController bounds={selectedConnectionPath} />
+              <MapBoundsController bounds={selectedConnectionPath} routePath={routePath} />
+
+              {/* Terrestrial OSRM route path overlay if calculated */}
+              {routePath && (
+                <>
+                  {/* Outer thicker shadow line */}
+                  <Polyline
+                    positions={routePath}
+                    color="#1E40AF"
+                    weight={8}
+                    opacity={0.3}
+                  />
+                  {/* Inner neon blue solid line */}
+                  <Polyline
+                    positions={routePath}
+                    color="#3B82F6"
+                    weight={5}
+                    opacity={0.9}
+                  />
+                </>
+              )}
 
               {mapType === 'satellite' ? (
                 <TileLayer
@@ -1307,6 +1450,65 @@ export default function GeneralMapComponent() {
                 </button>
               )}
             </div>
+
+            {/* Floating OSRM Route Details Card (Lower Right Corner) */}
+            {routeMeta && (
+              <div className="absolute bottom-6 right-6 z-[1000] bg-white/95 backdrop-blur-md border border-zinc-200 rounded-2xl p-4 shadow-2xl w-80 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center justify-between border-b border-zinc-150 pb-2 gap-4">
+                  <div className="flex items-center gap-1.5 text-zinc-900">
+                    <span className="text-sm">🚗</span>
+                    <h3 className="text-xs font-black uppercase tracking-wider">
+                      Rota Terrestre Ativa
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setRoutePath(null);
+                      setRouteMeta(null);
+                      toast.info('Rota terrestre removida do mapa.');
+                    }}
+                    className="text-zinc-400 hover:text-zinc-650 p-1 rounded hover:bg-zinc-100 transition-all"
+                    title="Limpar Rota"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Origem</span>
+                    <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.originName}>{routeMeta.originName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Destino</span>
+                    <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.destinationName}>{routeMeta.destinationName}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-zinc-100">
+                    <div>
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Distância Total</span>
+                      <span className="text-xs font-black text-indigo-650">{routeMeta.distance} km</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Tempo Estimado</span>
+                      <span className="text-xs font-black text-indigo-650">{routeMeta.duration}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-zinc-100 flex items-center justify-end">
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg transition-all flex items-center gap-1 shadow-xs hover:shadow-sm"
+                  >
+                    <span>Abrir no Google Maps (GPS)</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Floating Legend Card (Lower Left Corner) */}
             <div className="absolute bottom-6 left-6 z-[1000] bg-white border border-zinc-200 rounded-2xl p-4 shadow-xl max-w-xs space-y-3">
