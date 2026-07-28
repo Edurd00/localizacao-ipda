@@ -747,8 +747,8 @@ export default function GeneralMapComponent() {
       {/* Toast Notification Container */}
       <Toaster position="top-right" richColors closeButton />
 
-      {/* Modern Compact Floating Header Overlay */}
-      <header className="absolute top-4 left-4 right-4 z-[1020] bg-white/80 backdrop-blur-md border border-zinc-200 shadow-md rounded-2xl p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
+      {/* Modern Compact Floating Header Overlay (Island Bar centered with left/right free space) */}
+      <header className="absolute top-3 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl z-[1020] bg-white/80 backdrop-blur-md border border-zinc-200 shadow-xl rounded-2xl md:rounded-full p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
         {/* Left Section: Logo & Counter */}
         <div className="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
           <div className="flex items-center space-x-2">
