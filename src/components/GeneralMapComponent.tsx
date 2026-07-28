@@ -327,6 +327,17 @@ export default function GeneralMapComponent() {
   const [routeMeta, setRouteMeta] = useState<RouteMeta | null>(null);
   const [customRouteOrigin, setCustomRouteOrigin] = useState<Igreja | null>(null);
 
+  const [activeRouteOrigin, setActiveRouteOrigin] = useState<Igreja | null>(null);
+  const [activeRouteDest, setActiveRouteDest] = useState<Igreja | null>(null);
+  const [travelMode, setTravelMode] = useState<'driving' | 'foot'>('driving');
+
+  const handleToggleTravelMode = (mode: 'driving' | 'foot') => {
+    setTravelMode(mode);
+    if (activeRouteOrigin && activeRouteDest) {
+      fetchTerrestrialRoute(activeRouteOrigin, activeRouteDest, mode);
+    }
+  };
+
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -468,13 +479,13 @@ export default function GeneralMapComponent() {
     }
   };
 
-  const fetchTerrestrialRoute = async (origin: Igreja, dest: Igreja) => {
+  const fetchTerrestrialRoute = async (origin: Igreja, dest: Igreja, profile: 'driving' | 'foot' = 'driving') => {
     if (!origin.latitude || !origin.longitude || !dest.latitude || !dest.longitude) {
       toast.error('Uma das igrejas selecionadas não possui coordenadas de geolocalização válidas.');
       return;
     }
 
-    const url = `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson`;
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${origin.longitude},${origin.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson`;
 
     toast.info('Calculando trajeto terrestre real via OSRM...');
     try {
@@ -507,6 +518,8 @@ export default function GeneralMapComponent() {
           originCoords: [origin.latitude, origin.longitude],
           destinationCoords: [dest.latitude, dest.longitude],
         });
+        setActiveRouteOrigin(origin);
+        setActiveRouteDest(dest);
 
         toast.success('Rota terrestre traçada com sucesso!');
       } else {
@@ -1724,7 +1737,7 @@ export default function GeneralMapComponent() {
                 {/* Comparative Table */}
                 <div className="space-y-3 pt-2.5 border-t border-zinc-100">
                   {/* Route 1: Sede Atual */}
-                  <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-1.5">
+                  <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
                         Sede Atual
@@ -1733,9 +1746,22 @@ export default function GeneralMapComponent() {
                         <span className="text-xs font-black text-zinc-800">{metaAtual.distance} km • {metaAtual.duration}</span>
                       )}
                     </div>
-                    <span className="text-[10px] text-zinc-600 font-bold block truncate">
-                      {fixedDest.codigo_totvs_pai ? `TOTVS: ${fixedDest.codigo_totvs_pai}` : 'Nenhuma vinculada'}
-                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-zinc-600 font-bold block truncate max-w-[150px]">
+                        {fixedDest.codigo_totvs_pai ? `TOTVS: ${fixedDest.codigo_totvs_pai}` : 'Nenhuma vinculada'}
+                      </span>
+                      {fixedDest.codigo_totvs_pai && (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&origin=${igrejas.find(p => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.latitude},${igrejas.find(p => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-1.5 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-[8px] font-bold rounded flex items-center gap-0.5"
+                          title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                        >
+                          <span>🚌 Ônibus</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   {/* Route 2: Candidata A */}
@@ -1750,9 +1776,20 @@ export default function GeneralMapComponent() {
                     </div>
                     {sedeCandidataA ? (
                       <div className="space-y-1.5">
-                        <span className="text-[10px] text-zinc-800 font-bold block truncate" title={sedeCandidataA.desc_igreja}>
-                          {sedeCandidataA.desc_igreja}
-                        </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
+                            {sedeCandidataA.desc_igreja}
+                          </span>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-1.5 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-[8px] font-bold rounded flex items-center gap-0.5"
+                            title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                          >
+                            <span>🚌 Ônibus</span>
+                          </a>
+                        </div>
 
                         {/* Ganho calculations */}
                         {metaAtual && metaCandidataA && (
@@ -1801,9 +1838,20 @@ export default function GeneralMapComponent() {
                     </div>
                     {sedeCandidataB ? (
                       <div className="space-y-1.5">
-                        <span className="text-[10px] text-zinc-800 font-bold block truncate" title={sedeCandidataB.desc_igreja}>
-                          {sedeCandidataB.desc_igreja}
-                        </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
+                            {sedeCandidataB.desc_igreja}
+                          </span>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-1.5 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-[8px] font-bold rounded flex items-center gap-0.5"
+                            title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                          >
+                            <span>🚌 Ônibus</span>
+                          </a>
+                        </div>
 
                         {/* Ganho calculations */}
                         {metaAtual && metaCandidataB && (
@@ -1840,6 +1888,11 @@ export default function GeneralMapComponent() {
                     )}
                   </div>
                 </div>
+
+                {/* Public Transit Explanatory Note */}
+                <div className="pt-2 border-t border-zinc-100 text-[9px] text-zinc-500 leading-normal">
+                  <span>ℹ️ Nota: A disponibilidade de transporte público (ônibus/trem) depende do cadastramento das linhas municipais na região. Para áreas rurais ou isoladas, o sistema indicará a rota por veículo próprio.</span>
+                </div>
               </div>
             )}
 
@@ -1848,15 +1901,17 @@ export default function GeneralMapComponent() {
               <div className="absolute bottom-6 right-6 z-[1000] bg-white/95 backdrop-blur-md border border-zinc-200 rounded-2xl p-4 shadow-2xl w-80 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center justify-between border-b border-zinc-150 pb-2 gap-4">
                   <div className="flex items-center gap-1.5 text-zinc-900">
-                    <span className="text-sm">🚗</span>
+                    <span className="text-sm">{travelMode === 'driving' ? '🚗' : '🚶'}</span>
                     <h3 className="text-xs font-black uppercase tracking-wider">
-                      Rota Terrestre Ativa
+                      Rota Ativa ({travelMode === 'driving' ? 'Carro' : 'Pedestre'})
                     </h3>
                   </div>
                   <button
                     onClick={() => {
                       setRoutePath(null);
                       setRouteMeta(null);
+                      setActiveRouteOrigin(null);
+                      setActiveRouteDest(null);
                       toast.info('Rota terrestre removida do mapa.');
                     }}
                     className="text-zinc-400 hover:text-zinc-650 p-1 rounded hover:bg-zinc-100 transition-all"
@@ -1866,7 +1921,31 @@ export default function GeneralMapComponent() {
                   </button>
                 </div>
 
-                <div className="space-y-2 text-xs">
+                {/* Travel Mode Selector Tabs */}
+                <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-1 justify-center">
+                  <button
+                    onClick={() => handleToggleTravelMode('driving')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all w-1/2 flex items-center justify-center gap-1 ${
+                      travelMode === 'driving'
+                        ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >
+                    <span>🚗</span> <span>Carro</span>
+                  </button>
+                  <button
+                    onClick={() => handleToggleTravelMode('foot')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all w-1/2 flex items-center justify-center gap-1 ${
+                      travelMode === 'foot'
+                        ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >
+                    <span>🚶</span> <span>Pedestre</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 text-xs pt-1">
                   <div>
                     <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Origem</span>
                     <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.originName}>{routeMeta.originName}</span>
@@ -1888,14 +1967,23 @@ export default function GeneralMapComponent() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-zinc-100 flex items-center justify-end">
+                <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}&travelmode=transit`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-250 font-bold text-[10px] rounded-lg transition-all flex items-center gap-1 shrink-0"
+                    title="Ver linhas de ônibus intermunicipais/urbanos, rodoviárias mais próximas, horários e custos de passagem para este destino específico"
+                  >
+                    <span>🚌 Ônibus / Transit</span>
+                  </a>
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg transition-all flex items-center gap-1 shadow-xs hover:shadow-sm"
                   >
-                    <span>Abrir no Google Maps (GPS)</span>
+                    <span>Abrir GPS</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
