@@ -95,9 +95,13 @@ export default function SpreadsheetUpload({ onUploadSuccess }: SpreadsheetUpload
           const result = await res.json();
 
           if (result.success) {
+            const reportStr = result.report
+              ? `Relatório: ${result.report.novas} igrejas novas cadastradas, ${result.report.atualizadas} igrejas atualizadas, ${result.report.preservadas} igrejas validadas/coligadas PRESERVADAS (protegidas contra alteração).`
+              : `${result.count} igrejas processadas com sucesso.`;
+
             setStatus({
               type: 'success',
-              message: `Sucesso! ${result.count} igrejas foram processadas, validadas e importadas/atualizadas com mapeamento vertical de coligações.`,
+              message: `Sucesso! ${reportStr}`,
               parsedCount: result.count,
             });
             onUploadSuccess();

@@ -25,12 +25,13 @@ export async function POST(request: Request) {
     }
 
     // Process/save the bulk chunk
-    await saveIgrejasBulk(igrejas);
+    const report = await saveIgrejasBulk(igrejas);
 
     return NextResponse.json({
       success: true,
       count: igrejas.length,
-      message: `${igrejas.length} igrejas importadas no lote atual com sucesso.`,
+      report,
+      message: `${igrejas.length} igrejas processadas no lote atual com sucesso. Relatório: ${report.novas} novas, ${report.atualizadas} atualizadas, ${report.preservadas} preservadas (protegidas).`,
     });
   } catch (err: unknown) {
     console.error('API Error in POST /api/coligacoes/import:', err);
