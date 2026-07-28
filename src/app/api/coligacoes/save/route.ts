@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getIgrejas, saveIgrejaSingle, Igreja } from '@/lib/db';
 
 export async function POST(request: Request) {
@@ -43,6 +44,12 @@ export async function POST(request: Request) {
     if (Object.keys(update).length > 0) {
       await saveIgrejaSingle(codigo_totvs, update);
     }
+
+    // Revalidate relevant cache paths on-demand
+    revalidatePath('/');
+    revalidatePath('/mapa-geral');
+    revalidatePath('/api/mapa-geral');
+    revalidatePath('/api/igrejas/validadas');
 
     return NextResponse.json({
       success: true,
