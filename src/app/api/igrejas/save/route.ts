@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { saveIgrejaSingle } from '@/lib/db';
 
 export async function POST(request: Request) {
@@ -21,6 +22,12 @@ export async function POST(request: Request) {
     if (link_google_maps !== undefined) updates.link_google_maps = link_google_maps;
 
     await saveIgrejaSingle(codigo_totvs, updates);
+
+    // Revalidate relevant cache paths on-demand
+    revalidatePath('/');
+    revalidatePath('/mapa-geral');
+    revalidatePath('/api/mapa-geral');
+    revalidatePath('/api/igrejas/validadas');
 
     return NextResponse.json({
       success: true,

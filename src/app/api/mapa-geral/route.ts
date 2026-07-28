@@ -20,7 +20,7 @@ export async function GET() {
       }
     );
   } catch (err: unknown) {
-    console.error('API Error in GET /api/igrejas/validadas:', err);
+    console.error('API Error in GET /api/mapa-geral:', err);
     const errMsg = err instanceof Error ? err.message : 'Unknown database error';
     return NextResponse.json(
       { success: false, error: errMsg },

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { saveIgrejasBulk, Igreja } from '@/lib/db';
 
 export const maxDuration = 60;
@@ -26,6 +27,12 @@ export async function POST(request: Request) {
 
     // Process/save the bulk chunk
     const report = await saveIgrejasBulk(igrejas);
+
+    // Revalidate relevant cache paths on-demand
+    revalidatePath('/');
+    revalidatePath('/mapa-geral');
+    revalidatePath('/api/mapa-geral');
+    revalidatePath('/api/igrejas/validadas');
 
     return NextResponse.json({
       success: true,
