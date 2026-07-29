@@ -49,13 +49,13 @@ export function getPorte(desc: string): string {
 
 // Map of precise official colors (as requested for high-contrast on satellite imagery)
 export const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
-  ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual (Azul)' },
-  SETORIAL: { name: 'SETORIAL', color: '#EAB308', label: 'Setorial (Amarelo)' },
-  CENTRAL: { name: 'CENTRAL', color: '#F97316', label: 'Central (Laranja)' },
-  REGIONAL: { name: 'REGIONAL', color: '#22C55E', label: 'Regional (Verde)' },
-  LOCAL: { name: 'LOCAL', color: '#8B5CF6', label: 'Local (Roxo Suave)' },
-  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#EC4899', label: 'Casa de Oração (Rosa/Carmesim)' },
-  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano/Turquesa)' },
+  ESTADUAL: { name: 'ESTADUAL', color: '#8CAEE0', label: 'Estadual (Azul Claro)' },
+  SETORIAL: { name: 'SETORIAL', color: '#FFFF00', label: 'Setorial (Amarelo)' },
+  CENTRAL: { name: 'CENTRAL', color: '#F4A27E', label: 'Central (Laranja/Salmão)' },
+  REGIONAL: { name: 'REGIONAL', color: '#A2C898', label: 'Regional (Verde Oliva Soft)' },
+  LOCAL: { name: 'LOCAL', color: '#A6A6A6', label: 'Local (Cinza)' },
+  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#D8A2C8', label: 'Casa de Oração (Rosa Pastel)' },
+  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano)' },
 };
 
 export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
@@ -679,12 +679,12 @@ export default function GeneralMapComponent() {
           {/* Terrestrial Route calculation & Comparison buttons */}
           <div className="pt-2 border-t border-zinc-100 flex flex-col gap-2">
             {/* Standard route triggers */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               {ig.codigo_totvs_pai && parentChurch && (
                 <button
                   type="button"
                   onClick={() => fetchTerrestrialRoute(ig, parentChurch)}
-                  className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                  className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
                   title="Traçar rota rodoviária real até a igreja superior coligada"
                 >
                   <span>🚗 Rota até Superior</span>
@@ -698,7 +698,7 @@ export default function GeneralMapComponent() {
                     setCustomRouteOrigin(ig);
                     toast.success(`Origem definida: ${ig.desc_igreja}. Abra o popup da igreja de destino e clique em "Traçar Rota terrestre".`);
                   }}
-                  className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                  className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
                 >
                   <span>📍 Definir Origem</span>
                 </button>
@@ -709,9 +709,9 @@ export default function GeneralMapComponent() {
                     fetchTerrestrialRoute(customRouteOrigin, ig);
                     setCustomRouteOrigin(null); // Reset origin after calculating
                   }}
-                  className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
                 >
-                  <span>🏁 Traçar Rota terrestre</span>
+                  <span>🏁 Traçar Rota</span>
                 </button>
               ) : (
                 <button
@@ -720,7 +720,7 @@ export default function GeneralMapComponent() {
                     setCustomRouteOrigin(null);
                     toast.info('Origem de rota redefinida.');
                   }}
-                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                  className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
                 >
                   <span>❌ Cancelar Origem</span>
                 </button>
@@ -728,10 +728,10 @@ export default function GeneralMapComponent() {
             </div>
 
             {/* Comparison Module triggers */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-zinc-50">
+            <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-zinc-50">
               {comparisonMode ? (
                 fixedDest?.codigo_totvs === ig.codigo_totvs ? (
-                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200">
+                  <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-200 min-h-[44px] flex items-center justify-center">
                     📍 Igreja Alvo de Análise
                   </span>
                 ) : (
@@ -742,7 +742,7 @@ export default function GeneralMapComponent() {
                         setSedeCandidataA(ig);
                         toast.success(`Sede Candidata A definida: ${ig.desc_igreja}`);
                       }}
-                      className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold rounded-lg transition-all"
+                      className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center shrink-0"
                     >
                       <span>🟢 Sede Candidata A</span>
                     </button>
@@ -752,7 +752,7 @@ export default function GeneralMapComponent() {
                         setSedeCandidataB(ig);
                         toast.success(`Sede Candidata B definida: ${ig.desc_igreja}`);
                       }}
-                      className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 text-[10px] font-bold rounded-lg transition-all"
+                      className="px-3 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center shrink-0"
                     >
                       <span>🔵 Sede Candidata B</span>
                     </button>
@@ -765,9 +765,9 @@ export default function GeneralMapComponent() {
                         setSedeCandidataB(null);
                         toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
                       }}
-                      className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                      className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center gap-1.5 shrink-0"
                     >
-                      <span>📐 Comparar Rotas de Coligação</span>
+                      <span>📐 Comparar Rotas</span>
                     </button>
                   </>
                 )
@@ -781,7 +781,7 @@ export default function GeneralMapComponent() {
                     setSedeCandidataB(null);
                     toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino. Agora clique em outras igrejas para selecionar as Candidatas A e B.`);
                   }}
-                  className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                  className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center gap-1.5 w-full shrink-0"
                 >
                   <span>📐 Comparar Rotas de Coligação</span>
                 </button>
@@ -790,11 +790,11 @@ export default function GeneralMapComponent() {
           </div>
 
           {/* Google Maps Link & Connection mesh trigger */}
-          <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-1.5">
+          <div className="pt-2 border-t border-zinc-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => handleTraceConnectionMesh(ig)}
-              className={`px-2 py-1.5 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0 ${
                 connectionPathSource === ig.codigo_totvs
                   ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                   : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
@@ -802,12 +802,12 @@ export default function GeneralMapComponent() {
             >
               {connectionPathSource === ig.codigo_totvs ? (
                 <>
-                  <X className="h-3.5 w-3.5 text-rose-600" />
-                  <span>[ ❌ Ocultar Malha ]</span>
+                  <X className="h-4 w-4 text-rose-600" />
+                  <span>❌ Ocultar Malha</span>
                 </>
               ) : (
                 <>
-                  <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+                  <GitBranch className="h-4 w-4 text-indigo-600" />
                   <span>Ver Malha de Conexão</span>
                 </>
               )}
@@ -816,10 +816,10 @@ export default function GeneralMapComponent() {
               href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg transition-all flex items-center gap-1 shadow-xs hover:shadow-sm"
+              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs hover:shadow-sm min-h-[44px] shrink-0"
             >
-              <span>Abrir no Google Maps</span>
-              <ExternalLink className="h-3 w-3" />
+              <span>Google Maps</span>
+              <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </div>
         </div>
@@ -865,6 +865,7 @@ export default function GeneralMapComponent() {
 
   // Floating Region Legend collapsible state
   const [regionLegendOpen, setRegionLegendOpen] = useState(false);
+  const [porteLegendMobileOpen, setPorteLegendMobileOpen] = useState(false);
 
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
@@ -1209,7 +1210,7 @@ export default function GeneralMapComponent() {
       <Toaster position="top-right" richColors closeButton />
 
       {/* Modern Compact Floating Header Overlay (Floating Pill Bar centered with left/right free space) */}
-      <header className="absolute top-3 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl mx-auto mt-3 z-[1020] bg-white/80 backdrop-blur-md border border-zinc-200 shadow-xl rounded-full p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
+      <header className="absolute top-2 left-1/2 -translate-x-1/2 w-[95%] md:w-[90%] max-w-6xl mx-auto mt-2 md:mt-3 z-[1020] bg-white/85 backdrop-blur-md border border-zinc-200 shadow-xl rounded-2xl md:rounded-full p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
         {/* Left Section: Logo & Counter */}
         <div className="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
           <div className="flex items-center space-x-2">
@@ -1259,14 +1260,14 @@ export default function GeneralMapComponent() {
               setShowFilters(!showFilters);
               toast.dismiss();
             }}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
               showFilters
                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                 : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
             }`}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span>Filtros</span>
+            <span className="hidden sm:inline">Filtros</span>
           </button>
 
           <a
@@ -1300,18 +1301,24 @@ export default function GeneralMapComponent() {
 
       {/* Floating Collapsible Filters Popover Card */}
       {showFilters && (
-        <section className="absolute top-[140px] md:top-20 right-4 z-[1015] bg-white/95 backdrop-blur-md border border-zinc-200 shadow-xl rounded-2xl p-4 w-full max-w-sm space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-            <span className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-              🎛️ Painel de Filtros Rápidos
-            </span>
-            <button
-              onClick={() => setShowFilters(false)}
-              className="text-zinc-400 hover:text-zinc-600 p-1 hover:bg-zinc-100 rounded-md"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+        <>
+          {/* Backdrop overlay on mobile */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
+            onClick={() => setShowFilters(false)}
+          />
+          <section className="fixed bottom-0 left-0 right-0 md:absolute md:top-20 md:right-4 md:bottom-auto md:left-auto w-full md:max-w-sm rounded-t-3xl md:rounded-2xl bg-white md:bg-white/95 backdrop-blur-md border-t md:border border-zinc-200 shadow-2xl md:shadow-xl p-5 md:p-4 space-y-4 z-[1030] md:z-[1015] max-h-[85vh] overflow-y-auto md:overflow-visible flex flex-col transition-all duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+              <span className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
+                🎛️ Painel de Filtros Rápidos
+              </span>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="text-zinc-400 hover:text-zinc-600 p-2.5 hover:bg-zinc-100 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Coluna 1 */}
@@ -1445,7 +1452,8 @@ export default function GeneralMapComponent() {
             </div>
           )}
         </section>
-      )}
+      </>
+    )}
 
       {/* Main Workspace Map Block */}
       <div className="flex-1 w-full h-full relative z-10">
@@ -1765,7 +1773,7 @@ export default function GeneralMapComponent() {
             </div>
 
             {/* Collapsible Regions Legend Card */}
-            <div className="absolute bottom-[280px] left-6 z-[1000] bg-white border border-zinc-200 rounded-2xl shadow-xl max-w-xs transition-all duration-300 overflow-hidden">
+            <div className="hidden md:block absolute bottom-[280px] left-6 z-[1000] bg-white border border-zinc-200 rounded-2xl shadow-xl max-w-xs transition-all duration-300 overflow-hidden">
               {regionLegendOpen ? (
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between border-b border-zinc-100 pb-1.5 gap-4">
@@ -1825,306 +1833,328 @@ export default function GeneralMapComponent() {
               )}
             </div>
 
-            {/* Floating OSRM Route Comparison Card (Upper Right / Right Corner) */}
+            {/* Floating OSRM Route Comparison Card (Responsive: Bottom Sheet on Mobile, Floating Card on Desktop) */}
             {comparisonMode && fixedDest && (
-              <div className="absolute top-24 right-6 z-[1010] bg-white border border-zinc-200 rounded-2xl p-5 shadow-2xl w-96 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center justify-between border-b border-zinc-150 pb-2.5 gap-4">
-                  <div className="flex items-center gap-1.5 text-zinc-900">
-                    <span className="text-base">📐</span>
-                    <h3 className="text-xs font-black uppercase tracking-wider">
-                      Comparativo de Rotas e Proximidade
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setComparisonMode(false);
-                      setFixedDest(null);
-                      toast.info('Modo comparativo desativado.');
-                    }}
-                    className="text-zinc-400 hover:text-zinc-650 p-1 rounded hover:bg-zinc-100 transition-all"
-                    title="Fechar Comparador"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="space-y-1.5 text-xs">
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Igreja Alvo (Destino)</span>
-                  <span className="font-bold text-zinc-900 block truncate" title={fixedDest.desc_igreja}>{fixedDest.desc_igreja}</span>
-                </div>
-
-                {/* Comparative Table */}
-                <div className="space-y-3 pt-2.5 border-t border-zinc-100">
-                  {/* Route 1: Sede Atual */}
-                  <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
-                        Sede Atual
-                      </span>
-                      {metaAtual && (
-                        <span className="text-xs font-black text-zinc-800">{metaAtual.distance} km • {metaAtual.duration}</span>
-                      )}
+              <>
+                {/* Backdrop overlay on mobile */}
+                <div
+                  className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
+                  onClick={() => {
+                    setComparisonMode(false);
+                    setFixedDest(null);
+                  }}
+                />
+                <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:top-24 md:right-6 md:bottom-auto md:left-auto w-full md:w-96 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white shadow-2xl p-5 space-y-4 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 flex flex-col">
+                  <div className="flex items-center justify-between border-b border-zinc-150 pb-2.5 gap-4 shrink-0">
+                    <div className="flex items-center gap-1.5 text-zinc-900">
+                      <span className="text-base">📐</span>
+                      <h3 className="text-xs font-black uppercase tracking-wider">
+                        Comparativo de Rotas e Proximidade
+                      </h3>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-zinc-600 font-bold block truncate max-w-[150px]">
-                        {fixedDest.codigo_totvs_pai ? `TOTVS: ${fixedDest.codigo_totvs_pai}` : 'Nenhuma vinculada'}
-                      </span>
-                      {fixedDest.codigo_totvs_pai && (
-                        <a
-                          href={`https://www.google.com/maps/dir/?api=1&origin=${igrejas.find(p => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.latitude},${igrejas.find(p => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-1.5 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-[8px] font-bold rounded flex items-center gap-0.5"
-                          title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
-                        >
-                          <span>🚌 Ônibus</span>
-                        </a>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => {
+                        setComparisonMode(false);
+                        setFixedDest(null);
+                        toast.info('Modo comparativo desativado.');
+                      }}
+                      className="text-zinc-400 hover:text-zinc-650 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-100 rounded-full transition-all"
+                      title="Fechar Comparador"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
 
-                  {/* Route 2: Candidata A */}
-                  <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Candidata A
-                      </span>
-                      {metaCandidataA && (
-                        <span className="text-xs font-black text-zinc-800">{metaCandidataA.distance} km • {metaCandidataA.duration}</span>
-                      )}
-                    </div>
-                    {sedeCandidataA ? (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
-                            {sedeCandidataA.desc_igreja}
-                          </span>
+                  <div className="space-y-1.5 text-xs shrink-0">
+                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Igreja Alvo (Destino)</span>
+                    <span className="font-bold text-zinc-900 block truncate" title={fixedDest.desc_igreja}>{fixedDest.desc_igreja}</span>
+                  </div>
+
+                  {/* Comparative Table */}
+                  <div className="space-y-3 pt-2.5 border-t border-zinc-100 overflow-y-auto">
+                    {/* Route 1: Sede Atual */}
+                    <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                          Sede Atual
+                        </span>
+                        {metaAtual && (
+                          <span className="text-xs font-black text-zinc-800">{metaAtual.distance} km • {metaAtual.duration}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-zinc-600 font-bold block truncate max-w-[150px]">
+                          {fixedDest.codigo_totvs_pai ? `TOTVS: ${fixedDest.codigo_totvs_pai}` : 'Nenhuma vinculada'}
+                        </span>
+                        {fixedDest.codigo_totvs_pai && (
                           <a
-                            href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                            href={`https://www.google.com/maps/dir/?api=1&origin=${igrejas.find(p => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.latitude},${igrejas.find(p => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-1.5 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-[8px] font-bold rounded flex items-center gap-0.5"
+                            className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px]"
                             title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
                           >
                             <span>🚌 Ônibus</span>
                           </a>
-                        </div>
-
-                        {/* Ganho calculations */}
-                        {metaAtual && metaCandidataA && (
-                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100">
-                            {metaAtual.distance - metaCandidataA.distance > 0 ? (
-                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-250">
-                                🟢 {(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais perto
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-250">
-                                🔴 {Math.abs(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais longe
-                              </span>
-                            )}
-
-                            {/* Transfer Action button */}
-                            {isAuthenticated ? (
-                              <button
-                                type="button"
-                                onClick={() => handleTransferColigacao(sedeCandidataA)}
-                                className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[9px] rounded-lg transition-all border border-indigo-750 shadow-xs flex items-center gap-1"
-                                title="Gravar nova vinculação hierárquica no banco de dados Neon"
-                              >
-                                <span>🔄 Transferir Coligação para esta Sede</span>
-                              </button>
-                            ) : (
-                              <span className="text-[9px] text-zinc-400 font-black italic bg-zinc-100 border border-zinc-200 px-2 py-1 rounded-md" title="Faça login como administrador para alterar a coligação">
-                                🔒 Transferência bloqueada (Login requerido)
-                              </span>
-                            )}
-                          </div>
                         )}
                       </div>
-                    ) : (
-                      <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Route 3: Candidata B */}
-                  <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
-                        Candidata B
-                      </span>
-                      {metaCandidataB && (
-                        <span className="text-xs font-black text-zinc-800">{metaCandidataB.distance} km • {metaCandidataB.duration}</span>
+                    {/* Route 2: Candidata A */}
+                    <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Candidata A
+                        </span>
+                        {metaCandidataA && (
+                          <span className="text-xs font-black text-zinc-800">{metaCandidataA.distance} km • {metaCandidataA.duration}</span>
+                        )}
+                      </div>
+                      {sedeCandidataA ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
+                              {sedeCandidataA.desc_igreja}
+                            </span>
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px]"
+                              title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                            >
+                              <span>🚌 Ônibus</span>
+                            </a>
+                          </div>
+
+                          {/* Ganho calculations */}
+                          {metaAtual && metaCandidataA && (
+                            <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100">
+                              {metaAtual.distance - metaCandidataA.distance > 0 ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                                  🟢 {(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais perto
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                                  🔴 {Math.abs(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais longe
+                                </span>
+                              )}
+
+                              {/* Transfer Action button */}
+                              {isAuthenticated ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleTransferColigacao(sedeCandidataA)}
+                                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl transition-all border border-indigo-750 shadow-xs flex items-center justify-center gap-1.5 min-h-[44px]"
+                                  title="Gravar nova vinculação hierárquica no banco de dados Neon"
+                                >
+                                  <span>🔄 Transferir Coligação para esta Sede</span>
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-zinc-400 font-black italic bg-zinc-100 border border-zinc-200 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
+                                  🔒 Transferência bloqueada (Login requerido)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
                       )}
                     </div>
-                    {sedeCandidataB ? (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
-                            {sedeCandidataB.desc_igreja}
-                          </span>
-                          <a
-                            href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-1.5 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-[8px] font-bold rounded flex items-center gap-0.5"
-                            title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
-                          >
-                            <span>🚌 Ônibus</span>
-                          </a>
-                        </div>
 
-                        {/* Ganho calculations */}
-                        {metaAtual && metaCandidataB && (
-                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100">
-                            {metaAtual.distance - metaCandidataB.distance > 0 ? (
-                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-250">
-                                🟢 {(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais perto
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-250">
-                                🔴 {Math.abs(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais longe
-                              </span>
-                            )}
-
-                            {/* Transfer Action button */}
-                            {isAuthenticated ? (
-                              <button
-                                type="button"
-                                onClick={() => handleTransferColigacao(sedeCandidataB)}
-                                className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[9px] rounded-lg transition-all border border-indigo-750 shadow-xs flex items-center gap-1"
-                                title="Gravar nova vinculação hierárquica no banco de dados Neon"
-                              >
-                                <span>🔄 Transferir Coligação para esta Sede</span>
-                              </button>
-                            ) : (
-                              <span className="text-[9px] text-zinc-400 font-black italic bg-zinc-100 border border-zinc-200 px-2 py-1 rounded-md" title="Faça login como administrador para alterar a coligação">
-                                🔒 Transferência bloqueada (Login requerido)
-                              </span>
-                            )}
-                          </div>
+                    {/* Route 3: Candidata B */}
+                    <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                          Candidata B
+                        </span>
+                        {metaCandidataB && (
+                          <span className="text-xs font-black text-zinc-800">{metaCandidataB.distance} km • {metaCandidataB.duration}</span>
                         )}
                       </div>
-                    ) : (
-                      <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
-                    )}
+                      {sedeCandidataB ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
+                              {sedeCandidataB.desc_igreja}
+                            </span>
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px]"
+                              title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                            >
+                              <span>🚌 Ônibus</span>
+                            </a>
+                          </div>
+
+                          {/* Ganho calculations */}
+                          {metaAtual && metaCandidataB && (
+                            <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100">
+                              {metaAtual.distance - metaCandidataB.distance > 0 ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                                  🟢 {(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais perto
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                                  🔴 {Math.abs(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais longe
+                                </span>
+                              )}
+
+                              {/* Transfer Action button */}
+                              {isAuthenticated ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleTransferColigacao(sedeCandidataB)}
+                                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl transition-all border border-indigo-750 shadow-xs flex items-center justify-center gap-1.5 min-h-[44px]"
+                                  title="Gravar nova vinculação hierárquica no banco de dados Neon"
+                                >
+                                  <span>🔄 Transferir Coligação para esta Sede</span>
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-zinc-400 font-black italic bg-zinc-100 border border-zinc-200 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
+                                  🔒 Transferência bloqueada (Login requerido)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Public Transit Explanatory Note */}
+                  <div className="pt-2 border-t border-zinc-100 text-[9px] text-zinc-500 leading-normal shrink-0">
+                    <span>ℹ️ Nota: A disponibilidade de transporte público (ônibus/trem) depende do cadastramento das linhas municipais na região. Para áreas rurais ou isoladas, o sistema indicará a rota por veículo próprio.</span>
                   </div>
                 </div>
-
-                {/* Public Transit Explanatory Note */}
-                <div className="pt-2 border-t border-zinc-100 text-[9px] text-zinc-500 leading-normal">
-                  <span>ℹ️ Nota: A disponibilidade de transporte público (ônibus/trem) depende do cadastramento das linhas municipais na região. Para áreas rurais ou isoladas, o sistema indicará a rota por veículo próprio.</span>
-                </div>
-              </div>
+              </>
             )}
 
-            {/* Floating OSRM Route Details Card (Lower Right Corner) */}
+            {/* Floating OSRM Route Details Card (Responsive: Bottom Sheet on Mobile, Floating Card on Desktop) */}
             {routeMeta && (
-              <div className="absolute bottom-6 right-6 z-[1000] bg-white/95 backdrop-blur-md border border-zinc-200 rounded-2xl p-4 shadow-2xl w-80 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center justify-between border-b border-zinc-150 pb-2 gap-4">
-                  <div className="flex items-center gap-1.5 text-zinc-900">
-                    <span className="text-sm">
-                      {travelMode === 'car' ? '🚗' : travelMode === 'motorcycle' ? '🏍️' : '🚶'}
-                    </span>
-                    <h3 className="text-xs font-black uppercase tracking-wider">
-                      Rota Ativa ({travelMode === 'car' ? 'Carro' : travelMode === 'motorcycle' ? 'Moto' : 'Caminhada'})
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setRoutePath(null);
-                      setRouteMeta(null);
-                      setActiveRouteOrigin(null);
-                      setActiveRouteDest(null);
-                      toast.info('Rota terrestre removida do mapa.');
-                    }}
-                    className="text-zinc-400 hover:text-zinc-650 p-1 rounded hover:bg-zinc-100 transition-all"
-                    title="Limpar Rota"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Travel Mode Selector Tabs */}
-                <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-1 justify-center">
-                  <button
-                    onClick={() => handleToggleTravelMode('car')}
-                    className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all w-1/3 flex items-center justify-center gap-1 ${
-                      travelMode === 'car'
-                        ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
-                        : 'text-zinc-500 hover:text-zinc-800'
-                    }`}
-                  >
-                    <span>🚗</span> <span className="hidden sm:inline">Carro</span>
-                  </button>
-                  <button
-                    onClick={() => handleToggleTravelMode('motorcycle')}
-                    className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all w-1/3 flex items-center justify-center gap-1 ${
-                      travelMode === 'motorcycle'
-                        ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
-                        : 'text-zinc-500 hover:text-zinc-800'
-                    }`}
-                  >
-                    <span>🏍️</span> <span className="hidden sm:inline">Moto</span>
-                  </button>
-                  <button
-                    onClick={() => handleToggleTravelMode('foot')}
-                    className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all w-1/3 flex items-center justify-center gap-1 ${
-                      travelMode === 'foot'
-                        ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
-                        : 'text-zinc-500 hover:text-zinc-800'
-                    }`}
-                  >
-                    <span>🚶</span> <span className="hidden sm:inline">Caminhada</span>
-                  </button>
-                </div>
-
-                <div className="space-y-2 text-xs pt-1">
-                  <div>
-                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Origem</span>
-                    <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.originName}>{routeMeta.originName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Destino</span>
-                    <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.destinationName}>{routeMeta.destinationName}</span>
+              <>
+                {/* Backdrop overlay on mobile */}
+                <div
+                  className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
+                  onClick={() => {
+                    setRoutePath(null);
+                    setRouteMeta(null);
+                    setActiveRouteOrigin(null);
+                    setActiveRouteDest(null);
+                  }}
+                />
+                <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:bottom-6 md:right-6 md:left-auto w-full md:w-80 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white/95 backdrop-blur-md p-5 shadow-2xl space-y-3 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-bottom-2 flex flex-col">
+                  <div className="flex items-center justify-between border-b border-zinc-150 pb-2 gap-4 shrink-0">
+                    <div className="flex items-center gap-1.5 text-zinc-900">
+                      <span className="text-sm">
+                        {travelMode === 'car' ? '🚗' : travelMode === 'motorcycle' ? '🏍️' : '🚶'}
+                      </span>
+                      <h3 className="text-xs font-black uppercase tracking-wider">
+                        Rota Ativa ({travelMode === 'car' ? 'Carro' : travelMode === 'motorcycle' ? 'Moto' : 'Caminhada'})
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setRoutePath(null);
+                        setRouteMeta(null);
+                        setActiveRouteOrigin(null);
+                        setActiveRouteDest(null);
+                        toast.info('Rota terrestre removida do mapa.');
+                      }}
+                      className="text-zinc-400 hover:text-zinc-650 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-100 rounded-full transition-all"
+                      title="Limpar Rota"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-zinc-100">
+                  {/* Travel Mode Selector Tabs */}
+                  <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-1 justify-center shrink-0">
+                    <button
+                      onClick={() => handleToggleTravelMode('car')}
+                      className={`px-3 py-2 text-xs font-bold rounded-xl transition-all w-1/3 flex items-center justify-center gap-1.5 min-h-[44px] ${
+                        travelMode === 'car'
+                          ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
+                          : 'text-zinc-500 hover:text-zinc-800'
+                      }`}
+                    >
+                      <span>🚗</span> <span className="hidden sm:inline">Carro</span>
+                    </button>
+                    <button
+                      onClick={() => handleToggleTravelMode('motorcycle')}
+                      className={`px-3 py-2 text-xs font-bold rounded-xl transition-all w-1/3 flex items-center justify-center gap-1.5 min-h-[44px] ${
+                        travelMode === 'motorcycle'
+                          ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
+                          : 'text-zinc-500 hover:text-zinc-800'
+                      }`}
+                    >
+                      <span>🏍️</span> <span className="hidden sm:inline">Moto</span>
+                    </button>
+                    <button
+                      onClick={() => handleToggleTravelMode('foot')}
+                      className={`px-3 py-2 text-xs font-bold rounded-xl transition-all w-1/3 flex items-center justify-center gap-1.5 min-h-[44px] ${
+                        travelMode === 'foot'
+                          ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
+                          : 'text-zinc-500 hover:text-zinc-800'
+                      }`}
+                    >
+                      <span>🚶</span> <span className="hidden sm:inline">Caminhada</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 text-xs pt-1 overflow-y-auto">
                     <div>
-                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Distância Total</span>
-                      <span className="text-xs font-black text-indigo-650">{routeMeta.distance} km</span>
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Origem</span>
+                      <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.originName}>{routeMeta.originName}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Tempo Estimado</span>
-                      <span className="text-xs font-black text-indigo-650">{routeMeta.duration}</span>
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Destino</span>
+                      <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.destinationName}>{routeMeta.destinationName}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-zinc-100">
+                      <div>
+                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Distância Total</span>
+                        <span className="text-xs font-black text-indigo-650">{routeMeta.distance} km</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Tempo Estimado</span>
+                        <span className="text-xs font-black text-indigo-650">{routeMeta.duration}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="pt-2 border-t border-zinc-100 flex flex-col gap-2">
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}&travelmode=transit`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full text-center px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-250 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                    title="Ver linhas de ônibus intermunicipais/urbanos, rodoviárias mais próximas, horários e custos de passagem para este destino específico"
-                  >
-                    <span>🚌 Ver Opções de Ônibus / Transporte Público</span>
-                  </a>
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full text-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs hover:shadow-sm"
-                  >
-                    <span>Abrir GPS / Google Maps</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  <div className="pt-2 border-t border-zinc-100 flex flex-col gap-2 shrink-0">
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}&travelmode=transit`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full text-center px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-250 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs min-h-[44px]"
+                      title="Ver linhas de ônibus intermunicipais/urbanos, rodoviárias mais próximas, horários e custos de passagem para este destino específico"
+                    >
+                      <span>🚌 Ver Opções de Ônibus / Transporte Público</span>
+                    </a>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full text-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs hover:shadow-sm min-h-[44px]"
+                    >
+                      <span>Abrir GPS / Google Maps</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Floating Legend Card (Lower Left Corner) */}
-            <div className="absolute bottom-6 left-6 z-[1000] bg-white border border-zinc-200 rounded-2xl p-4 shadow-xl max-w-xs space-y-3">
+            {/* Desktop-only Floating Legend Card (Lower Left Corner) */}
+            <div className="hidden md:block absolute bottom-6 left-6 z-[1000] bg-white border border-zinc-200 rounded-2xl p-4 shadow-xl max-w-xs space-y-3">
               <h3 className="text-xs font-black text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
                 <Layers className="h-4 w-4 text-indigo-600" />
                 Legenda Oficial de Portes
@@ -2143,6 +2173,99 @@ export default function GeneralMapComponent() {
                 ))}
               </div>
             </div>
+
+            {/* Mobile-only Minimized Floating Legend Button */}
+            <div className="absolute bottom-6 left-6 z-[1000] md:hidden">
+              <button
+                onClick={() => setPorteLegendMobileOpen(true)}
+                className="bg-white border border-zinc-200 rounded-full py-2.5 px-4 shadow-lg text-xs font-bold text-zinc-800 flex items-center gap-1.5 min-h-[44px] min-w-[44px] hover:bg-zinc-50 active:bg-zinc-100 transition-all"
+              >
+                <Layers className="h-4 w-4 text-indigo-600" />
+                <span>Legenda</span>
+              </button>
+            </div>
+
+            {/* Mobile-only Bottom Sheet for Legends */}
+            {porteLegendMobileOpen && (
+              <>
+                {/* Backdrop overlay */}
+                <div
+                  className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
+                  onClick={() => setPorteLegendMobileOpen(false)}
+                />
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 rounded-t-3xl shadow-2xl p-6 z-[1030] max-h-[85vh] overflow-y-auto space-y-6 md:hidden animate-in slide-in-from-bottom duration-300 flex flex-col">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-2 shrink-0">
+                    <h3 className="text-sm font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Layers className="h-4.5 w-4.5 text-indigo-600" />
+                      Legendas do Mapa
+                    </h3>
+                    <button
+                      onClick={() => setPorteLegendMobileOpen(false)}
+                      className="text-zinc-400 hover:text-zinc-650 p-2.5 hover:bg-zinc-100 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-5 overflow-y-auto">
+                    <div>
+                      <h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider mb-2.5 flex items-center gap-1">
+                        <span>⭐</span> Portes Oficiais
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-zinc-750">
+                        {Object.values(PORTE_INFO).map((item) => (
+                          <div key={item.name} className="flex items-center space-x-2">
+                            <span
+                              className="w-4 h-4 rounded-md border border-zinc-300 shadow-xs inline-block shrink-0"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span className="uppercase tracking-wide font-mono text-zinc-800 text-[10px]">
+                              {item.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-zinc-100 pt-4">
+                      <h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider mb-2.5 flex items-center gap-1">
+                        <span>🎨</span> Cores de Agrupamento (Regiões/UF)
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-zinc-750">
+                        <div className="flex items-center space-x-2">
+                          <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#F59E0B] shrink-0" />
+                          <span>SP</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#EA580C] shrink-0" />
+                          <span>MG</span>
+                        </div>
+                        <div className="flex items-center space-x-2 col-span-2">
+                          <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#DC2626] shrink-0" />
+                          <span>ES / RJ</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#2563EB] shrink-0" />
+                          <span>Sul</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#059669] shrink-0" />
+                          <span>Norte</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#7C3AED] shrink-0" />
+                          <span>Nordeste</span>
+                        </div>
+                        <div className="flex items-center space-x-2 col-span-2">
+                          <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#0891B2] shrink-0" />
+                          <span>Centro-Oeste</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
