@@ -5,18 +5,19 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 537ms
+✓ Ready in 523ms
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 
 ○ Compiling /mapa-geral ...
- GET /mapa-geral 200 in 6.3s (next.js: 5.9s, application-code: 418ms)
- GET /api/auth/session 200 in 1347ms (next.js: 1299ms, application-code: 48ms)
- GET /api/igrejas/validadas 200 in 1509ms (next.js: 1496ms, application-code: 14ms)
- GET /api/auth/session 200 in 22ms (next.js: 7ms, application-code: 15ms)
- GET /api/igrejas/validadas 200 in 13ms (next.js: 8ms, application-code: 6ms)
- GET /mapa-geral 200 in 74ms (next.js: 7ms, application-code: 67ms)
- GET /api/auth/session 200 in 13ms (next.js: 4ms, application-code: 9ms)
- GET /api/igrejas/validadas 200 in 11ms (next.js: 6ms, application-code: 5ms)
- GET /api/auth/session 200 in 12ms (next.js: 4ms, application-code: 7ms)
- GET /api/igrejas/validadas 200 in 7ms (next.js: 3ms, application-code: 4ms)
-[browser] Estadual with TOTVS 16332 not found or has no coordinates. (src/components/GeneralMapComponent.tsx:1009:15)
+ GET /mapa-geral 200 in 6.2s (next.js: 5.8s, application-code: 425ms)
+ GET /api/auth/session 200 in 897ms (next.js: 852ms, application-code: 45ms)
+ GET /api/igrejas/validadas 200 in 1020ms (next.js: 1007ms, application-code: 13ms)
+ GET /api/auth/session 200 in 18ms (next.js: 7ms, application-code: 12ms)
+ GET /api/igrejas/validadas 200 in 16ms (next.js: 7ms, application-code: 9ms)
+ GET /api/igrejas/validadas 200 in 13ms (next.js: 5ms, application-code: 8ms)
+ GET /api/igrejas/validadas 200 in 12ms (next.js: 5ms, application-code: 7ms)
+ GET /mapa-geral 200 in 74ms (next.js: 4ms, application-code: 70ms)
+ GET /api/igrejas/validadas 200 in 14ms (next.js: 10ms, application-code: 4ms)
+ GET /api/auth/session 200 in 18ms (next.js: 5ms, application-code: 13ms)
+ GET /api/auth/session 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/igrejas/validadas 200 in 11ms (next.js: 6ms, application-code: 6ms)
