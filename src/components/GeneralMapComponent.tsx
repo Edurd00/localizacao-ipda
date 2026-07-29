@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
@@ -231,7 +231,10 @@ function MapController({
       }, 1600);
       return () => clearTimeout(timer);
     } else {
-      map.setView(center, zoom);
+      map.setView(center, zoom, {
+        animate: true,
+        duration: 1.2,
+      });
     }
   }, [center, zoom, flyToTarget, map, onFlyToComplete]);
   return null;
@@ -585,6 +588,31 @@ export default function GeneralMapComponent() {
       console.error('Error fetching OSRM route:', err);
       toast.error('Erro ao conectar com o motor de roteamento terrestre. Tente novamente mais tarde.');
     }
+  };
+
+  const renderChurchTooltip = (ig: Igreja) => {
+    const porte = getPorte(ig.desc_igreja);
+    return (
+      <Tooltip direction="top" offset={[0, -20]} opacity={0.95} permanent={false}>
+        <div className="p-1.5 space-y-1 font-sans text-xs">
+          <p className="font-bold text-zinc-950 leading-tight">{ig.desc_igreja}</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-700 px-1 py-0.5 rounded border border-zinc-200">
+              TOTVS: {ig.codigo_totvs}
+            </span>
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border text-white"
+              style={{
+                backgroundColor: PORTE_INFO[porte]?.color || '#A6A6A6',
+                borderColor: 'rgba(0,0,0,0.1)',
+              }}
+            >
+              {porte}
+            </span>
+          </div>
+        </div>
+      </Tooltip>
+    );
   };
 
   // Helper function to render uniform descriptive Leaflet popups
@@ -1099,13 +1127,13 @@ export default function GeneralMapComponent() {
 
     return L.divIcon({
       html: `
-        <div class="relative flex flex-col items-center justify-center" style="width: ${w}px; height: ${h}px;">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.6));" class="z-20">
+        <div class="relative flex flex-col items-center justify-center cursor-pointer" style="width: ${w}px; height: ${h}px; cursor: pointer;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.6)); cursor: pointer;" class="z-20 cursor-pointer">
             <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
           </svg>
         </div>
       `,
-      className: '',
+      className: 'cursor-pointer',
       iconSize: [w, h],
       iconAnchor: [w / 2, h],
       popupAnchor: [0, -h],
@@ -1132,14 +1160,14 @@ export default function GeneralMapComponent() {
 
     return L.divIcon({
       html: `
-        <div class="relative flex flex-col items-center justify-center" style="width: ${w}px; height: ${h}px;">
+        <div class="relative flex flex-col items-center justify-center cursor-pointer" style="width: ${w}px; height: ${h}px; cursor: pointer;">
           <div class="absolute rounded-full bg-transparent border-2 border-dashed ${ringAnim} pointer-events-none" style="border-color: ${ringColor}; width: ${w + 10}px; height: ${h + 10}px;"></div>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.7));" class="z-50">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.7)); cursor: pointer;" class="z-50 cursor-pointer">
             <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
           </svg>
         </div>
       `,
-      className: '',
+      className: 'cursor-pointer',
       iconSize: [w, h],
       iconAnchor: [w / 2, h],
       popupAnchor: [0, -h],
@@ -1486,6 +1514,9 @@ export default function GeneralMapComponent() {
               center={mapCenter}
               zoom={mapZoom}
               scrollWheelZoom={true}
+              preferCanvas={true}
+              zoomAnimation={true}
+              fadeAnimation={true}
               className="w-full h-full z-10"
             >
               <MapController
@@ -1633,6 +1664,7 @@ export default function GeneralMapComponent() {
                           }
                         }}
                       >
+                        {renderChurchTooltip(ig)}
                         {renderChurchPopup(ig)}
                       </Marker>
                     );
@@ -1723,6 +1755,7 @@ export default function GeneralMapComponent() {
                           }
                         }}
                       >
+                        {renderChurchTooltip(ig)}
                         {renderChurchPopup(ig)}
                       </Marker>
                     );
@@ -2051,11 +2084,9 @@ export default function GeneralMapComponent() {
                 <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:bottom-6 md:right-6 md:left-auto w-full md:w-80 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white/95 backdrop-blur-md p-5 shadow-2xl space-y-3 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-bottom-2 flex flex-col">
                   <div className="flex items-center justify-between border-b border-zinc-150 pb-2 gap-4 shrink-0">
                     <div className="flex items-center gap-1.5 text-zinc-900">
-                      <span className="text-sm">
-                        {travelMode === 'car' ? '🚗' : travelMode === 'motorcycle' ? '🏍️' : '🚶'}
-                      </span>
+                      <span className="text-sm">🚗</span>
                       <h3 className="text-xs font-black uppercase tracking-wider">
-                        Rota Ativa ({travelMode === 'car' ? 'Carro' : travelMode === 'motorcycle' ? 'Moto' : 'Caminhada'})
+                        Rota Ativa
                       </h3>
                     </div>
                     <button
@@ -2070,40 +2101,6 @@ export default function GeneralMapComponent() {
                       title="Limpar Rota"
                     >
                       <X className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* Travel Mode Selector Tabs */}
-                  <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-1 justify-center shrink-0">
-                    <button
-                      onClick={() => handleToggleTravelMode('car')}
-                      className={`px-3 py-2 text-xs font-bold rounded-xl transition-all w-1/3 flex items-center justify-center gap-1.5 min-h-[44px] ${
-                        travelMode === 'car'
-                          ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
-                          : 'text-zinc-500 hover:text-zinc-800'
-                      }`}
-                    >
-                      <span>🚗</span> <span className="hidden sm:inline">Carro</span>
-                    </button>
-                    <button
-                      onClick={() => handleToggleTravelMode('motorcycle')}
-                      className={`px-3 py-2 text-xs font-bold rounded-xl transition-all w-1/3 flex items-center justify-center gap-1.5 min-h-[44px] ${
-                        travelMode === 'motorcycle'
-                          ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
-                          : 'text-zinc-500 hover:text-zinc-800'
-                      }`}
-                    >
-                      <span>🏍️</span> <span className="hidden sm:inline">Moto</span>
-                    </button>
-                    <button
-                      onClick={() => handleToggleTravelMode('foot')}
-                      className={`px-3 py-2 text-xs font-bold rounded-xl transition-all w-1/3 flex items-center justify-center gap-1.5 min-h-[44px] ${
-                        travelMode === 'foot'
-                          ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200'
-                          : 'text-zinc-500 hover:text-zinc-800'
-                      }`}
-                    >
-                      <span>🚶</span> <span className="hidden sm:inline">Caminhada</span>
                     </button>
                   </div>
 
@@ -2145,7 +2142,7 @@ export default function GeneralMapComponent() {
                       rel="noopener noreferrer"
                       className="w-full text-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs hover:shadow-sm min-h-[44px]"
                     >
-                      <span>Abrir GPS / Google Maps</span>
+                      <span>Abrir GPS / Google Maps ↗</span>
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </div>

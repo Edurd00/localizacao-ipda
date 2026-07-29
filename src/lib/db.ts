@@ -36,7 +36,40 @@ if (databaseUrl) {
 }
 
 // Safe In-Memory fallback for environments without DATABASE_URL (no file writing, 100% Vercel friendly)
-let memoryDb: Igreja[] = [];
+let memoryDb: Igreja[] = [
+  {
+    codigo_totvs: "10001",
+    desc_igreja: "Estadual Central de São Paulo - IPDA",
+    tipo_imovel: "PRÓPRIO",
+    endereco: "Avenida do Estado, 4567",
+    bairro: "Liberdade",
+    municipio: "São Paulo",
+    estado: "SP",
+    cep: "01515-000",
+    link_google_maps: "https://maps.google.com/?q=-23.55052,-46.633308",
+    latitude: -23.55052,
+    longitude: -46.633308,
+    status: "VALIDADO",
+    usuario_validador: "admin@ipda.com.br",
+    codigo_totvs_pai: null,
+  },
+  {
+    codigo_totvs: "10002",
+    desc_igreja: "Central Franco da Rocha",
+    tipo_imovel: "ALUGADO",
+    endereco: "Rua Basílio Fazzi, 120",
+    bairro: "Centro",
+    municipio: "Franco da Rocha",
+    estado: "SP",
+    cep: "07850-340",
+    link_google_maps: "https://maps.google.com/?q=-23.3275,-46.7275",
+    latitude: -23.3275,
+    longitude: -46.7275,
+    status: "VALIDADO",
+    usuario_validador: "admin@ipda.com.br",
+    codigo_totvs_pai: "10001",
+  }
+];
 
 // Ensure Postgres table exists if pool is configured
 let isTableInitialized = false;
