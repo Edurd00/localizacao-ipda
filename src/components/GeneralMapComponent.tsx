@@ -80,132 +80,146 @@ export const REGIAO_BOUNDS: Record<string, [[number, number], [number, number]]>
 };
 
 export const REGIAO_TO_ESTADUAIS: Record<string, string[]> = {
-  'Sudeste - SP': ["Grande Sao Paulo - SP", "Interior - SP"],
-  'Sudeste - MG': ["Regiao Minas Gerais"],
-  'Sudeste - ES e RJ': ["Regiao Rio de Janeiro / Espirito Santo"],
+  'Sudeste - SP': ["Grande Sao Paulo - SP", "Interior - SP", "Litoral - SP"],
+  'Sudeste - MG': ["Minas Gerais"],
+  'Sudeste - ES e RJ': ["Rio de Janeiro", "Espirito Santo"],
   'Sul': ["Regiao Sul"],
-  'Norte': ["Regiao Norte"],
-  'Nordeste': ["Regiao Nordeste"],
-  'Centro-Oeste': ["Regiao Centro-Oeste"],
+  'Norte': ["Norte"],
+  'Nordeste': ["Nordeste"],
+  'Centro-Oeste': ["Centro-Oeste"],
 };
 
-export const REGOES_ESTADUAIS = {
+export const ESTADUAIS_POR_REGIAO: Record<string, string[]> = {
   "Grande Sao Paulo - SP": [
-    { nome: "Sede Mundial", totvs: "" },
-    { nome: "Franco da Rocha - SP", totvs: "16332" },
-    { nome: "Guarulhos - SP", totvs: "16245" },
-    { nome: "Itaquaquecetuba - SP", totvs: "15937" },
-    { nome: "Maua - SP", totvs: "9289" },
-    { nome: "Mogi das Cruzes - SP", totvs: "15968" },
-    { nome: "Santo Andre - SP", totvs: "9318" },
-    { nome: "Sao Bernardo do Campo - SP", totvs: "9325" },
-    { nome: "Sao Mateus - SP", totvs: "16037" },
-    { nome: "Campo Limpo - SP", totvs: "16588" },
-    { nome: "Santo Amaro - SP", totvs: "16883" },
-    { nome: "Osasco - SP", totvs: "16501" }
+    "SEDE MUNDIAL",
+    "FRANCO DA ROCHA - SP (T 16332)",
+    "GUARULHOS - SP (T 16245)",
+    "ITAQUAQUECETUBA - SP (T 15937)",
+    "MAUA - SP (T 9289)",
+    "MOGI DAS CRUZES - SP (T 15968)",
+    "SANTO ANDRE - SP (T 9318)",
+    "SAO BERNARDO DO CAMPO - SP (T 9325)",
+    "SAO MATEUS - SP (T 16037)",
+    "CAMPO LIMPO - SP (T 16588)",
+    "SANTO AMARO - SP (T 16883)",
+    "OSASCO - SP (T 16501)"
   ],
   "Interior - SP": [
-    { nome: "Bauru - SP", totvs: "13753" },
-    { nome: "Campinas - SP", totvs: "13901" },
-    { nome: "Itapeva - SP", totvs: "14339" },
-    { nome: "Ribeirao Preto - SP", totvs: "14463" },
-    { nome: "Jundiai - SP", totvs: "14661" },
-    { nome: "Marilia - SP", totvs: "14756" },
-    { nome: "Piracicaba - SP", totvs: "15104" },
-    { nome: "Presidente Prudente - SP", totvs: "15213" },
-    { nome: "Registro - SP", totvs: "15252" },
-    { nome: "Sao Jose do Rio Preto - SP", totvs: "15449" },
-    { nome: "Sao Jose dos Campos - SP", totvs: "15463" },
-    { nome: "Sorocaba - SP", totvs: "15551" }
+    "BAURU - SP (T 13753)",
+    "CAMPINAS - SP (T 13901)",
+    "ITAPEVA - SP (T 14339)",
+    "RIBEIRAO PRETO - SP (T 14463)",
+    "JUNDIAI - SP (T 14661)",
+    "MARILIA - SP (T 14756)",
+    "PIRACICABA - SP (T 15104)",
+    "PRESIDENTE PRUDENTE - SP (T 15213)",
+    "REGISTRO - SP (T 15252)",
+    "SAO JOSE DO RIO PRETO - SP (T 15449)",
+    "SAO JOSE DOS CAMPOS - SP (T 15463)",
+    "SOROCABA - SP (T 15551)"
   ],
   "Litoral - SP": [
-    { nome: "Santos - SP", totvs: "15392" }
+    "SANTOS - SP (T 15392)"
   ],
   "Espirito Santo": [
-    { nome: "Estadual Vitoria - ES", totvs: "17250" },
-    { nome: "Estadual Linhares - ES", totvs: "9740" }
+    "ESTADUAL VITORIA - ES (T 17250)",
+    "ESTADUAL LINHARES - ES (T 9740)"
   ],
   "Rio de Janeiro": [
-    { nome: "Estadual Sao Goncalo - RJ", totvs: "12528" },
-    { nome: "Estadual Campos dos Goytacazes - RJ", totvs: "12720" },
-    { nome: "Estadual Duque de Caxias - RJ", totvs: "12765" },
-    { nome: "Estadual Niteroi - RJ", totvs: "13061" },
-    { nome: "Estadual Nova Iguacu - RJ", totvs: "13103" },
-    { nome: "Estadual Petropolis - RJ", totvs: "13166" },
-    { nome: "Estadual Senador Pompeu - RJ", totvs: "17263" },
-    { nome: "Estadual Campo Grande - RJ", totvs: "12704" }
+    "ESTADUAL SAO GONCALO - RJ (T 12528)",
+    "ESTADUAL CAMPOS DOS GOYTACAZES - RJ (T 12720)",
+    "ESTADUAL DUQUE DE CAXIAS - RJ (T 12765)",
+    "ESTADUAL NITEROI - RJ (T 13061)",
+    "ESTADUAL NOVA IGUACU - RJ (T 13103)",
+    "ESTADUAL PETROPOLIS - RJ (T 13166)",
+    "ESTADUAL SENADOR POMPEU - RJ (T 17263)",
+    "ESTADUAL CAMPO GRANDE - RJ (T 12704)"
   ],
   "Minas Gerais": [
-    { nome: "Estadual Gameleira - Cabana - MG", totvs: "10248" },
-    { nome: "Estadual Belo Horizonte - Guaicurus - MG", totvs: "10848" },
-    { nome: "Estadual Governador Valadares - MG", totvs: "10808" },
-    { nome: "Estadual Juiz de Fora - MG", totvs: "11074" },
-    { nome: "Estadual Muriae - MG", totvs: "11548" },
-    { nome: "Estadual Uberlandia - MG", totvs: "12374" },
-    { nome: "Estadual Montes Claros - MG", totvs: "11502" }
+    "ESTADUAL GAMELEIRA - CABANA - MG (T 10248)",
+    "ESTADUAL BELO HORIZONTE - GUAICURUS - MG (T 10848)",
+    "ESTADUAL GOVERNADOR VALADARES - MG (T 10808)",
+    "ESTADUAL JUIZ DE FORA - MG (T 11074)",
+    "ESTADUAL MURIAE - MG (T 11548)",
+    "ESTADUAL UBERLANDIA - MG (T 12374)",
+    "ESTADUAL MONTES CLAROS - MG (T 11502)"
   ],
   "Norte": [
-    { nome: "AC - Cruzeiro do Sul", totvs: "7468" },
-    { nome: "AC - Rio Branco", totvs: "17290" },
-    { nome: "AM - Manaus", totvs: "17290" },
-    { nome: "AM - Tabatinga", totvs: "7874" },
-    { nome: "AM - Tefe", totvs: "7881" },
-    { nome: "AM - Tonantins", totvs: "7897" },
-    { nome: "PA - Breves", totvs: "8141" },
-    { nome: "PA - Itaituba", totvs: "8339" },
-    { nome: "PA - Maraba", totvs: "8431" },
-    { nome: "PA - Belem", totvs: "17268" },
-    { nome: "PA - Santarem", totvs: "8706" },
-    { nome: "RO - Ji Parana", totvs: "8901" },
-    { nome: "RO - Porto Velho", totvs: "8933" },
-    { nome: "TO - Palmas", totvs: "9162" },
-    { nome: "AP - Macapa", totvs: "7932" },
-    { nome: "RR - Boa Vista", totvs: "17226" }
+    "AC - CRUZEIRO DO SUL (T 7468)",
+    "AC - RIO BRANCO (T 17290)",
+    "AM - MANAUS (T 17290)",
+    "AM - TABATINGA (T 7874)",
+    "AM - TEFE (T 7881)",
+    "AM - TONANTINS (T 7897)",
+    "PA - BREVES (T 8141)",
+    "PA - ITAITUBA (T 8339)",
+    "PA - MARABA (T 8431)",
+    "PA - BELEM (T 17268)",
+    "PA - SANTAREM (T 8706)",
+    "RO - JI PARANA (T 8901)",
+    "RO - PORTO VELHO (T 8933)",
+    "TO - PALMAS (T 9162)",
+    "AP - MACAPA (T 7932)",
+    "RR - BOA VISTA (T 17226)"
   ],
   "Nordeste": [
-    { nome: "Maceio", totvs: "4760" },
-    { nome: "Salvador", totvs: "5624" },
-    { nome: "Teixeira de Freitas", totvs: "5786" },
-    { nome: "Vitoria da Conquista", totvs: "5851" },
-    { nome: "Juazeiro do Norte", totvs: "6047" },
-    { nome: "Fortaleza", totvs: "6082" },
-    { nome: "Sobral", totvs: "6388" },
-    { nome: "Balsas", totvs: "6430" },
-    { nome: "Imperatriz", totvs: "6456" },
-    { nome: "Sao Luis", totvs: "6547" },
-    { nome: "Campina Grande", totvs: "6595" },
-    { nome: "Joao Pessoa", totvs: "6642" },
-    { nome: "Petrolina", totvs: "6895" },
-    { nome: "Natal", totvs: "7167" },
-    { nome: "Aracaju", totvs: "17229" },
-    { nome: "Recife", totvs: "17273" },
-    { nome: "Teresina", totvs: "17274" }
+    "MACEIO (T 4760)",
+    "SALVADOR (T 5624)",
+    "TEIXEIRA DE FREITAS (T 5786)",
+    "VITORIA DA CONQUISTA (T 5851)",
+    "JUAZEIRO DO NORTE (T 6047)",
+    "FORTALEZA (T 6082)",
+    "SOBRAL (T 6388)",
+    "BALSAS (T 6430)",
+    "IMPERATRIZ (T 6456)",
+    "SAO LUIS (T 6547)",
+    "CAMPINA GRANDE (T 6595)",
+    "JOAO PESSOA (T 6642)",
+    "PETROLINA (T 6895)",
+    "NATAL (T 7167)",
+    "ARACAJU (T 17229)",
+    "RECIFE (T 17273)",
+    "TERESINA (T 17274)"
   ],
   "Centro-Oeste": [
-    { nome: "Estadual Brasilia - DF", totvs: "3408" },
-    { nome: "Estadual Goiania - GO", totvs: "3575" },
-    { nome: "Estadual Campo Grande - MS", totvs: "4232" },
-    { nome: "Estadual Confresa - MT", totvs: "4533" },
-    { nome: "Estadual Cuiaba - MT", totvs: "4554" }
+    "ESTADUAL BRASILIA - DF (T 3408)",
+    "ESTADUAL GOIANIA - GO (T 3575)",
+    "ESTADUAL CAMPO GRANDE - MS (T 4232)",
+    "ESTADUAL CONFRESA - MT (T 4533)",
+    "ESTADUAL CUIABA - MT (T 4554)"
   ],
   "Regiao Sul": [
-    { nome: "Estadual Cascavel - PR", totvs: "241" },
-    { nome: "Estadual Curitiba - PR", totvs: "363" },
-    { nome: "Estadual Guarapuava - PR", totvs: "509" },
-    { nome: "Estadual Londrina - PR", totvs: "748" },
-    { nome: "Estadual Ponta Grossa - PR", totvs: "988" },
-    { nome: "Estadual Caxias do Sul - RS", totvs: "1554" },
-    { nome: "Estadual Passo Fundo - RS", totvs: "1944" },
-    { nome: "Estadual Pelotas - RS", totvs: "1976" },
-    { nome: "Estadual Santana do Livramento - RS", totvs: "2093" },
-    { nome: "Estadual Porto Alegre - RS", totvs: "17262" },
-    { nome: "Estadual Santa Maria - RS", totvs: "17591" },
-    { nome: "Estadual Chapeco - SC", totvs: "2584" },
-    { nome: "Estadual Florianopolis - SC", totvs: "2933" },
-    { nome: "Estadual Lages - SC", totvs: "3033" },
-    { nome: "Estadual Joinville - SC", totvs: "3122" }
+    "ESTADUAL CASCAVEL - PR (T 241)",
+    "ESTADUAL CURITIBA - PR (T 363)",
+    "ESTADUAL GUARAPUAVA - PR (T 509)",
+    "ESTADUAL LONDRINA - PR (T 748)",
+    "ESTADUAL PONTA GROSSA - PR (T 988)",
+    "ESTADUAL CAXIAS DO SUL - RS (T 1554)",
+    "ESTADUAL PASSO FUNDO - RS (T 1944)",
+    "ESTADUAL PELOTAS - RS (T 1976)",
+    "ESTADUAL SANTANA DO LIVRAMENTO - RS (T 2093)",
+    "ESTADUAL PORTO ALEGRE - RS (T 17262)",
+    "ESTADUAL SANTA MARIA - RS (T 17591)",
+    "ESTADUAL CHAPECO - SC (T 2584)",
+    "ESTADUAL FLORIANOPOLIS - SC (T 2933)",
+    "ESTADUAL LAGES - SC (T 3033)",
+    "ESTADUAL JOINVILLE - SC (T 3122)"
   ]
 };
+
+export const REGOES_ESTADUAIS = Object.keys(ESTADUAIS_POR_REGIAO).reduce((acc, key) => {
+  acc[key] = ESTADUAIS_POR_REGIAO[key].map((item) => {
+    const match = item.match(/(.*?)\s*\(T\s*(\d+)\)/i);
+    if (match) {
+      return { nome: match[1].trim(), totvs: match[2].trim() };
+    }
+    return {
+      nome: item.trim(),
+      totvs: item.trim() === "SEDE MUNDIAL" ? "SEDE_MUNDIAL" : ""
+    };
+  });
+  return acc;
+}, {} as Record<string, { nome: string; totvs: string }[]>);
 
 // Component to recenter/refocus map programmatically when filters change
 function MapController({
@@ -213,11 +227,13 @@ function MapController({
   zoom,
   flyToTarget,
   onFlyToComplete,
+  region,
 }: {
   center: [number, number];
   zoom: number;
   flyToTarget: { center: [number, number]; zoom: number; totvs: string } | null;
   onFlyToComplete: () => void;
+  region: string;
 }) {
   const map = useMap();
   useEffect(() => {
@@ -230,13 +246,13 @@ function MapController({
         onFlyToComplete();
       }, 1600);
       return () => clearTimeout(timer);
-    } else {
+    } else if (region === 'ALL') {
       map.setView(center, zoom, {
         animate: true,
         duration: 1.2,
       });
     }
-  }, [center, zoom, flyToTarget, map, onFlyToComplete]);
+  }, [center, zoom, flyToTarget, map, onFlyToComplete, region]);
   return null;
 }
 
@@ -244,49 +260,29 @@ function MapController({
 function RegionBoundsController({ region, igrejas }: { region: string; igrejas: Igreja[] }) {
   const map = useMap();
   useEffect(() => {
-    if (!region) return;
+    if (!region || region === 'ALL') return;
 
-    if (region === 'ALL') {
-      const validChurches = igrejas.filter((ig) => ig.latitude && ig.longitude);
-      if (validChurches.length > 0) {
-        const points = validChurches.map((ig) => [ig.latitude!, ig.longitude!] as [number, number]);
-        map.fitBounds(points, {
-          padding: [50, 50],
-          maxZoom: 6,
-          animate: true,
-          duration: 1.2,
-        });
-      } else {
-        // Fallback to static Brazil Bounding Box
-        map.fitBounds(REGIAO_BOUNDS['ALL'], {
-          padding: [50, 50],
-          animate: true,
-          duration: 1.2,
-        });
-      }
+    const staticBounds = REGIAO_BOUNDS[region];
+    if (staticBounds) {
+      map.fitBounds(staticBounds, {
+        padding: [50, 50],
+        animate: true,
+        duration: 1.2,
+      });
     } else {
-      const staticBounds = REGIAO_BOUNDS[region];
-      if (staticBounds) {
-        map.fitBounds(staticBounds, {
-          padding: [50, 50],
-          animate: true,
-          duration: 1.2,
-        });
-      } else {
-        const ufs = REGIAO_GEOGRAFICA_MAPPING[region];
-        if (ufs && ufs.length > 0) {
-          const regionChurches = igrejas.filter(
-            (ig) => ufs.includes(ig.estado) && ig.latitude && ig.longitude
-          );
-          if (regionChurches.length > 0) {
-            const points = regionChurches.map((ig) => [ig.latitude!, ig.longitude!] as [number, number]);
-            map.fitBounds(points, {
-              padding: [50, 50],
-              maxZoom: 12,
-              animate: true,
-              duration: 1.2,
-            });
-          }
+      const ufs = REGIAO_GEOGRAFICA_MAPPING[region];
+      if (ufs && ufs.length > 0) {
+        const regionChurches = igrejas.filter(
+          (ig) => ufs.includes(ig.estado) && ig.latitude && ig.longitude
+        );
+        if (regionChurches.length > 0) {
+          const points = regionChurches.map((ig) => [ig.latitude!, ig.longitude!] as [number, number]);
+          map.fitBounds(points, {
+            padding: [50, 50],
+            maxZoom: 12,
+            animate: true,
+            duration: 1.2,
+          });
         }
       }
     }
@@ -998,7 +994,7 @@ export default function GeneralMapComponent() {
     let found = igrejas.find((ig) => ig.codigo_totvs === totvs);
 
     // Fallback search for Sede Mundial (or any other reference that might have empty totvs, or not fully matching, or special logic)
-    if (!found && totvs === "") {
+    if (!found && (totvs === "SEDE_MUNDIAL" || totvs === "")) {
       // Find Sede Mundial by name
       found = igrejas.find((ig) => ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL"));
     }
@@ -1412,7 +1408,7 @@ export default function GeneralMapComponent() {
                       REGOES_ESTADUAIS[subReg as keyof typeof REGOES_ESTADUAIS] || []
                     ).map((est) => (
                       <option key={est.nome} value={est.totvs}>
-                        {est.nome} {est.totvs ? `(${est.totvs})` : ''}
+                        {est.nome} {est.totvs && est.totvs !== 'SEDE_MUNDIAL' ? `(${est.totvs})` : ''}
                       </option>
                     ))}
                 </select>
@@ -1523,6 +1519,7 @@ export default function GeneralMapComponent() {
                 center={mapCenter}
                 zoom={mapZoom}
                 flyToTarget={flyToTarget}
+                region={selectedRegionGeo}
                 onFlyToComplete={() => {
                   if (flyToTarget) {
                     const targetTotvs = flyToTarget.totvs;
@@ -1532,7 +1529,7 @@ export default function GeneralMapComponent() {
                       markerInstance.openPopup();
                     } else {
                       // fallback: if not in ref, or if it is "Sede Mundial" without a totvs, check for Sede Mundial
-                      if (targetTotvs === "") {
+                      if (targetTotvs === "" || targetTotvs === "SEDE_MUNDIAL") {
                         const smMarker = Object.values(markerRefs.current).find(
                           (m) => m && m.options?.alt === "Sede Mundial"
                         );
