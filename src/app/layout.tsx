@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GEO-VALIG | Geolocalização e Mapeamento Oficial",
+  title: "Localizações IPDA | Geolocalização e Mapeamento Oficial",
   description: "Sistema oficial de geolocalização e gestão da malha de coligações IPDA",
   icons: {
     icon: "/favicon.ico",

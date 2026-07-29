@@ -68,7 +68,7 @@ export default function LoginPage() {
           Painel Administrativo IPDA <Sparkles className="h-5 w-5 text-amber-500 fill-amber-500 animate-pulse" />
         </h2>
         <p className="mt-1 text-center text-xs text-zinc-500 font-semibold uppercase tracking-wider">
-          GEO-VALIG • Área Restrita da Equipe
+          Geolocalizações • Área Restrita da Equipe
         </p>
       </div>
 
@@ -136,7 +136,7 @@ export default function LoginPage() {
 
           <div className="pt-4 border-t border-zinc-100 text-center">
             <span className="text-[10px] text-zinc-400 font-medium">
-              Acesso estritamente restrito aos operadores e engenheiros da equipe de geolocalização.
+              Acesso estritamente restrito a equipe de Gestão de Dados.
             </span>
           </div>
         </div>
