@@ -619,15 +619,15 @@ export default function GeneralMapComponent() {
       : null;
 
     return (
-      <Popup className="custom-popup-styled max-w-xs sm:max-w-sm">
-        <div className="p-2 space-y-3 font-sans">
+      <Popup className="custom-popup-styled !max-w-[340px] w-[340px]">
+        <div className="p-3.5 space-y-2 font-sans">
           {/* Title banner */}
-          <div className="border-b border-zinc-150 pb-2">
-            <h3 className="text-xs font-bold text-zinc-900 leading-tight">
+          <div className="border-b border-slate-150 pb-2">
+            <h3 className="text-sm font-bold text-slate-900 leading-snug">
               {ig.desc_igreja}
             </h3>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded border border-zinc-200">
+              <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
                 TOTVS: {ig.codigo_totvs}
               </span>
               <span
@@ -643,37 +643,39 @@ export default function GeneralMapComponent() {
           </div>
 
           {/* Quick details */}
-          <div className="space-y-1.5 text-[11px] text-zinc-700">
+          <div className="space-y-1.5 text-xs text-slate-500">
             {ig.tipo_imovel && (
               <p className="flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
-                <span className="font-semibold text-zinc-500">Tipo de Imóvel:</span>
-                <span className="font-bold text-zinc-950">{ig.tipo_imovel}</span>
+                <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <span>
+                  <span className="font-semibold text-slate-400">Tipo de Imóvel:</span>{' '}
+                  <span className="font-bold text-slate-800">{ig.tipo_imovel}</span>
+                </span>
               </p>
             )}
 
             <p className="flex items-start gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-zinc-500 mt-0.5 shrink-0" />
+              <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" />
               <span>
-                <span className="font-semibold text-zinc-500">Endereço:</span>{' '}
-                <strong className="text-zinc-950 font-semibold">
+                <span className="font-semibold text-slate-400">Endereço:</span>{' '}
+                <span className="text-slate-800 font-medium">
                   {ig.endereco}
                   {ig.bairro ? `, ${ig.bairro}` : ''}, {ig.municipio} - {ig.estado}
-                </strong>{' '}
-                {ig.cep ? `(${ig.cep})` : ''}
+                  {ig.cep ? ` (${ig.cep})` : ''}
+                </span>
               </span>
             </p>
 
             {/* Coligada Hierarchical Info */}
             {ig.codigo_totvs_pai && (
-              <p className="flex items-start gap-1.5 text-[11px] bg-zinc-50 p-1.5 rounded-md border border-zinc-200">
+              <p className="flex items-start gap-1.5 text-[11px] bg-slate-50 p-1.5 rounded-md border border-slate-100">
                 <GitBranch className="h-3.5 w-3.5 text-indigo-500 mt-0.5 shrink-0" />
                 <span>
-                  <span className="font-bold text-zinc-500 block text-[9px] uppercase tracking-wider">Coligada a:</span>
-                  <strong className="text-zinc-900 font-bold block leading-tight">
+                  <span className="font-bold text-slate-400 block text-[9px] uppercase tracking-wider">Coligada a:</span>
+                  <strong className="text-slate-800 font-bold block leading-tight">
                     {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
                   </strong>
-                  <span className="text-[10px] text-zinc-500 font-mono">
+                  <span className="text-[10px] text-slate-400 font-mono">
                     Código: {ig.codigo_totvs_pai}
                   </span>
                 </span>
@@ -681,7 +683,7 @@ export default function GeneralMapComponent() {
             )}
 
             {((ig as any).validado_em || ig.updated_at) && (
-              <p className="text-[10px] text-zinc-500">
+              <p className="text-[10px] text-slate-400">
                 <span className="font-semibold">Data de Validação:</span>{' '}
                 {new Date((ig as any).validado_em || ig.updated_at!).toLocaleDateString('pt-BR', {
                   day: '2-digit',
@@ -694,92 +696,87 @@ export default function GeneralMapComponent() {
             )}
 
             {(ig.usuario_validador || (ig as any).validado_por) && (
-              <p className="text-[10px] text-zinc-500">
+              <p className="text-[10px] text-slate-400">
                 <span className="font-semibold">Validador:</span> {ig.usuario_validador || (ig as any).validado_por}
               </p>
             )}
           </div>
 
-          {/* Terrestrial Route calculation & Comparison buttons */}
-          <div className="pt-2 border-t border-zinc-100 flex flex-col gap-2">
-            {/* Standard route triggers */}
-            <div className="flex flex-wrap items-center gap-2">
-              {ig.codigo_totvs_pai && parentChurch && (
-                <button
-                  type="button"
-                  onClick={() => fetchTerrestrialRoute(ig, parentChurch)}
-                  className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
-                  title="Traçar rota rodoviária real até a igreja superior coligada"
-                >
-                  <span>🚗 Rota até Superior</span>
-                </button>
-              )}
-
-              {!customRouteOrigin ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomRouteOrigin(ig);
-                    toast.success(`Origem definida: ${ig.desc_igreja}. Abra o popup da igreja de destino e clique em "Traçar Rota terrestre".`);
-                  }}
-                  className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
-                >
-                  <span>📍 Definir Origem</span>
-                </button>
-              ) : customRouteOrigin.codigo_totvs !== ig.codigo_totvs ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    fetchTerrestrialRoute(customRouteOrigin, ig);
-                    setCustomRouteOrigin(null); // Reset origin after calculating
-                  }}
-                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
-                >
-                  <span>🏁 Traçar Rota</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomRouteOrigin(null);
-                    toast.info('Origem de rota redefinida.');
-                  }}
-                  className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0"
-                >
-                  <span>❌ Cancelar Origem</span>
-                </button>
-              )}
-            </div>
-
-            {/* Comparison Module triggers */}
-            <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-zinc-50">
+          {/* Compact 2x2 + 1 Grid Action Panel */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               {comparisonMode ? (
+                // IF COMPARISON MODE IS ACTIVE
                 fixedDest?.codigo_totvs === ig.codigo_totvs ? (
-                  <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-200 min-h-[44px] flex items-center justify-center">
-                    📍 Igreja Alvo de Análise
-                  </span>
-                ) : (
+                  // AND THIS CHURCH IS THE TARGET/DESTINO
                   <>
+                    {/* Row 1 is the compact status card spanning across 2 columns */}
+                    <div className="col-span-2 h-9 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center justify-center gap-1">
+                      <span>📍 Alvo de Análise</span>
+                    </div>
+
+                    {/* Row 2: [ 📐 Cancelar Comp. ] | [ 🔗 Ver Malha ] */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setComparisonMode(false);
+                        setFixedDest(null);
+                        setSedeCandidataA(null);
+                        setSedeCandidataB(null);
+                        toast.info('Modo comparativo desativado.');
+                      }}
+                      className="h-9 text-xs font-semibold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                    >
+                      <span>📐 Cancelar Comp.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleTraceConnectionMesh(ig)}
+                      className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                        connectionPathSource === ig.codigo_totvs
+                          ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <span>{connectionPathSource === ig.codigo_totvs ? '❌ Ocultar Malha' : '🔗 Ver Malha'}</span>
+                    </button>
+                  </>
+                ) : (
+                  // AND THIS CHURCH IS A CANDIDATE OR OTHER
+                  <>
+                    {/* Row 1: [ 🟢 Sede Cand. A ] | [ 🔵 Sede Cand. B ] */}
                     <button
                       type="button"
                       onClick={() => {
                         setSedeCandidataA(ig);
                         toast.success(`Sede Candidata A definida: ${ig.desc_igreja}`);
                       }}
-                      className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center shrink-0"
+                      className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                        sedeCandidataA?.codigo_totvs === ig.codigo_totvs
+                          ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
+                          : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                      }`}
                     >
-                      <span>🟢 Sede Candidata A</span>
+                      <span>🟢 Sede Cand. A</span>
                     </button>
+
                     <button
                       type="button"
                       onClick={() => {
                         setSedeCandidataB(ig);
                         toast.success(`Sede Candidata B definida: ${ig.desc_igreja}`);
                       }}
-                      className="px-3 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center shrink-0"
+                      className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                        sedeCandidataB?.codigo_totvs === ig.codigo_totvs
+                          ? 'border-cyan-500 bg-cyan-500 text-white hover:bg-cyan-600'
+                          : 'border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-800'
+                      }`}
                     >
-                      <span>🔵 Sede Candidata B</span>
+                      <span>🔵 Sede Cand. B</span>
                     </button>
+
+                    {/* Row 2: [ 📐 Comparar Rotas ] | [ 🔗 Ver Malha ] */}
                     <button
                       type="button"
                       onClick={() => {
@@ -789,61 +786,113 @@ export default function GeneralMapComponent() {
                         setSedeCandidataB(null);
                         toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
                       }}
-                      className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center gap-1.5 shrink-0"
+                      className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
                     >
                       <span>📐 Comparar Rotas</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleTraceConnectionMesh(ig)}
+                      className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                        connectionPathSource === ig.codigo_totvs
+                          ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <span>{connectionPathSource === ig.codigo_totvs ? '❌ Ocultar Malha' : '🔗 Ver Malha'}</span>
                     </button>
                   </>
                 )
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setComparisonMode(true);
-                    setFixedDest(ig);
-                    setSedeCandidataA(null);
-                    setSedeCandidataB(null);
-                    toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino. Agora clique em outras igrejas para selecionar as Candidatas A e B.`);
-                  }}
-                  className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold rounded-xl transition-all min-h-[44px] flex items-center justify-center gap-1.5 w-full shrink-0"
-                >
-                  <span>📐 Comparar Rotas de Coligação</span>
-                </button>
+                // IF COMPARISON MODE IS NOT ACTIVE (DEFAULT VIEW)
+                <>
+                  {/* Row 1, Column 1: [ 🚗 Rota Superior ] */}
+                  <button
+                    type="button"
+                    disabled={!(ig.codigo_totvs_pai && parentChurch)}
+                    onClick={() => fetchTerrestrialRoute(ig, parentChurch!)}
+                    className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:cursor-not-allowed text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                    title={ig.codigo_totvs_pai && parentChurch ? "Traçar rota rodoviária real até a igreja superior coligada" : "Esta igreja não possui coligação superior registrada"}
+                  >
+                    <span>🚗 Rota Superior</span>
+                  </button>
+
+                  {/* Row 1, Column 2: [ 📍 Definir Origem ] or [ 🏁 Traçar Rota ] or [ ❌ Cancelar ] */}
+                  {!customRouteOrigin ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomRouteOrigin(ig);
+                        toast.success(`Origem definida: ${ig.desc_igreja}. Abra o popup da igreja de destino e clique em "Traçar Rota terrestre".`);
+                      }}
+                      className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                    >
+                      <span>📍 Definir Origem</span>
+                    </button>
+                  ) : customRouteOrigin.codigo_totvs !== ig.codigo_totvs ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fetchTerrestrialRoute(customRouteOrigin, ig);
+                        setCustomRouteOrigin(null); // Reset origin after calculating
+                      }}
+                      className="h-9 text-xs font-semibold border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                    >
+                      <span>🏁 Traçar Rota</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomRouteOrigin(null);
+                        toast.info('Origem de rota redefinida.');
+                      }}
+                      className="h-9 text-xs font-semibold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                    >
+                      <span>❌ Cancelar</span>
+                    </button>
+                  )}
+
+                  {/* Row 2, Column 1: [ 📐 Comparar Rotas ] */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setComparisonMode(true);
+                      setFixedDest(ig);
+                      setSedeCandidataA(null);
+                      setSedeCandidataB(null);
+                      toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino. Agora clique em outras igrejas para selecionar as Candidatas A e B.`);
+                    }}
+                    className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                  >
+                    <span>📐 Comparar Rotas</span>
+                  </button>
+
+                  {/* Row 2, Column 2: [ 🔗 Ver Malha ] */}
+                  <button
+                    type="button"
+                    onClick={() => handleTraceConnectionMesh(ig)}
+                    className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                      connectionPathSource === ig.codigo_totvs
+                        ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <span>{connectionPathSource === ig.codigo_totvs ? '❌ Ocultar Malha' : '🔗 Ver Malha'}</span>
+                  </button>
+                </>
               )}
             </div>
-          </div>
 
-          {/* Google Maps Link & Connection mesh trigger */}
-          <div className="pt-2 border-t border-zinc-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => handleTraceConnectionMesh(ig)}
-              className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 min-h-[44px] shrink-0 ${
-                connectionPathSource === ig.codigo_totvs
-                  ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                  : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
-              }`}
-            >
-              {connectionPathSource === ig.codigo_totvs ? (
-                <>
-                  <X className="h-4 w-4 text-rose-600" />
-                  <span>❌ Ocultar Malha</span>
-                </>
-              ) : (
-                <>
-                  <GitBranch className="h-4 w-4 text-indigo-600" />
-                  <span>Ver Malha de Conexão</span>
-                </>
-              )}
-            </button>
+            {/* Row 3 (Ação Principal em Destaque): [ 🗺️ Abrir no Google Maps ↗ ] */}
             <a
               href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs hover:shadow-sm min-h-[44px] shrink-0"
+              className="h-9 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-1.5 w-full shadow-xs"
             >
-              <span>Google Maps</span>
-              <ExternalLink className="h-3.5 w-3.5" />
+              <span>🗺️ Abrir no Google Maps ↗</span>
             </a>
           </div>
         </div>
