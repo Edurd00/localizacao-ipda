@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     console.error('API Error in POST /api/igrejas/save:', err);
     const errMsg = err instanceof Error ? err.message : 'Error updating church.';
     return NextResponse.json(
-      { success: false, error: errMsg },
+      { success: false, error: errMsg, error_message: errMsg },
       { status: 500 }
     );
   }
