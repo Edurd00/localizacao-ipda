@@ -74,6 +74,11 @@ let memoryDb: Igreja[] = [
 // Ensure Postgres table exists if pool is configured
 let isTableInitialized = false;
 async function ensurePostgresTable() {
+  // If in production environment and DATABASE_URL is missing, crash/throw error cleanly rather than silently falling back
+  if (!databaseUrl && process.env.NODE_ENV === 'production') {
+    throw new Error('DATABASE_URL is missing in production environment. Database operations cannot proceed.');
+  }
+
   if (!pool || isTableInitialized) return;
   try {
     const client = await pool.connect();
