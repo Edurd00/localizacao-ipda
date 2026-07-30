@@ -61,6 +61,11 @@ function getPorte(desc: string): string {
   return 'LOCAL';
 }
 
+export function normalizeTotvs(code: string | number | null | undefined): string {
+  if (code === null || code === undefined) return '';
+  return code.toString().trim().replace(/^0+/, '');
+}
+
 // Function to replace any existing size classification keywords inside description
 function updatePorteInDescription(desc: string, newPorte: string): string {
   const portes = [
@@ -207,6 +212,7 @@ export default function ColigacoesPage() {
   const prospectiveParents = useMemo(() => {
     if (!selectedChurch) return [];
     const term = editParentSearch.toLowerCase();
+    const queryNorm = normalizeTotvs(term);
 
     // Utility to gather all descendants to avoid circular hierarchy
     const gatherDescendants = (code: string, set: Set<string>) => {
@@ -222,29 +228,66 @@ export default function ColigacoesPage() {
     invalidCodes.add(selectedChurch.codigo_totvs);
     gatherDescendants(selectedChurch.codigo_totvs, invalidCodes);
 
-    return igrejas.filter((ig) => {
+    const matches = igrejas.filter((ig) => {
       if (invalidCodes.has(ig.codigo_totvs)) return false;
       if (ig.status === 'DESATIVADO') return false;
 
-      const codeMatch = ig.codigo_totvs.toLowerCase().includes(term);
+      const normIg = normalizeTotvs(ig.codigo_totvs);
+      const codeMatch = normIg === queryNorm || ig.codigo_totvs.toLowerCase().includes(term);
       const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
       return codeMatch || nameMatch;
-    }).slice(0, 10); // Limit to top 10 results for high performance
+    });
+
+    // Exact Match First
+    if (term.trim()) {
+      matches.sort((a, b) => {
+        const aNorm = normalizeTotvs(a.codigo_totvs);
+        const bNorm = normalizeTotvs(b.codigo_totvs);
+
+        const aExact = aNorm === queryNorm;
+        const bExact = bNorm === queryNorm;
+
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        return a.desc_igreja.localeCompare(b.desc_igreja);
+      });
+    }
+
+    return matches.slice(0, 10); // Limit to top 10 results for high performance
   }, [selectedChurch, editParentSearch, igrejas]);
 
   // Reorganization parents search select results
   const reorganizationParents = useMemo(() => {
     if (!selectedChurch) return [];
     const term = reorganizationParentSearch.toLowerCase();
+    const queryNorm = normalizeTotvs(term);
 
-    return igrejas.filter((ig) => {
+    const matches = igrejas.filter((ig) => {
       if (ig.codigo_totvs === selectedChurch.codigo_totvs) return false;
       if (ig.status === 'DESATIVADO') return false;
 
-      const codeMatch = ig.codigo_totvs.toLowerCase().includes(term);
+      const normIg = normalizeTotvs(ig.codigo_totvs);
+      const codeMatch = normIg === queryNorm || ig.codigo_totvs.toLowerCase().includes(term);
       const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
       return codeMatch || nameMatch;
-    }).slice(0, 10);
+    });
+
+    // Exact Match First
+    if (term.trim()) {
+      matches.sort((a, b) => {
+        const aNorm = normalizeTotvs(a.codigo_totvs);
+        const bNorm = normalizeTotvs(b.codigo_totvs);
+
+        const aExact = aNorm === queryNorm;
+        const bExact = bNorm === queryNorm;
+
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        return a.desc_igreja.localeCompare(b.desc_igreja);
+      });
+    }
+
+    return matches.slice(0, 10);
   }, [selectedChurch, reorganizationParentSearch, igrejas]);
 
   // Client-side Excel reading and parsing (reproducing EXACT /api/igrejas/upload logic)
@@ -686,16 +729,35 @@ export default function ColigacoesPage() {
     }
   };
 
-  // Build filtered search results for tree view highlighting/fast navigation
+  // Build filtered search results for tree view highlighting/fast navigation with exact match priority
   const filteredChurchesList = useMemo(() => {
     if (!searchTerm.trim()) return [];
     const term = searchTerm.trim().toLowerCase();
-    return igrejas.filter(
-      (ig) =>
-        ig.codigo_totvs.toLowerCase().includes(term) ||
-        ig.desc_igreja.toLowerCase().includes(term) ||
-        (ig.municipio || '').toLowerCase().includes(term)
+    const queryNorm = normalizeTotvs(term);
+
+    const matches = igrejas.filter(
+      (ig) => {
+        const normIg = normalizeTotvs(ig.codigo_totvs);
+        return normIg === queryNorm ||
+          ig.codigo_totvs.toLowerCase().includes(term) ||
+          ig.desc_igreja.toLowerCase().includes(term) ||
+          (ig.municipio || '').toLowerCase().includes(term);
+      }
     );
+
+    matches.sort((a, b) => {
+      const aNorm = normalizeTotvs(a.codigo_totvs);
+      const bNorm = normalizeTotvs(b.codigo_totvs);
+
+      const aExact = aNorm === queryNorm;
+      const bExact = bNorm === queryNorm;
+
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return a.desc_igreja.localeCompare(b.desc_igreja);
+    });
+
+    return matches;
   }, [igrejas, searchTerm]);
 
   // Recursively render hierarchical tree nodes with state expansion check
@@ -883,25 +945,30 @@ export default function ColigacoesPage() {
 
               {reorganizationParents.length > 0 && (
                 <div className="border border-zinc-200 rounded-xl bg-white overflow-hidden max-h-40 overflow-y-auto mt-2 divide-y divide-zinc-100 shadow-lg">
-                  {reorganizationParents.map((parent) => (
-                    <button
-                      key={parent.codigo_totvs}
-                      type="button"
-                      onClick={() => {
-                        setReorganizationParentId(parent.codigo_totvs);
-                        setReorganizationParentSearch(`${parent.desc_igreja} (${parent.codigo_totvs})`);
-                      }}
-                      className="w-full text-left p-2.5 text-xs hover:bg-zinc-50 flex items-center justify-between"
-                    >
-                      <div>
-                        <span className="font-bold text-zinc-900">{parent.desc_igreja}</span>
-                        <span className="text-[10px] text-zinc-500 font-mono block">TOTVS: {parent.codigo_totvs}</span>
-                      </div>
-                      <span className="text-[9px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-200">
-                        {getPorte(parent.desc_igreja)}
-                      </span>
-                    </button>
-                  ))}
+                  {reorganizationParents.map((parent) => {
+                    const pPorte = getPorte(parent.desc_igreja);
+                    const cleanName = (parent.desc_igreja || '').replace(new RegExp(`\\b${pPorte}\\b`, 'gi'), '').replace(/^\s*-\s*|\s*-\s*$/g, '').replace(/\s+/g, ' ').trim();
+                    return (
+                      <button
+                        key={parent.codigo_totvs}
+                        type="button"
+                        onClick={() => {
+                          setReorganizationParentId(parent.codigo_totvs);
+                          setReorganizationParentSearch(`${parent.desc_igreja} (${parent.codigo_totvs})`);
+                        }}
+                        className="w-full text-left p-2.5 text-xs hover:bg-zinc-50 flex items-center justify-between"
+                      >
+                        <div className="min-w-0 pr-2 text-left">
+                          <span className="font-bold text-zinc-900 block truncate">
+                            {pPorte} - {cleanName} - {(parent.municipio || '').toUpperCase()}/{(parent.estado || '').toUpperCase()} (TOTVS: {parent.codigo_totvs})
+                          </span>
+                        </div>
+                        <span className="text-[9px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-200 uppercase shrink-0">
+                          {pPorte}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1323,25 +1390,30 @@ export default function ColigacoesPage() {
 
                     {prospectiveParents.length > 0 && editParentSearch && (
                       <div className="border border-zinc-200 rounded-xl bg-white overflow-hidden max-h-40 overflow-y-auto shadow-md divide-y divide-zinc-100">
-                        {prospectiveParents.map((parent) => (
-                          <button
-                            key={parent.codigo_totvs}
-                            type="button"
-                            onClick={() => {
-                              setEditParentId(parent.codigo_totvs);
-                              setEditParentSearch(`${parent.desc_igreja} (${parent.codigo_totvs})`);
-                            }}
-                            className="w-full text-left p-2 hover:bg-zinc-50 text-xs flex justify-between items-center"
-                          >
-                            <div>
-                              <span className="font-bold text-zinc-900 block">{parent.desc_igreja}</span>
-                              <span className="text-[10px] text-zinc-500 font-mono">TOTVS: {parent.codigo_totvs}</span>
-                            </div>
-                            <span className="text-[9px] bg-indigo-50 text-indigo-800 font-bold px-1.5 py-0.5 rounded border border-indigo-200 uppercase shrink-0">
-                              {getPorte(parent.desc_igreja)}
-                            </span>
-                          </button>
-                        ))}
+                        {prospectiveParents.map((parent) => {
+                          const pPorte = getPorte(parent.desc_igreja);
+                          const cleanName = (parent.desc_igreja || '').replace(new RegExp(`\\b${pPorte}\\b`, 'gi'), '').replace(/^\s*-\s*|\s*-\s*$/g, '').replace(/\s+/g, ' ').trim();
+                          return (
+                            <button
+                              key={parent.codigo_totvs}
+                              type="button"
+                              onClick={() => {
+                                setEditParentId(parent.codigo_totvs);
+                                setEditParentSearch(`${parent.desc_igreja} (${parent.codigo_totvs})`);
+                              }}
+                              className="w-full text-left p-2 hover:bg-zinc-50 text-xs flex justify-between items-center"
+                            >
+                              <div className="min-w-0 pr-2">
+                                <span className="font-bold text-zinc-900 block truncate">
+                                  {pPorte} - {cleanName} - {(parent.municipio || '').toUpperCase()}/{(parent.estado || '').toUpperCase()} (TOTVS: {parent.codigo_totvs})
+                                </span>
+                              </div>
+                              <span className="text-[9px] bg-indigo-50 text-indigo-800 font-bold px-1.5 py-0.5 rounded border border-indigo-200 uppercase shrink-0">
+                                {pPorte}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

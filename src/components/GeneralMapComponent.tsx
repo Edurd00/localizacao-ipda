@@ -31,6 +31,11 @@ export function normalizeText(text: string): string {
     .trim();
 }
 
+export function normalizeTotvs(code: string | number | null | undefined): string {
+  if (code === null || code === undefined) return '';
+  return code.toString().trim().replace(/^0+/, '');
+}
+
 // Strict Church classification by porte based on 'desc_igreja'
 export function getPorte(desc: string): string {
   const normalized = desc.toUpperCase();
@@ -1071,9 +1076,9 @@ export default function GeneralMapComponent() {
     return ufs.sort();
   }, [igrejas, selectedRegionGeo]);
 
-  // Compute filtered churches list in-realtime
+  // Compute filtered churches list in-realtime with exact match prioritization
   const filteredIgrejas = useMemo(() => {
-    return igrejas.filter((ig) => {
+    const rawFiltered = igrejas.filter((ig) => {
       // 1. Coordinates validation
       if (ig.latitude === null || ig.longitude === null || ig.latitude === 0 || ig.longitude === 0) {
         return false;
@@ -1119,7 +1124,10 @@ export default function GeneralMapComponent() {
       // 5. Search Text Filter (TOTVS or Name)
       if (searchQuery.trim()) {
         const query = searchQuery.trim().toLowerCase();
-        const codeMatch = ig.codigo_totvs.toLowerCase().includes(query);
+        const normQueryTotvs = normalizeTotvs(query);
+        const normIgTotvs = normalizeTotvs(ig.codigo_totvs);
+
+        const codeMatch = normIgTotvs === normQueryTotvs || ig.codigo_totvs.toLowerCase().includes(query);
         const nameMatch = ig.desc_igreja.toLowerCase().includes(query);
         const addressMatch = (ig.endereco || '').toLowerCase().includes(query);
         const cityMatch = (ig.municipio || '').toLowerCase().includes(query);
@@ -1130,7 +1138,25 @@ export default function GeneralMapComponent() {
 
       return true;
     });
-  }, [igrejas, selectedUF, selectedTipoImovel, selectedPortes, searchQuery]);
+
+    // Exact Match First Sorting
+    if (searchQuery.trim()) {
+      const queryNorm = normalizeTotvs(searchQuery);
+      return [...rawFiltered].sort((a, b) => {
+        const aNorm = normalizeTotvs(a.codigo_totvs);
+        const bNorm = normalizeTotvs(b.codigo_totvs);
+
+        const aExact = aNorm === queryNorm;
+        const bExact = bNorm === queryNorm;
+
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        return a.desc_igreja.localeCompare(b.desc_igreja);
+      });
+    }
+
+    return rawFiltered;
+  }, [igrejas, selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes, searchQuery]);
 
   // Handle selected reference Estadual change
   const handleSelectEstadual = (totvs: string) => {
