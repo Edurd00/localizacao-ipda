@@ -14,26 +14,30 @@ export function normalizeTotvsCode(val: unknown): string {
 }
 
 /**
- * Strict size classification based on church description text
+ * Strict size classification based on explicit porte value or church description text
  */
-export function getPorte(desc: string): string {
-  const normalized = (desc || '').toUpperCase();
-  if (normalized.includes('ESTADUAL')) return 'ESTADUAL';
-  if (normalized.includes('SETORIAL') || normalized.includes('SECTORIAL')) return 'SETORIAL';
-  if (normalized.includes('CENTRAL')) return 'CENTRAL';
-  if (normalized.includes('REGIONAL')) return 'REGIONAL';
+export function getPorte(porteVal?: string, descVal?: string): string {
+  const pNorm = (porteVal || '').toUpperCase().trim();
+  if (['ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL', 'LOCAL', 'CASA DE ORAÇÃO', 'ALDEIA INDIGENA'].includes(pNorm)) {
+    return pNorm;
+  }
+  const descNorm = (descVal || '').toUpperCase();
+  if (descNorm.includes('ESTADUAL')) return 'ESTADUAL';
+  if (descNorm.includes('SETORIAL') || descNorm.includes('SECTORIAL')) return 'SETORIAL';
+  if (descNorm.includes('CENTRAL')) return 'CENTRAL';
+  if (descNorm.includes('REGIONAL')) return 'REGIONAL';
   if (
-    normalized.includes('CASA DE ORAÇÃO') ||
-    normalized.includes('CASA DE ORACOA') ||
-    normalized.includes('ORAÇÃO') ||
-    normalized.includes('ORACAO')
+    descNorm.includes('CASA DE ORAÇÃO') ||
+    descNorm.includes('CASA DE ORACOA') ||
+    descNorm.includes('ORAÇÃO') ||
+    descNorm.includes('ORACAO')
   ) {
     return 'CASA DE ORAÇÃO';
   }
   if (
-    normalized.includes('ALDEIA') ||
-    normalized.includes('INDIGENA') ||
-    normalized.includes('INDÍGENA')
+    descNorm.includes('ALDEIA') ||
+    descNorm.includes('INDIGENA') ||
+    descNorm.includes('INDÍGENA')
   ) {
     return 'ALDEIA INDIGENA';
   }
@@ -49,16 +53,22 @@ export function parseSpreadsheetRow(row: Record<string, unknown>): Igreja | null
     normalized[key.trim().toLowerCase()] = row[key];
   }
 
-  // Get field values with fallback casing
   const codigoVal = normalized['codigo'] || normalized['codigo_totvs'] || normalized['código'];
   if (codigoVal === undefined || codigoVal === null || codigoVal === '') {
-    return null; // A church must have a unique identifier code
+    return null;
   }
   const codigo_totvs = normalizeTotvsCode(codigoVal);
 
-  const desc_igreja = String(
-    normalized['desc igreja'] || normalized['desc_igreja'] || normalized['descrição igreja'] || normalized['descricao'] || ''
+  const rawNome = String(
+    normalized['nome'] || normalized['desc igreja'] || normalized['desc_igreja'] || normalized['descrição igreja'] || normalized['descricao'] || ''
   ).trim();
+  const rawPorte = String(normalized['porte'] || normalized['desc igreja'] || normalized['desc_igreja'] || '').trim();
+  const porte = getPorte(rawPorte, rawNome);
+
+  let desc_igreja = rawNome || rawPorte;
+  if (porte !== 'LOCAL' && !desc_igreja.toUpperCase().startsWith(porte)) {
+    desc_igreja = `${porte} - ${desc_igreja}`;
+  }
 
   const tipo_imovel = String(
     normalized['tipo imovel'] || normalized['tipo_imovel'] || normalized['tipo_imóvel'] || ''
@@ -77,7 +87,6 @@ export function parseSpreadsheetRow(row: Record<string, unknown>): Igreja | null
     normalized['endereco www'] || normalized['endereço www'] || normalized['link_google_maps'] || normalized['link'] || ''
   ).trim();
 
-  // Parse Lat e Long column
   let latitude: number | null = null;
   let longitude: number | null = null;
 
@@ -168,23 +177,21 @@ export function parseWorkbook(workbook: XLSX.WorkBook): Igreja[] {
       const hasCodigo = normalizedRow.some((col) =>
         ['codigo', 'código', 'codigo_totvs', 'codigo totvs', 'totvs', 'cod', 'cód'].includes(col)
       );
-      const hasDescIgreja = normalizedRow.some((col) =>
-        col.includes('desc') || col.includes('igreja') || col.includes('descricao') || col.includes('descrição') || col.includes('nome') || col.includes('porte')
-      );
-      const hasEndereco = normalizedRow.some((col) =>
-        col.includes('endereco') || col.includes('endereço') || col.includes('logradouro')
+      const hasNomeOrDesc = normalizedRow.some((col) =>
+        col.includes('nome') || col.includes('desc') || col.includes('igreja') || col.includes('endereco') || col.includes('endereço')
       );
 
-      if (hasCodigo && (hasDescIgreja || hasEndereco)) {
+      if (hasCodigo && hasNomeOrDesc) {
         headerIdx = i;
         normalizedRow.forEach((colName, colIdx) => {
           if (['codigo', 'código', 'codigo_totvs', 'codigo totvs', 'totvs', 'cod', 'cód'].includes(colName)) {
             colMap['codigo'] = colIdx;
           }
-          if (
-            ['desc igreja', 'desc_igreja', 'desc igrejas', 'desc_igrejas', 'descrição igreja', 'descricao igreja', 'descrição', 'descricao', 'nome', 'nome da igreja', 'igreja', 'porte'].some((alias) => colName === alias || colName.includes('desc'))
-          ) {
-            if (colMap['desc_igreja'] === undefined) colMap['desc_igreja'] = colIdx;
+          if (['desc igreja', 'desc_igreja', 'desc igrejas', 'desc_igrejas', 'descrição igreja', 'descricao igreja', 'porte'].includes(colName)) {
+            colMap['porte'] = colIdx;
+          }
+          if (['nome', 'nome da igreja', 'igreja', 'descricao', 'descrição'].includes(colName)) {
+            colMap['nome'] = colIdx;
           }
           if (['endereco', 'endereço', 'logradouro', 'rua', 'end'].some((alias) => colName === alias || colName.includes('endereco') || colName.includes('endereço'))) {
             if (colMap['endereco'] === undefined) colMap['endereco'] = colIdx;
@@ -204,15 +211,7 @@ export function parseWorkbook(workbook: XLSX.WorkBook): Igreja[] {
     }
 
     if (headerIdx === -1) {
-      // Fallback: search row 0 if it has data
-      headerIdx = 0;
-      colMap['codigo'] = 0;
-      colMap['desc_igreja'] = 1;
-      colMap['endereco'] = 2;
-      colMap['bairro'] = 3;
-      colMap['municipio'] = 4;
-      colMap['estado'] = 5;
-      colMap['cep'] = 6;
+      continue; // Skip sheet if no header row found
     }
 
     // Stateful vertical hierarchy trackers per sheet block
@@ -231,7 +230,6 @@ export function parseWorkbook(workbook: XLSX.WorkBook): Igreja[] {
         row.every((val) => val === null || val === undefined || String(val).trim() === '');
 
       // IMPORTANT: Empty lines do NOT reset activeEstadual / activeSetorial trackers!
-      // They are just visual line breaks in Excel.
       if (isEmptyLine) {
         continue;
       }
@@ -249,7 +247,15 @@ export function parseWorkbook(workbook: XLSX.WorkBook): Igreja[] {
         continue;
       }
 
-      const desc_igreja = getVal('desc_igreja');
+      const rawNome = getVal('nome');
+      const rawPorte = getVal('porte');
+      const porte = getPorte(rawPorte, rawNome);
+
+      let desc_igreja = rawNome || rawPorte;
+      if (porte !== 'LOCAL' && !desc_igreja.toUpperCase().startsWith(porte)) {
+        desc_igreja = `${porte} - ${desc_igreja}`;
+      }
+
       const tipo_imovel = getVal('tipo_imovel');
       const endereco = getVal('endereco');
       const bairro = getVal('bairro');
@@ -311,8 +317,6 @@ export function parseWorkbook(workbook: XLSX.WorkBook): Igreja[] {
         longitude: longitude === 0 ? null : longitude,
         status: 'PENDENTE',
       };
-
-      const porte = getPorte(desc_igreja);
 
       // Hierarchical vertical tree calculation rules:
       if (porte === 'ESTADUAL') {
