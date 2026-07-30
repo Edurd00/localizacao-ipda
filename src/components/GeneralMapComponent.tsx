@@ -1139,15 +1139,26 @@ export default function GeneralMapComponent() {
       return true;
     });
 
-    // Exact Match First Sorting
+    // Exact Match First Sorting & Secondary Text Match Fallback logic
     if (searchQuery.trim()) {
-      const queryNorm = normalizeTotvs(searchQuery);
+      const termNorm = normalizeTotvs(searchQuery);
+      const isSearchNumeric = /^\d+$/.test(termNorm);
+
+      // 1. If searching numerically, check for exact TOTVS match
+      if (isSearchNumeric) {
+        const exactMatch = rawFiltered.find((ig) => normalizeTotvs(ig.codigo_totvs) === termNorm);
+        if (exactMatch) {
+          return [exactMatch];
+        }
+      }
+
+      // 2. Otherwise sort exact TOTVS code matches to the absolute top, fallback secondary matches
       return [...rawFiltered].sort((a, b) => {
         const aNorm = normalizeTotvs(a.codigo_totvs);
         const bNorm = normalizeTotvs(b.codigo_totvs);
 
-        const aExact = aNorm === queryNorm;
-        const bExact = bNorm === queryNorm;
+        const aExact = aNorm === termNorm;
+        const bExact = bNorm === termNorm;
 
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
