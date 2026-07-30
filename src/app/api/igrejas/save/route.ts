@@ -23,11 +23,15 @@ export async function POST(request: Request) {
 
     await saveIgrejaSingle(codigo_totvs, updates);
 
-    // Revalidate relevant cache paths on-demand
-    revalidatePath('/');
-    revalidatePath('/mapa-geral');
-    revalidatePath('/api/mapa-geral');
-    revalidatePath('/api/igrejas/validadas');
+    // Revalidate relevant cache paths on-demand with defensive try-catch
+    try {
+      revalidatePath('/');
+      revalidatePath('/mapa-geral');
+      revalidatePath('/api/mapa-geral');
+      revalidatePath('/api/igrejas/validadas');
+    } catch (cacheErr) {
+      console.error('Error revalidating cache paths:', cacheErr);
+    }
 
     return NextResponse.json({
       success: true,

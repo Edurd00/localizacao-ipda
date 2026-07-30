@@ -668,7 +668,7 @@ export default function ValidacaoPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          codigo_totvs: currentIgreja.codigo_totvs,
+          codigo_totvs: currentIgreja?.codigo_totvs,
           latitude: finalLat,
           longitude: finalLng,
           status: statusOverride,
@@ -677,13 +677,17 @@ export default function ValidacaoPage() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error('Falha ao salvar no servidor');
+      }
+
       const result = await response.json();
 
       if (result.success) {
         if (statusOverride === 'VALIDADO') {
-          toast.success(`Igreja ${currentIgreja.codigo_totvs} validada com sucesso!`);
+          toast.success(`Igreja ${currentIgreja?.codigo_totvs} validada com sucesso!`);
         } else {
-          toast.warning(`Igreja ${currentIgreja.codigo_totvs} marcada com Dúvida para revisão.`);
+          toast.warning(`Igreja ${currentIgreja?.codigo_totvs} marcada com Dúvida para revisão.`);
         }
 
         let nextCode: string | undefined = undefined;
@@ -692,11 +696,11 @@ export default function ValidacaoPage() {
         );
 
         if (nextPendingIdx !== -1) {
-          nextCode = filteredIgrejasList[nextPendingIdx].codigo_totvs;
+          nextCode = filteredIgrejasList[nextPendingIdx]?.codigo_totvs;
         } else {
           const nextIdx = currentIndex + 1;
           if (nextIdx < filteredIgrejasList.length) {
-            nextCode = filteredIgrejasList[nextIdx].codigo_totvs;
+            nextCode = filteredIgrejasList[nextIdx]?.codigo_totvs;
           }
         }
 
@@ -1043,16 +1047,20 @@ export default function ValidacaoPage() {
               </div>
             ) : filteredIgrejasList.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white border border-zinc-200 rounded-2xl shadow-sm text-center px-4">
-                <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
-                <h3 className="text-lg font-bold text-zinc-800">Nenhuma igreja encontrada</h3>
-                <p className="text-sm text-zinc-500 max-w-md mt-1">
-                  Não há igrejas correspondentes aos filtros selecionados. Envie uma nova planilha de igrejas na aba &quot;Importar Planilhas&quot; ou altere os filtros acima.
+                <Sparkles className="h-12 w-12 text-indigo-600 mb-4 animate-pulse" />
+                <h3 className="text-lg font-bold text-zinc-850">Parabéns! Todas as igrejas deste filtro foram validadas.</h3>
+                <p className="text-xs text-zinc-500 max-w-md mt-1">
+                  Não restam registros pendentes com os critérios selecionados. Altere os filtros superiores para continuar validando ou acesse as outras seções do painel.
                 </p>
                 <button
-                  onClick={() => setActiveTab('upload')}
+                  onClick={() => {
+                    setFilterEstado('ALL');
+                    setFilterStatus('ALL');
+                    setFilterPorte('ALL');
+                  }}
                   className="mt-6 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow transition-all"
                 >
-                  Ir para Importador
+                  Ver Todas as Igrejas
                 </button>
               </div>
             ) : (
@@ -1109,14 +1117,14 @@ export default function ValidacaoPage() {
                     <div className="space-y-4">
                       <div>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Código TOTVS</p>
-                        <p className="text-sm font-semibold text-zinc-900 font-mono mt-0.5">{currentIgreja.codigo_totvs}</p>
+                        <p className="text-sm font-semibold text-zinc-900 font-mono mt-0.5">{currentIgreja?.codigo_totvs}</p>
                       </div>
 
                       <div>
                         <div className="flex justify-between items-start gap-2">
                           <div>
                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Descrição da Igreja</p>
-                            <p className="text-base font-bold text-zinc-900 mt-0.5">{currentIgreja.desc_igreja}</p>
+                            <p className="text-base font-bold text-zinc-900 mt-0.5">{currentIgreja?.desc_igreja}</p>
                           </div>
                         </div>
 
@@ -1130,31 +1138,31 @@ export default function ValidacaoPage() {
                             <>
                               {precision === 'EXACT' && (
                                 <span className="inline-flex items-center text-xs bg-emerald-50 text-emerald-800 font-bold px-3 py-1.5 rounded-lg border border-emerald-200 leading-normal">
-                                  🟢 Localização exata por POI/link ({currentIgreja.estado})
+                                  🟢 Localização exata por POI/link ({currentIgreja?.estado})
                                 </span>
                               )}
                               {precision === 'APPROX' && (
                                 <span className="inline-flex items-center text-xs bg-amber-50 text-amber-800 font-bold px-3 py-1.5 rounded-lg border border-amber-250 leading-normal">
-                                  🟡 Localização por rua ({currentIgreja.estado}). Ajuste o pin sobre a igreja.
+                                  🟡 Localização por rua ({currentIgreja?.estado}). Ajuste o pin sobre a igreja.
                                 </span>
                               )}
                               {precision === 'APPROX_MUNICIPIO' && (
                                 <span className="inline-flex items-center text-xs bg-orange-50 text-orange-850 font-bold px-3 py-1.5 rounded-lg border border-orange-200 leading-normal">
-                                  🟠 Localizado no município de {currentIgreja.municipio} ({currentIgreja.estado}). Posicione o pin.
+                                  🟠 Localizado no município de {currentIgreja?.municipio} ({currentIgreja?.estado}). Posicione o pin.
                                 </span>
                               )}
                               {precision === 'NOT_FOUND' && (
                                 <span className="inline-flex items-center text-xs bg-rose-50 text-rose-800 font-bold px-3 py-1.5 rounded-lg border border-rose-200 leading-normal">
-                                  🔴 Não localizado na UF {currentIgreja.estado}. Arraste o pin no mapa
+                                  🔴 Não localizado na UF {currentIgreja?.estado}. Arraste o pin no mapa
                                 </span>
                               )}
                             </>
                           )}
                         </div>
 
-                        {currentIgreja.tipo_imovel && (
+                        {currentIgreja?.tipo_imovel && (
                           <span className="inline-block text-[10px] bg-zinc-100 text-zinc-700 font-medium px-2 py-0.5 rounded border border-zinc-200 mt-2.5">
-                            {currentIgreja.tipo_imovel}
+                            {currentIgreja?.tipo_imovel}
                           </span>
                         )}
                       </div>
@@ -1162,25 +1170,25 @@ export default function ValidacaoPage() {
                       <div>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Endereço Completo</p>
                         <p className="text-xs text-zinc-700 leading-relaxed mt-1">
-                          {currentIgreja.endereco || 'Endereço não cadastrado'}
+                          {currentIgreja?.endereco || 'Endereço não cadastrado'}
                         </p>
                         <div className="flex gap-4 mt-2 text-xs text-zinc-500 font-medium">
-                          {currentIgreja.bairro && (
+                          {currentIgreja?.bairro && (
                             <div>
                               <span className="text-[10px] block font-bold text-zinc-400">Bairro</span>
-                              {currentIgreja.bairro}
+                              {currentIgreja?.bairro}
                             </div>
                           )}
-                          {currentIgreja.municipio && (
+                          {currentIgreja?.municipio && (
                             <div>
                               <span className="text-[10px] block font-bold text-zinc-400">Município / Estado</span>
-                              {currentIgreja.municipio} - {currentIgreja.estado}
+                              {currentIgreja?.municipio} - {currentIgreja?.estado}
                             </div>
                           )}
-                          {currentIgreja.cep && (
+                          {currentIgreja?.cep && (
                             <div>
                               <span className="text-[10px] block font-bold text-zinc-400">CEP</span>
-                              {currentIgreja.cep}
+                              {currentIgreja?.cep}
                             </div>
                           )}
                         </div>
