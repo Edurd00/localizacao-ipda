@@ -1222,29 +1222,36 @@ export default function GeneralMapComponent() {
       const chainCodes = new Set<string>();
       const pathSegments: Array<[ [number, number], [number, number] ]> = [];
 
-      // A) Build the processing group
-      const isEstadual = startChurch.desc_igreja.toUpperCase().includes('ESTADUAL');
+      // Find the absolute root ancestor for the clicked church by climbing up
+      let rootChurch: Igreja = startChurch;
+      const climbVisited = new Set<string>();
+      while (rootChurch.codigo_totvs_pai) {
+        if (climbVisited.has(rootChurch.codigo_totvs)) {
+          break; // Avoid cycle
+        }
+        climbVisited.add(rootChurch.codigo_totvs);
+        const parent = igrejas.find((ig) => ig.codigo_totvs === rootChurch.codigo_totvs_pai);
+        if (!parent) {
+          break;
+        }
+        rootChurch = parent;
+      }
 
-      if (isEstadual) {
-        // For ESTADUAL (root node): Find all churches belonging to the same state (UF) field
-        const stateChurches = igrejas.filter((ig) => ig.estado === startChurch.estado);
-        stateChurches.forEach((ig) => {
-          chainCodes.add(ig.codigo_totvs);
-        });
-      } else {
-        // For child nodes (LOCAL, REGIONAL, CENTRAL, SETORIAL): Climb recursively up to the top Estadul/root
-        let current: Igreja | undefined = startChurch;
-        const visited = new Set<string>();
+      // Now, we have rootChurch as the root of the exclusive tree (Nível 0).
+      // Let's recursively gather all descendants of this rootChurch
+      chainCodes.add(rootChurch.codigo_totvs);
+      const queue = [rootChurch.codigo_totvs];
+      const visitedDescendants = new Set<string>([rootChurch.codigo_totvs]);
 
-        while (current) {
-          if (visited.has(current.codigo_totvs)) {
-            break; // prevent infinite loop
-          }
-          visited.add(current.codigo_totvs);
-          chainCodes.add(current.codigo_totvs);
-
-          if (!current.codigo_totvs_pai) break;
-          current = igrejas.find((ig) => ig.codigo_totvs === current!.codigo_totvs_pai);
+      while (queue.length > 0) {
+        const currentCode = queue.shift()!;
+        const directChildren = igrejas.filter(
+          (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
+        );
+        for (const child of directChildren) {
+          visitedDescendants.add(child.codigo_totvs);
+          chainCodes.add(child.codigo_totvs);
+          queue.push(child.codigo_totvs);
         }
       }
 
@@ -1931,7 +1938,11 @@ export default function GeneralMapComponent() {
                   });
                 }}
               >
-                {filteredIgrejas
+                {/* When connection mesh is active, completely hide non-participating markers/clusters */}
+                {(!connectionPathSource
+                  ? filteredIgrejas
+                  : []
+                )
                   .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
                   .map((ig) => {
                     const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
