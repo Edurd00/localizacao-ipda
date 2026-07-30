@@ -240,6 +240,14 @@ export default function ColigacoesPage() {
 
     // Exact Match First
     if (term.trim()) {
+      const isSearchNumeric = /^\d+$/.test(queryNorm);
+      if (isSearchNumeric) {
+        const exactMatch = matches.find((ig) => normalizeTotvs(ig.codigo_totvs) === queryNorm);
+        if (exactMatch) {
+          return [exactMatch];
+        }
+      }
+
       matches.sort((a, b) => {
         const aNorm = normalizeTotvs(a.codigo_totvs);
         const bNorm = normalizeTotvs(b.codigo_totvs);
@@ -274,6 +282,14 @@ export default function ColigacoesPage() {
 
     // Exact Match First
     if (term.trim()) {
+      const isSearchNumeric = /^\d+$/.test(queryNorm);
+      if (isSearchNumeric) {
+        const exactMatch = matches.find((ig) => normalizeTotvs(ig.codigo_totvs) === queryNorm);
+        if (exactMatch) {
+          return [exactMatch];
+        }
+      }
+
       matches.sort((a, b) => {
         const aNorm = normalizeTotvs(a.codigo_totvs);
         const bNorm = normalizeTotvs(b.codigo_totvs);
@@ -744,6 +760,14 @@ export default function ColigacoesPage() {
           (ig.municipio || '').toLowerCase().includes(term);
       }
     );
+
+    const isSearchNumeric = /^\d+$/.test(queryNorm);
+    if (isSearchNumeric) {
+      const exactMatch = matches.find((ig) => normalizeTotvs(ig.codigo_totvs) === queryNorm);
+      if (exactMatch) {
+        return [exactMatch];
+      }
+    }
 
     matches.sort((a, b) => {
       const aNorm = normalizeTotvs(a.codigo_totvs);

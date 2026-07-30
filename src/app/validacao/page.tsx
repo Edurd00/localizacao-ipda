@@ -944,39 +944,22 @@ export default function ValidacaoPage() {
           /* VALIDATION WORKSPACE (Split Screen) */
           <div className="flex-1 flex flex-col gap-5">
             {/* Filter Bar */}
-            <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
               <div className="flex items-center space-x-2 text-zinc-800 shrink-0">
                 <Filter className="h-4 w-4 text-indigo-600" />
                 <span className="text-sm font-semibold">Filtros de Pesquisa:</span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                {/* Region Selector */}
-                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Região:</label>
-                  <select
-                    value={filterRegiao}
-                    onChange={(e) => handleRegiaoChange(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-40"
-                  >
-                    <option value="ALL">Todas as Regiões</option>
-                    {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
-                      <option key={reg} value={reg}>
-                        {reg}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
+              <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start lg:justify-center flex-1">
                 {/* State selector */}
-                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                <div className="flex items-center space-x-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Estado:</label>
                   <select
                     value={filterEstado}
                     onChange={(e) => setFilterEstado(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-40"
+                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-32"
                   >
-                    <option value="ALL">Todos os Estados</option>
+                    <option value="ALL">Todos</option>
                     {states.map((st) => (
                       <option key={st} value={st}>
                         {st}
@@ -986,28 +969,28 @@ export default function ValidacaoPage() {
                 </div>
 
                 {/* Status selector */}
-                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                <div className="flex items-center space-x-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status:</label>
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-40"
+                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-36"
                   >
-                    <option value="ALL">Todos os Status</option>
+                    <option value="ALL">Todos</option>
                     <option value="PENDENTE">Pendentes</option>
                     <option value="VALIDADO">Validados</option>
                     <option value="DUVIDA">Dúvidas</option>
-                    <option value="PENDENTE_REVISAO">Revisões Pendentes</option>
+                    <option value="PENDENTE_REVISAO">Revisões</option>
                   </select>
                 </div>
 
                 {/* Porte selector */}
-                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                <div className="flex items-center space-x-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Porte:</label>
                   <select
                     value={filterPorte}
                     onChange={(e) => setFilterPorte(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-44"
+                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-44"
                   >
                     <option value="ALL">Todos os Portes</option>
                     <option value="ESTADUAL">🔵 ESTADUAL</option>
@@ -1022,7 +1005,7 @@ export default function ValidacaoPage() {
               </div>
 
               {/* Action & Stats counter */}
-              <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+              <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowBatchModal(true)}
@@ -1043,7 +1026,7 @@ export default function ValidacaoPage() {
                   )}
                 </button>
 
-                <div className="text-xs font-semibold text-zinc-500 px-3 py-1.5 bg-zinc-100 rounded-lg shrink-0">
+                <div className="text-xs font-semibold text-zinc-500 px-3 py-1.5 bg-zinc-100 rounded-lg">
                   {filteredIgrejasList.length} {filteredIgrejasList.length === 1 ? 'igreja' : 'igrejas'}
                 </div>
               </div>
