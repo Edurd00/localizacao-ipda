@@ -33,6 +33,30 @@ import {
   Power,
 } from 'lucide-react';
 
+function getPorte(desc: string): string {
+  const normalized = (desc || '').toUpperCase();
+  if (normalized.includes('ESTADUAL')) return 'ESTADUAL';
+  if (normalized.includes('SETORIAL')) return 'SETORIAL';
+  if (normalized.includes('CENTRAL')) return 'CENTRAL';
+  if (normalized.includes('REGIONAL')) return 'REGIONAL';
+  if (
+    normalized.includes('CASA DE ORAÇÃO') ||
+    normalized.includes('CASA DE ORACOA') ||
+    normalized.includes('ORAÇÃO') ||
+    normalized.includes('ORACAO')
+  ) {
+    return 'CASA DE ORAÇÃO';
+  }
+  if (
+    normalized.includes('ALDEIA') ||
+    normalized.includes('INDIGENA') ||
+    normalized.includes('INDÍGENA')
+  ) {
+    return 'ALDEIA INDIGENA';
+  }
+  return 'LOCAL';
+}
+
 export function limparEndereco(endereco: string): string {
   if (!endereco) return '';
   let limpo = endereco;
@@ -196,6 +220,7 @@ export default function ValidacaoPage() {
   const [filterRegiao, setFilterRegiao] = useState<string>('ALL');
   const [filterEstado, setFilterEstado] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('PENDENTE');
+  const [filterPorte, setFilterPorte] = useState<string>('ALL');
 
   // Selected church index in the current filtered list
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
@@ -237,6 +262,11 @@ export default function ValidacaoPage() {
   useEffect(() => {
     setIsRevalidating(false);
   }, [currentIndex]);
+
+  // Reset currentIndex when filterPorte changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [filterPorte]);
 
   // Load operator name from localStorage on mount
   useEffect(() => {
@@ -376,8 +406,19 @@ export default function ValidacaoPage() {
     fetchIgrejas();
   }, [fetchIgrejas]);
 
+  // Compute filtered churches list in-realtime
+  const filteredIgrejasList = React.useMemo(() => {
+    return igrejas.filter((ig) => {
+      if (filterPorte !== 'ALL') {
+        const porte = getPorte(ig.desc_igreja);
+        if (porte !== filterPorte) return false;
+      }
+      return true;
+    });
+  }, [igrejas, filterPorte]);
+
   // Current church being validated
-  const currentIgreja = igrejas[currentIndex];
+  const currentIgreja = filteredIgrejasList[currentIndex];
   const isLocked = currentIgreja?.status === 'VALIDADO' && !isRevalidating;
 
   // Quick search handler
@@ -386,7 +427,7 @@ export default function ValidacaoPage() {
     const term = searchQuery.trim().toLowerCase();
     if (!term) return;
 
-    const idx = igrejas.findIndex(
+    const idx = filteredIgrejasList.findIndex(
       (ig) =>
         ig.codigo_totvs.toLowerCase() === term ||
         ig.codigo_totvs.toLowerCase().includes(term) ||
@@ -398,7 +439,7 @@ export default function ValidacaoPage() {
     if (idx !== -1) {
       setCurrentIndex(idx);
       setActiveTab('validation');
-      toast.success(`Igreja localizada: ${igrejas[idx].desc_igreja} (Código ${igrejas[idx].codigo_totvs})`);
+      toast.success(`Igreja localizada: ${filteredIgrejasList[idx].desc_igreja} (Código ${filteredIgrejasList[idx].codigo_totvs})`);
     } else {
       toast.error(`Igreja com código TOTVS ou termo "${searchQuery}" não foi localizada nos filtros atuais.`);
     }
@@ -519,7 +560,7 @@ export default function ValidacaoPage() {
   // Automated batch geocoding runner
   const executeBatchAutoGeocode = async () => {
     setShowBatchModal(false);
-    const pendingWithoutCoords = igrejas.filter(
+    const pendingWithoutCoords = filteredIgrejasList.filter(
       (ig) =>
         ig.latitude === null ||
         ig.longitude === null ||
@@ -646,16 +687,16 @@ export default function ValidacaoPage() {
         }
 
         let nextCode: string | undefined = undefined;
-        const nextPendingIdx = igrejas.findIndex(
+        const nextPendingIdx = filteredIgrejasList.findIndex(
           (ig, idx) => idx > currentIndex && ig.status === 'PENDENTE'
         );
 
         if (nextPendingIdx !== -1) {
-          nextCode = igrejas[nextPendingIdx].codigo_totvs;
+          nextCode = filteredIgrejasList[nextPendingIdx].codigo_totvs;
         } else {
           const nextIdx = currentIndex + 1;
-          if (nextIdx < igrejas.length) {
-            nextCode = igrejas[nextIdx].codigo_totvs;
+          if (nextIdx < filteredIgrejasList.length) {
+            nextCode = filteredIgrejasList[nextIdx].codigo_totvs;
           }
         }
 
@@ -689,7 +730,7 @@ export default function ValidacaoPage() {
       currentIgreja.latitude === 0 ||
       currentIgreja.longitude === 0);
 
-  const pendingWithoutCoordsCount = igrejas.filter(
+  const pendingWithoutCoordsCount = filteredIgrejasList.filter(
     (ig) =>
       ig.latitude === null ||
       ig.longitude === null ||
@@ -959,6 +1000,25 @@ export default function ValidacaoPage() {
                     <option value="PENDENTE_REVISAO">Revisões Pendentes</option>
                   </select>
                 </div>
+
+                {/* Porte selector */}
+                <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Porte:</label>
+                  <select
+                    value={filterPorte}
+                    onChange={(e) => setFilterPorte(e.target.value)}
+                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full sm:w-44"
+                  >
+                    <option value="ALL">Todos os Portes</option>
+                    <option value="ESTADUAL">🔵 ESTADUAL</option>
+                    <option value="SETORIAL">🟡 SETORIAL</option>
+                    <option value="CENTRAL">🟠 CENTRAL</option>
+                    <option value="REGIONAL">🟢 REGIONAL</option>
+                    <option value="LOCAL">⚪ LOCAL</option>
+                    <option value="CASA DE ORAÇÃO">🟣 CASA DE ORAÇÃO</option>
+                    <option value="ALDEIA INDIGENA">🟢 ALDEIA INDÍGENA</option>
+                  </select>
+                </div>
               </div>
 
               {/* Action & Stats counter */}
@@ -966,7 +1026,7 @@ export default function ValidacaoPage() {
                 <button
                   type="button"
                   onClick={() => setShowBatchModal(true)}
-                  disabled={batchLoading || loading || igrejas.length === 0}
+                  disabled={batchLoading || loading || filteredIgrejasList.length === 0}
                   className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
                   title="Localizar automaticamente igrejas sem coordenadas via APIs gratuitas com trava por estado (UF)"
                 >
@@ -984,7 +1044,7 @@ export default function ValidacaoPage() {
                 </button>
 
                 <div className="text-xs font-semibold text-zinc-500 px-3 py-1.5 bg-zinc-100 rounded-lg shrink-0">
-                  {igrejas.length} {igrejas.length === 1 ? 'igreja' : 'igrejas'}
+                  {filteredIgrejasList.length} {filteredIgrejasList.length === 1 ? 'igreja' : 'igrejas'}
                 </div>
               </div>
             </div>
@@ -998,7 +1058,7 @@ export default function ValidacaoPage() {
                 <h3 className="text-base font-semibold text-zinc-800">Buscando igrejas...</h3>
                 <p className="text-xs text-zinc-500 mt-1">Isso pode levar alguns segundos dependendo do banco de dados.</p>
               </div>
-            ) : igrejas.length === 0 ? (
+            ) : filteredIgrejasList.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white border border-zinc-200 rounded-2xl shadow-sm text-center px-4">
                 <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
                 <h3 className="text-lg font-bold text-zinc-800">Nenhuma igreja encontrada</h3>
@@ -1022,17 +1082,17 @@ export default function ValidacaoPage() {
                     <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-100">
                       <div className="flex items-center space-x-1">
                         <button
-                          onClick={() => setCurrentIndex((prev) => (prev > 0 ? prev - 1 : igrejas.length - 1))}
+                          onClick={() => setCurrentIndex((prev) => (prev > 0 ? prev - 1 : filteredIgrejasList.length - 1))}
                           className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
                           title="Anterior"
                         >
                           <ChevronLeft className="h-5 w-5" />
                         </button>
                         <span className="text-xs font-bold text-zinc-700 font-mono">
-                          {currentIndex + 1} / {igrejas.length}
+                          {currentIndex + 1} / {filteredIgrejasList.length}
                         </span>
                         <button
-                          onClick={() => setCurrentIndex((prev) => (prev < igrejas.length - 1 ? prev + 1 : 0))}
+                          onClick={() => setCurrentIndex((prev) => (prev < filteredIgrejasList.length - 1 ? prev + 1 : 0))}
                           className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
                           title="Próxima"
                         >
