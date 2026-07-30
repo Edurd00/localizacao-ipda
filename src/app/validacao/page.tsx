@@ -376,18 +376,30 @@ export default function ValidacaoPage() {
         setStates(availableStates);
 
         if (list.length > 0) {
-          if (forceSelectCode) {
-            const idx = list.findIndex((ig: Igreja) => ig.codigo_totvs === forceSelectCode);
-            setCurrentIndex(idx !== -1 ? idx : 0);
-          } else if (preserveIndex) {
-            setCurrentIndex((prev) => {
-              if (prev >= list.length) return list.length - 1;
-              if (prev < 0) return 0;
-              return prev;
-            });
+          // Compute the filtered list of churches using current filters
+          const newFiltered = list.filter((ig) => {
+            if (filterPorte !== 'ALL') {
+              const porte = getPorte(ig.desc_igreja);
+              if (porte !== filterPorte) return false;
+            }
+            return true;
+          });
+
+          if (newFiltered.length > 0) {
+            if (forceSelectCode) {
+              const idx = newFiltered.findIndex((ig: Igreja) => ig.codigo_totvs === forceSelectCode);
+              setCurrentIndex(idx !== -1 ? idx : 0);
+            } else if (preserveIndex) {
+              setCurrentIndex((prev) => {
+                const safeIndex = Math.min(prev, newFiltered.length - 1);
+                return Math.max(0, safeIndex);
+              });
+            } else {
+              const firstPendingIdx = newFiltered.findIndex((ig: Igreja) => ig.status === 'PENDENTE');
+              setCurrentIndex(firstPendingIdx !== -1 ? firstPendingIdx : 0);
+            }
           } else {
-            const firstPendingIdx = list.findIndex((ig: Igreja) => ig.status === 'PENDENTE');
-            setCurrentIndex(firstPendingIdx !== -1 ? firstPendingIdx : 0);
+            setCurrentIndex(-1);
           }
         } else {
           setCurrentIndex(-1);
@@ -399,7 +411,7 @@ export default function ValidacaoPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterRegiao, filterEstado, filterStatus]);
+  }, [filterRegiao, filterEstado, filterStatus, filterPorte]);
 
   // Initial fetch and fetch on filter change
   useEffect(() => {
@@ -698,8 +710,8 @@ export default function ValidacaoPage() {
         if (nextPendingIdx !== -1) {
           nextCode = filteredIgrejasList[nextPendingIdx]?.codigo_totvs;
         } else {
-          const nextIdx = currentIndex + 1;
-          if (nextIdx < filteredIgrejasList.length) {
+          const nextIdx = Math.min(currentIndex + 1, filteredIgrejasList.length - 1);
+          if (nextIdx >= 0 && nextIdx < filteredIgrejasList.length) {
             nextCode = filteredIgrejasList[nextIdx]?.codigo_totvs;
           }
         }
@@ -1045,7 +1057,7 @@ export default function ValidacaoPage() {
                 <h3 className="text-base font-semibold text-zinc-800">Buscando igrejas...</h3>
                 <p className="text-xs text-zinc-500 mt-1">Isso pode levar alguns segundos dependendo do banco de dados.</p>
               </div>
-            ) : filteredIgrejasList.length === 0 ? (
+            ) : !currentIgreja ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white border border-zinc-200 rounded-2xl shadow-sm text-center px-4">
                 <Sparkles className="h-12 w-12 text-indigo-600 mb-4 animate-pulse" />
                 <h3 className="text-lg font-bold text-zinc-850">Parabéns! Todas as igrejas deste filtro foram validadas.</h3>
@@ -1073,7 +1085,10 @@ export default function ValidacaoPage() {
                     <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-100">
                       <div className="flex items-center space-x-1">
                         <button
-                          onClick={() => setCurrentIndex((prev) => (prev > 0 ? prev - 1 : filteredIgrejasList.length - 1))}
+                          onClick={() => setCurrentIndex((prev) => {
+                            const newIndex = prev > 0 ? prev - 1 : filteredIgrejasList.length - 1;
+                            return Math.min(newIndex, filteredIgrejasList.length - 1);
+                          })}
                           className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
                           title="Anterior"
                         >
@@ -1083,7 +1098,10 @@ export default function ValidacaoPage() {
                           {currentIndex + 1} / {filteredIgrejasList.length}
                         </span>
                         <button
-                          onClick={() => setCurrentIndex((prev) => (prev < filteredIgrejasList.length - 1 ? prev + 1 : 0))}
+                          onClick={() => setCurrentIndex((prev) => {
+                            const newIndex = prev < filteredIgrejasList.length - 1 ? prev + 1 : 0;
+                            return Math.min(newIndex, filteredIgrejasList.length - 1);
+                          })}
                           className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
                           title="Próxima"
                         >
@@ -1094,20 +1112,20 @@ export default function ValidacaoPage() {
                       {/* Status pill badge */}
                       <span
                         className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                          (currentIgreja.status as string) === 'VALIDADO'
+                          (currentIgreja?.status as string) === 'VALIDADO'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : (currentIgreja.status as string) === 'DUVIDA'
+                            : (currentIgreja?.status as string) === 'DUVIDA'
                             ? 'bg-rose-50 text-rose-800 border-rose-200'
-                            : (currentIgreja.status as string) === 'PENDENTE_REVISAO'
+                            : (currentIgreja?.status as string) === 'PENDENTE_REVISAO'
                             ? 'bg-purple-50 text-purple-800 border-purple-200'
                             : 'bg-amber-50 text-amber-800 border-amber-200'
                         }`}
                       >
-                        {(currentIgreja.status as string) === 'PENDENTE'
+                        {(currentIgreja?.status as string) === 'PENDENTE'
                           ? 'Pendente'
-                          : (currentIgreja.status as string) === 'VALIDADO'
+                          : (currentIgreja?.status as string) === 'VALIDADO'
                           ? 'Validado'
-                          : (currentIgreja.status as string) === 'PENDENTE_REVISAO'
+                          : (currentIgreja?.status as string) === 'PENDENTE_REVISAO'
                           ? 'Revisão Pendente'
                           : 'Dúvida'}
                       </span>
@@ -1271,7 +1289,7 @@ export default function ValidacaoPage() {
                           <div>
                             <p className="font-semibold">Coordenadas iniciais não encontradas</p>
                             <p className="text-[10px] opacity-90 mt-0.5">
-                              Exibindo marcador aproximado na UF {currentIgreja.estado}. Arraste o pin no mapa para fixar a localização correta.
+                              Exibindo marcador aproximado na UF {currentIgreja?.estado}. Arraste o pin no mapa para fixar a localização correta.
                             </p>
                           </div>
                         </div>
