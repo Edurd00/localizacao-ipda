@@ -237,14 +237,14 @@ function MapController({
   flyToTarget,
   onFlyToComplete,
   region,
-  hasActiveRoute,
+  hasActiveRouteOrMesh,
 }: {
   center: [number, number];
   zoom: number;
   flyToTarget: { center: [number, number]; zoom: number; totvs: string } | null;
   onFlyToComplete: () => void;
   region: string;
-  hasActiveRoute: boolean;
+  hasActiveRouteOrMesh: boolean;
 }) {
   const map = useMap();
   useEffect(() => {
@@ -257,13 +257,13 @@ function MapController({
         onFlyToComplete();
       }, 1600);
       return () => clearTimeout(timer);
-    } else if (region === 'ALL' && !hasActiveRoute) {
+    } else if (region === 'ALL' && !hasActiveRouteOrMesh) {
       map.setView(center, zoom, {
         animate: true,
         duration: 1.2,
       });
     }
-  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRoute]);
+  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRouteOrMesh]);
   return null;
 }
 
@@ -271,15 +271,15 @@ function MapController({
 function RegionBoundsController({
   region,
   igrejas,
-  hasActiveRoute,
+  hasActiveRouteOrMesh,
 }: {
   region: string;
   igrejas: Igreja[];
-  hasActiveRoute: boolean;
+  hasActiveRouteOrMesh: boolean;
 }) {
   const map = useMap();
   useEffect(() => {
-    if (!region || region === 'ALL' || hasActiveRoute) return;
+    if (!region || region === 'ALL' || hasActiveRouteOrMesh) return;
 
     const staticBounds = REGIAO_BOUNDS[region];
     if (staticBounds) {
@@ -305,7 +305,7 @@ function RegionBoundsController({
         }
       }
     }
-  }, [region, igrejas, map, hasActiveRoute]);
+  }, [region, igrejas, map, hasActiveRouteOrMesh]);
   return null;
 }
 
@@ -322,6 +322,8 @@ function MapBoundsController({
   sedeCandidataA,
   sedeCandidataB,
   igrejas,
+  connectionPathSource,
+  activeChainCodes,
 }: {
   bounds: any[] | null;
   routePath: [number, number][] | null;
@@ -334,6 +336,8 @@ function MapBoundsController({
   sedeCandidataA: Igreja | null;
   sedeCandidataB: Igreja | null;
   igrejas: Igreja[];
+  connectionPathSource: string | null;
+  activeChainCodes: string[];
 }) {
   const map = useMap();
   useEffect(() => {
@@ -383,7 +387,29 @@ function MapBoundsController({
       }
     }
 
-    // 3. Fallback to existing logic for connection paths or raw points if any
+    // 3. If Connection Mesh (Malha de Conexão) is active
+    if (connectionPathSource && activeChainCodes.length > 0) {
+      const meshCoords: [number, number][] = [];
+      activeChainCodes.forEach((totvs) => {
+        const found = igrejas.find((ig) => ig.codigo_totvs === totvs);
+        if (found && found.latitude && found.longitude) {
+          meshCoords.push([found.latitude, found.longitude]);
+        }
+      });
+
+      if (meshCoords.length >= 1) {
+        // Enforce soft fitBounds centering the entire active family tree teia
+        const boundsObj = L.latLngBounds(meshCoords);
+        map.fitBounds(boundsObj, {
+          padding: [60, 60],
+          animate: true,
+          duration: 0.8,
+        });
+        return;
+      }
+    }
+
+    // 4. Fallback to existing logic for connection paths or raw points if any
     if (bounds && bounds.length > 0) {
       const flatPoints: [number, number][] = [];
 
@@ -418,6 +444,8 @@ function MapBoundsController({
     sedeCandidataA,
     sedeCandidataB,
     igrejas,
+    connectionPathSource,
+    activeChainCodes,
     map,
   ]);
   return null;
@@ -1643,7 +1671,7 @@ export default function GeneralMapComponent() {
                 zoom={mapZoom}
                 flyToTarget={flyToTarget}
                 region={selectedRegionGeo}
-                hasActiveRoute={!!routeMeta || comparisonMode}
+                hasActiveRouteOrMesh={!!routeMeta || comparisonMode || !!connectionPathSource}
                 onFlyToComplete={() => {
                   if (flyToTarget) {
                     const targetTotvs = flyToTarget.totvs;
@@ -1669,7 +1697,7 @@ export default function GeneralMapComponent() {
               <RegionBoundsController
                 region={selectedRegionGeo}
                 igrejas={igrejas}
-                hasActiveRoute={!!routeMeta || comparisonMode}
+                hasActiveRouteOrMesh={!!routeMeta || comparisonMode || !!connectionPathSource}
               />
 
               <MapBoundsController
@@ -1684,6 +1712,8 @@ export default function GeneralMapComponent() {
                 sedeCandidataA={sedeCandidataA}
                 sedeCandidataB={sedeCandidataB}
                 igrejas={igrejas}
+                connectionPathSource={connectionPathSource}
+                activeChainCodes={activeChainCodes}
               />
 
               {/* Terrestrial OSRM route path overlay if calculated */}
