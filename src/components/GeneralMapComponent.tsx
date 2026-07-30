@@ -22,6 +22,15 @@ import {
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
 
+export function normalizeText(text: string): string {
+  if (!text) return '';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+}
+
 // Strict Church classification by porte based on 'desc_igreja'
 export function getPorte(desc: string): string {
   const normalized = desc.toUpperCase();
@@ -228,12 +237,14 @@ function MapController({
   flyToTarget,
   onFlyToComplete,
   region,
+  hasActiveRoute,
 }: {
   center: [number, number];
   zoom: number;
   flyToTarget: { center: [number, number]; zoom: number; totvs: string } | null;
   onFlyToComplete: () => void;
   region: string;
+  hasActiveRoute: boolean;
 }) {
   const map = useMap();
   useEffect(() => {
@@ -246,21 +257,29 @@ function MapController({
         onFlyToComplete();
       }, 1600);
       return () => clearTimeout(timer);
-    } else if (region === 'ALL') {
+    } else if (region === 'ALL' && !hasActiveRoute) {
       map.setView(center, zoom, {
         animate: true,
         duration: 1.2,
       });
     }
-  }, [center, zoom, flyToTarget, map, onFlyToComplete, region]);
+  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRoute]);
   return null;
 }
 
 // Component to dynamically fit bounds of the selected Region Filter
-function RegionBoundsController({ region, igrejas }: { region: string; igrejas: Igreja[] }) {
+function RegionBoundsController({
+  region,
+  igrejas,
+  hasActiveRoute,
+}: {
+  region: string;
+  igrejas: Igreja[];
+  hasActiveRoute: boolean;
+}) {
   const map = useMap();
   useEffect(() => {
-    if (!region || region === 'ALL') return;
+    if (!region || region === 'ALL' || hasActiveRoute) return;
 
     const staticBounds = REGIAO_BOUNDS[region];
     if (staticBounds) {
@@ -286,7 +305,7 @@ function RegionBoundsController({ region, igrejas }: { region: string; igrejas: 
         }
       }
     }
-  }, [region, igrejas, map]);
+  }, [region, igrejas, map, hasActiveRoute]);
   return null;
 }
 
@@ -297,41 +316,75 @@ function MapBoundsController({
   routeAtual,
   routeCandidataA,
   routeCandidataB,
+  routeMeta,
+  comparisonMode,
+  fixedDest,
+  sedeCandidataA,
+  sedeCandidataB,
+  igrejas,
 }: {
   bounds: any[] | null;
   routePath: [number, number][] | null;
   routeAtual: [number, number][] | null;
   routeCandidataA: [number, number][] | null;
   routeCandidataB: [number, number][] | null;
+  routeMeta: RouteMeta | null;
+  comparisonMode: boolean;
+  fixedDest: Igreja | null;
+  sedeCandidataA: Igreja | null;
+  sedeCandidataB: Igreja | null;
+  igrejas: Igreja[];
 }) {
   const map = useMap();
   useEffect(() => {
-    const points: [number, number][] = [];
-    if (routePath && routePath.length >= 2) {
-      points.push(...routePath);
-    }
-    if (routeAtual && routeAtual.length >= 2) {
-      points.push(...routeAtual);
-    }
-    if (routeCandidataA && routeCandidataA.length >= 2) {
-      points.push(...routeCandidataA);
-    }
-    if (routeCandidataB && routeCandidataB.length >= 2) {
-      points.push(...routeCandidataB);
-    }
-
-    if (points.length >= 2) {
-      map.fitBounds(points, {
-        padding: [50, 50],
-        maxZoom: 15,
+    // 1. If we have standard route active (routeMeta)
+    if (routeMeta && routeMeta.originCoords && routeMeta.destinationCoords) {
+      const routeBounds: [number, number][] = [
+        routeMeta.originCoords,
+        routeMeta.destinationCoords,
+      ];
+      map.fitBounds(routeBounds, {
+        padding: [80, 80],
         animate: true,
-        duration: 1.2,
+        duration: 1,
       });
       return;
     }
 
+    // 2. If comparison mode is active
+    if (comparisonMode && fixedDest && fixedDest.latitude && fixedDest.longitude) {
+      const points: [number, number][] = [];
+      points.push([fixedDest.latitude, fixedDest.longitude]);
+
+      // Find parent of fixedDest
+      const parent = fixedDest.codigo_totvs_pai
+        ? igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)
+        : null;
+      if (parent && parent.latitude && parent.longitude) {
+        points.push([parent.latitude, parent.longitude]);
+      }
+
+      if (sedeCandidataA && sedeCandidataA.latitude && sedeCandidataA.longitude) {
+        points.push([sedeCandidataA.latitude, sedeCandidataA.longitude]);
+      }
+
+      if (sedeCandidataB && sedeCandidataB.latitude && sedeCandidataB.longitude) {
+        points.push([sedeCandidataB.latitude, sedeCandidataB.longitude]);
+      }
+
+      // We need at least 2 distinct points to fit bounds
+      if (points.length >= 2) {
+        map.fitBounds(points as any, {
+          padding: [80, 80],
+          animate: true,
+          duration: 1,
+        });
+        return;
+      }
+    }
+
+    // 3. Fallback to existing logic for connection paths or raw points if any
     if (bounds && bounds.length > 0) {
-      // Safely flatten any 2D segment arrays to a single flat LatLngExpression list
       const flatPoints: [number, number][] = [];
 
       const processItem = (item: any) => {
@@ -353,7 +406,20 @@ function MapBoundsController({
         });
       }
     }
-  }, [bounds, routePath, routeAtual, routeCandidataA, routeCandidataB, map]);
+  }, [
+    bounds,
+    routePath,
+    routeAtual,
+    routeCandidataA,
+    routeCandidataB,
+    routeMeta,
+    comparisonMode,
+    fixedDest,
+    sedeCandidataA,
+    sedeCandidataB,
+    igrejas,
+    map,
+  ]);
   return null;
 }
 
@@ -1000,12 +1066,19 @@ export default function GeneralMapComponent() {
 
       // 3. Tipo Imóvel filter
       if (selectedTipoImovel !== 'ALL') {
-        const typeNormalized = (ig.tipo_imovel || '').toUpperCase();
-        if (selectedTipoImovel === 'PROPRIO' && !typeNormalized.includes('PRÓPRIO') && !typeNormalized.includes('PROPRIO')) {
-          return false;
-        }
-        if (selectedTipoImovel === 'ALUGADO' && !typeNormalized.includes('ALUGADO')) {
-          return false;
+        const typeNormalized = normalizeText(ig.tipo_imovel || '');
+        if (selectedTipoImovel === 'PROPRIO') {
+          if (!typeNormalized.includes('PROP')) {
+            return false;
+          }
+        } else if (selectedTipoImovel === 'ALUGADO') {
+          if (!typeNormalized.includes('ALUG')) {
+            return false;
+          }
+        } else if (selectedTipoImovel === 'CEDIDO') {
+          if (typeNormalized.includes('PROP') || typeNormalized.includes('ALUG')) {
+            return false;
+          }
         }
       }
 
@@ -1477,6 +1550,7 @@ export default function GeneralMapComponent() {
                   <option value="ALL">Todos</option>
                   <option value="PROPRIO">Próprio</option>
                   <option value="ALUGADO">Alugado</option>
+                  <option value="CEDIDO">Cedido/Outros</option>
                 </select>
               </div>
             </div>
@@ -1569,6 +1643,7 @@ export default function GeneralMapComponent() {
                 zoom={mapZoom}
                 flyToTarget={flyToTarget}
                 region={selectedRegionGeo}
+                hasActiveRoute={!!routeMeta || comparisonMode}
                 onFlyToComplete={() => {
                   if (flyToTarget) {
                     const targetTotvs = flyToTarget.totvs;
@@ -1591,7 +1666,11 @@ export default function GeneralMapComponent() {
                 }}
               />
 
-              <RegionBoundsController region={selectedRegionGeo} igrejas={igrejas} />
+              <RegionBoundsController
+                region={selectedRegionGeo}
+                igrejas={igrejas}
+                hasActiveRoute={!!routeMeta || comparisonMode}
+              />
 
               <MapBoundsController
                 bounds={selectedConnectionPath}
@@ -1599,6 +1678,12 @@ export default function GeneralMapComponent() {
                 routeAtual={routeAtual}
                 routeCandidataA={routeCandidataA}
                 routeCandidataB={routeCandidataB}
+                routeMeta={routeMeta}
+                comparisonMode={comparisonMode}
+                fixedDest={fixedDest}
+                sedeCandidataA={sedeCandidataA}
+                sedeCandidataB={sedeCandidataB}
+                igrejas={igrejas}
               />
 
               {/* Terrestrial OSRM route path overlay if calculated */}
