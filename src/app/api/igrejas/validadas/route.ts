@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
-export const revalidate = 3600; // Cache por 1 hora
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
@@ -15,7 +15,7 @@ export async function GET() {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         },
       }
     );

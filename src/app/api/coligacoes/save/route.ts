@@ -5,7 +5,7 @@ import { getIgrejas, saveIgrejaSingle, Igreja } from '@/lib/db';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { codigo_totvs, codigo_totvs_pai, desc_igreja, status, reorganizar_filhas_para } = body;
+    const { codigo_totvs, codigo_totvs_pai, desc_igreja, status, porte, reorganizar_filhas_para } = body;
 
     if (!codigo_totvs) {
       return NextResponse.json(
@@ -38,6 +38,9 @@ export async function POST(request: Request) {
     }
     if (status !== undefined) {
       update.status = status;
+    }
+    if (porte !== undefined) {
+      update.porte = porte;
     }
 
     // 3. Save the main church

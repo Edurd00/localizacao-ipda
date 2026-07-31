@@ -33,7 +33,10 @@ import {
   Power,
 } from 'lucide-react';
 
-function getPorte(desc: string): string {
+function getPorte(desc: string, porteField?: string | null): string {
+  if (porteField && porteField.trim() !== '') {
+    return porteField;
+  }
   const normalized = (desc || '').toUpperCase();
   if (normalized.includes('ESTADUAL')) return 'ESTADUAL';
   if (normalized.includes('SETORIAL')) return 'SETORIAL';
@@ -376,11 +379,18 @@ export default function ValidacaoPage() {
         setStates(availableStates);
 
         if (list.length > 0) {
-          // Compute the filtered list of churches using current filters
+          // Compute the filtered list of churches using current filters (Região, Estado, Porte)
           const newFiltered = list.filter((ig) => {
-            if (filterPorte !== 'ALL') {
-              const porte = getPorte(ig.desc_igreja);
-              if (porte !== filterPorte) return false;
+            if (filterRegiao && filterRegiao !== 'ALL') {
+              const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
+              if (!allowedUFs.includes(ig.estado)) return false;
+            }
+            if (filterEstado && filterEstado !== 'ALL' && ig.estado !== filterEstado) {
+              return false;
+            }
+            const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+            if (filterPorte !== 'ALL' && porte !== filterPorte) {
+              return false;
             }
             return true;
           });
@@ -421,13 +431,18 @@ export default function ValidacaoPage() {
   // Compute filtered churches list in-realtime
   const filteredIgrejasList = React.useMemo(() => {
     return igrejas.filter((ig) => {
-      if (filterPorte !== 'ALL') {
-        const porte = getPorte(ig.desc_igreja);
-        if (porte !== filterPorte) return false;
+      if (filterRegiao && filterRegiao !== 'ALL') {
+        const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
+        if (!allowedUFs.includes(ig.estado)) return false;
       }
+      if (filterEstado && filterEstado !== 'ALL' && ig.estado !== filterEstado) {
+        return false;
+      }
+      const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+      if (filterPorte !== 'ALL' && porte !== filterPorte) return false;
       return true;
     });
-  }, [igrejas, filterPorte]);
+  }, [igrejas, filterRegiao, filterEstado, filterPorte]);
 
   // Current church being validated
   const currentIgreja = filteredIgrejasList[currentIndex];
@@ -741,10 +756,10 @@ export default function ValidacaoPage() {
 
   const hasNoInitialCoordinates =
     currentIgreja &&
-    (currentIgreja.latitude === null ||
-      currentIgreja.longitude === null ||
-      currentIgreja.latitude === 0 ||
-      currentIgreja.longitude === 0);
+    (currentIgreja?.latitude === null ||
+      currentIgreja?.longitude === null ||
+      currentIgreja?.latitude === 0 ||
+      currentIgreja?.longitude === 0);
 
   const pendingWithoutCoordsCount = filteredIgrejasList.filter(
     (ig) =>

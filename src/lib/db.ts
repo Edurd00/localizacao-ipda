@@ -15,6 +15,7 @@ export interface Igreja {
   status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO';
   usuario_validador?: string | null;
   codigo_totvs_pai?: string | null;
+  porte?: string | null;
   updated_at?: string;
 }
 
@@ -99,15 +100,37 @@ async function ensurePostgresTable() {
           status VARCHAR(20) DEFAULT 'PENDENTE',
           usuario_validador VARCHAR(100),
           codigo_totvs_pai VARCHAR(100),
+          porte VARCHAR(50),
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      // Run an alter table just in case the table exists but lacks the column
+      // Run alter table just in case the table exists but lacks columns
       try {
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS codigo_totvs_pai VARCHAR(100);`);
       } catch (alterErr) {
         console.warn('Alter table column check failed (might be expected):', alterErr);
       }
+      try {
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS porte VARCHAR(50);`);
+      } catch (alterErr) {
+        console.warn('Alter table porte column check failed (might be expected):', alterErr);
+      }
+
+      // ---------------------------------------------------------------
+      // Bug 3: Retroactive correction — fix churches wrongly set as LOCAL
+      // whose name prefix reveals their true porte.
+      // ---------------------------------------------------------------
+      try {
+        await client.query(`UPDATE igrejas SET porte = 'ESTADUAL' WHERE (desc_igreja LIKE 'ESTADUAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
+        await client.query(`UPDATE igrejas SET porte = 'SETORIAL' WHERE (desc_igreja LIKE 'SETORIAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
+        await client.query(`UPDATE igrejas SET porte = 'CENTRAL' WHERE (desc_igreja LIKE 'CENTRAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
+        await client.query(`UPDATE igrejas SET porte = 'REGIONAL' WHERE (desc_igreja LIKE 'REGIONAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
+        await client.query(`UPDATE igrejas SET porte = 'ALDEIA INDIGENA' WHERE (desc_igreja LIKE 'ALDEIA%') AND (porte = 'LOCAL' OR porte IS NULL);`);
+        await client.query(`UPDATE igrejas SET porte = 'CASA DE ORAÇÃO' WHERE (desc_igreja LIKE 'CASA DE ORA%') AND (porte = 'LOCAL' OR porte IS NULL);`);
+      } catch (retroErr) {
+        console.warn('Retroactive porte correction failed (non-fatal):', retroErr);
+      }
+
       isTableInitialized = true;
     } finally {
       client.release();
@@ -155,6 +178,7 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
         status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO',
         usuario_validador: row.usuario_validador,
         codigo_totvs_pai: row.codigo_totvs_pai,
+        porte: row.porte,
         updated_at: row.updated_at,
       }));
     } catch (err) {
@@ -239,8 +263,8 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportRepo
 
           await client.query(
             `INSERT INTO igrejas (
-              codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+              codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             ON CONFLICT (codigo_totvs) DO UPDATE SET
               desc_igreja = EXCLUDED.desc_igreja,
               tipo_imovel = EXCLUDED.tipo_imovel,
@@ -248,6 +272,10 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportRepo
               municipio = EXCLUDED.municipio,
               estado = EXCLUDED.estado,
               cep = EXCLUDED.cep,
+              porte = CASE
+                WHEN EXCLUDED.porte IS NOT NULL AND EXCLUDED.porte <> '' THEN EXCLUDED.porte
+                ELSE COALESCE(igrejas.porte, EXCLUDED.porte)
+              END,
               status = CASE
                 WHEN igrejas.status = 'VALIDADO' THEN 'VALIDADO'
                 WHEN igrejas.endereco <> EXCLUDED.endereco THEN 'PENDENTE_REVISAO'
@@ -292,6 +320,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportRepo
               ig.longitude,
               ig.status || 'PENDENTE',
               ig.codigo_totvs_pai || null,
+              ig.porte || null,
             ]
           );
         }

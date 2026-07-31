@@ -37,8 +37,11 @@ export function normalizeTotvs(code: string | number | null | undefined): string
 }
 
 // Strict Church classification by porte based on 'desc_igreja'
-export function getPorte(desc: string): string {
-  const normalized = desc.toUpperCase();
+export function getPorte(desc: string, porteField?: string | null): string {
+  if (porteField && porteField.trim() !== '') {
+    return porteField;
+  }
+  const normalized = (desc || '').toUpperCase();
   if (normalized.includes('ESTADUAL')) return 'ESTADUAL';
   if (normalized.includes('SETORIAL')) return 'SETORIAL';
   if (normalized.includes('CENTRAL')) return 'CENTRAL';
@@ -394,6 +397,11 @@ function MapBoundsController({
 
     // 3. If Connection Mesh (Malha de Conexão) is active
     if (connectionPathSource && activeChainCodes.length > 0) {
+      const sourceChurch = igrejas.find((ig) => ig.codigo_totvs === connectionPathSource);
+      const sourcePorte = sourceChurch ? (sourceChurch.porte || getPorte(sourceChurch.desc_igreja, sourceChurch.porte)) : 'LOCAL';
+      const isLowLevel = sourcePorte === 'LOCAL' || sourcePorte === 'CASA DE ORAÇÃO' || sourcePorte === 'ALDEIA INDIGENA';
+      const selectedPadding = isLowLevel ? [80, 80] : [60, 60];
+
       const meshCoords: [number, number][] = [];
       activeChainCodes.forEach((totvs) => {
         const found = igrejas.find((ig) => ig.codigo_totvs === totvs);
@@ -406,7 +414,8 @@ function MapBoundsController({
         // Enforce soft fitBounds centering the entire active family tree teia
         const boundsObj = L.latLngBounds(meshCoords);
         map.fitBounds(boundsObj, {
-          padding: [60, 60],
+          padding: selectedPadding as any,
+          maxZoom: 14,
           animate: true,
           duration: 0.8,
         });
@@ -686,7 +695,7 @@ export default function GeneralMapComponent() {
   };
 
   const renderChurchTooltip = (ig: Igreja) => {
-    const porte = getPorte(ig.desc_igreja);
+    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
     return (
       <Tooltip direction="top" offset={[0, -20]} opacity={0.95} permanent={false}>
         <div className="p-1.5 space-y-1 font-sans text-xs">
@@ -712,7 +721,7 @@ export default function GeneralMapComponent() {
 
   // Helper function to render uniform descriptive Leaflet popups
   const renderChurchPopup = (ig: Igreja) => {
-    const porte = getPorte(ig.desc_igreja);
+    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
     const parentChurch = ig.codigo_totvs_pai
       ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
       : null;
@@ -1043,27 +1052,47 @@ export default function GeneralMapComponent() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Fetch validated churches on mount
-  const fetchValidatedChurches = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchValidatedChurches = async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const res = await fetch('/api/igrejas/validadas');
       const data = await res.json();
       if (data.success) {
         setIgrejas(data.igrejas || []);
       } else {
-        setError(data.error || 'Erro ao carregar igrejas.');
+        if (!silent) {
+          setError(data.error || 'Erro ao carregar igrejas.');
+        }
       }
     } catch (err) {
       console.error('Error fetching validated churches:', err);
-      setError('Erro ao se conectar com o servidor.');
+      if (!silent) {
+        setError('Erro ao se conectar com o servidor.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchValidatedChurches();
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchValidatedChurches(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Compute distinct States/UFs from loaded validated churches for filter dropdown
@@ -1116,7 +1145,7 @@ export default function GeneralMapComponent() {
       }
 
       // 4. Size/Porte filter
-      const porte = getPorte(ig.desc_igreja);
+      const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
       if (selectedPortes.length > 0 && !selectedPortes.includes(porte)) {
         return false;
       }
@@ -1222,53 +1251,86 @@ export default function GeneralMapComponent() {
       const chainCodes = new Set<string>();
       const pathSegments: Array<[ [number, number], [number, number] ]> = [];
 
-      // Find the absolute root ancestor for the clicked church by climbing up
-      let rootChurch: Igreja = startChurch;
-      const climbVisited = new Set<string>();
-      while (rootChurch.codigo_totvs_pai) {
-        if (climbVisited.has(rootChurch.codigo_totvs)) {
+      const startPorte = startChurch.porte || getPorte(startChurch.desc_igreja, startChurch.porte);
+
+      // A) Climb up to the root (ESTADUAL) to collect all upstream/ancestor nodes
+      const ancestryChain = [startChurch];
+      const climbVisited = new Set();
+      let currentUp = startChurch;
+      while (currentUp.codigo_totvs_pai) {
+        if (climbVisited.has(currentUp.codigo_totvs)) {
           break; // Avoid cycle
         }
-        climbVisited.add(rootChurch.codigo_totvs);
-        const parent = igrejas.find((ig) => ig.codigo_totvs === rootChurch.codigo_totvs_pai);
+        climbVisited.add(currentUp.codigo_totvs);
+        const parent = igrejas.find((ig) => ig.codigo_totvs === currentUp.codigo_totvs_pai);
         if (!parent) {
           break;
         }
-        rootChurch = parent;
+        ancestryChain.push(parent);
+        currentUp = parent;
       }
 
-      // Now, we have rootChurch as the root of the exclusive tree (Nível 0).
-      // Let's recursively gather all descendants of this rootChurch
-      chainCodes.add(rootChurch.codigo_totvs);
-      const queue = [rootChurch.codigo_totvs];
-      const visitedDescendants = new Set<string>([rootChurch.codigo_totvs]);
+      // Root church is the last element of the ancestry chain
+      const rootChurch = ancestryChain[ancestryChain.length - 1];
 
-      while (queue.length > 0) {
-        const currentCode = queue.shift()!;
-        const directChildren = igrejas.filter(
-          (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
-        );
-        for (const child of directChildren) {
-          visitedDescendants.add(child.codigo_totvs);
-          chainCodes.add(child.codigo_totvs);
-          queue.push(child.codigo_totvs);
+      if (startPorte === 'LOCAL' || startPorte === 'CASA DE ORAÇÃO' || startPorte === 'ALDEIA INDIGENA') {
+        // Rule 1: LOW-LEVEL PORTE - ONLY DIRECT ANCESTRY PATH (UPSTREAM)
+        ancestryChain.forEach((ig) => chainCodes.add(ig.codigo_totvs));
+      } else if (startPorte === 'REGIONAL' || startPorte === 'CENTRAL' || startPorte === 'SETORIAL') {
+        // Rule 2: INTERMEDIATE PORTE - ANCESTRY (UPSTREAM) + DIRECT DESCENDANTS SUB-TREE (DOWNSTREAM)
+        // 1. Add full ancestry path to root
+        ancestryChain.forEach((ig) => chainCodes.add(ig.codigo_totvs));
+
+        // 2. Add sub-tree of descendants starting from the selected intermediate church (startChurch)
+        const queue = [startChurch.codigo_totvs];
+        const visitedDescendants = new Set([startChurch.codigo_totvs]);
+
+        while (queue.length > 0) {
+          const currentCode = queue.shift();
+          const directChildren = igrejas.filter(
+            (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
+          );
+          for (const child of directChildren) {
+            visitedDescendants.add(child.codigo_totvs);
+            chainCodes.add(child.codigo_totvs);
+            queue.push(child.codigo_totvs);
+          }
+        }
+      } else {
+        // Rule 3: ESTADUAL (or ROOT) PORTE - FULL commands network downstream under its command
+        chainCodes.add(rootChurch.codigo_totvs);
+        const queue = [rootChurch.codigo_totvs];
+        const visitedDescendants = new Set([rootChurch.codigo_totvs]);
+
+        while (queue.length > 0) {
+          const currentCode = queue.shift();
+          const directChildren = igrejas.filter(
+            (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
+          );
+          for (const child of directChildren) {
+            visitedDescendants.add(child.codigo_totvs);
+            chainCodes.add(child.codigo_totvs);
+            queue.push(child.codigo_totvs);
+          }
         }
       }
 
-      // B) For each church in the processing set, trace a segment line ONLY to its direct parent
+      // B) For each church in the processing set, trace a segment line ONLY to its direct parent if the parent is also in chainCodes
       chainCodes.forEach((codigoTotvs) => {
         const daughter = igrejas.find((ig) => ig.codigo_totvs === codigoTotvs);
 
         if (daughter && daughter.codigo_totvs_pai) {
-          const parent = igrejas.find((ig) => ig.codigo_totvs === daughter.codigo_totvs_pai);
+          if (chainCodes.has(daughter.codigo_totvs_pai)) {
+            const parent = igrejas.find((ig) => ig.codigo_totvs === daughter.codigo_totvs_pai);
 
-          if (daughter.latitude && daughter.longitude && parent?.latitude && parent?.longitude) {
-            pathSegments.push([
-              [Number(daughter.latitude), Number(daughter.longitude)],
-              [Number(parent.latitude), Number(parent.longitude)]
-            ]);
-            // Ensure parent is also included in active chain highlights
-            chainCodes.add(parent.codigo_totvs);
+            if (daughter.latitude && daughter.longitude && parent?.latitude && parent?.longitude) {
+              pathSegments.push([
+                [Number(daughter.latitude), Number(daughter.longitude)],
+                [Number(parent.latitude), Number(parent.longitude)]
+              ]);
+              // Ensure parent is also included in active chain highlights
+              chainCodes.add(parent.codigo_totvs);
+            }
           }
         }
       });
@@ -1507,7 +1569,7 @@ export default function GeneralMapComponent() {
           </a>
 
           <button
-            onClick={fetchValidatedChurches}
+            onClick={() => fetchValidatedChurches()}
             disabled={loading}
             className="p-1.5 bg-white text-zinc-600 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
             title="Atualizar dados do banco"
@@ -1693,7 +1755,7 @@ export default function GeneralMapComponent() {
             <h3 className="text-base font-bold text-zinc-900">Falha ao buscar dados</h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">{error}</p>
             <button
-              onClick={fetchValidatedChurches}
+              onClick={() => fetchValidatedChurches()}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-md hover:bg-indigo-700 transition-all"
             >
               Tentar Novamente
@@ -1848,7 +1910,7 @@ export default function GeneralMapComponent() {
                 igrejas
                   .filter((ig) => activeChainCodes.includes(ig.codigo_totvs) && ig.latitude && ig.longitude)
                   .map((ig) => {
-                    const porte = getPorte(ig.desc_igreja);
+                    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
                     const isSource = ig.codigo_totvs === connectionPathSource;
                     const icon = getHighlightedMarkerIcon(porte, isSource);
                     const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
@@ -1946,7 +2008,7 @@ export default function GeneralMapComponent() {
                   .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
                   .map((ig) => {
                     const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
-                    const porte = getPorte(ig.desc_igreja);
+                    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
                     const icon = getMarkerIcon(porte);
 
                     return (

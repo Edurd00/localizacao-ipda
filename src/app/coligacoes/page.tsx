@@ -24,6 +24,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
+import { parseWorkbook, getPorte } from '@/lib/parser';
 
 // Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
@@ -35,31 +36,6 @@ const PORTE_INFO: Record<string, { name: string; color: string; label: string }>
   'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#D8A2C8', label: 'Casa de Oração (Rosa Pastel)' },
   'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano)' },
 };
-
-// Strict size classification based on description text
-function getPorte(desc: string): string {
-  const normalized = (desc || '').toUpperCase();
-  if (normalized.includes('ESTADUAL')) return 'ESTADUAL';
-  if (normalized.includes('SETORIAL')) return 'SETORIAL';
-  if (normalized.includes('CENTRAL')) return 'CENTRAL';
-  if (normalized.includes('REGIONAL')) return 'REGIONAL';
-  if (
-    normalized.includes('CASA DE ORAÇÃO') ||
-    normalized.includes('CASA DE ORACOA') ||
-    normalized.includes('ORAÇÃO') ||
-    normalized.includes('ORACAO')
-  ) {
-    return 'CASA DE ORAÇÃO';
-  }
-  if (
-    normalized.includes('ALDEIA') ||
-    normalized.includes('INDIGENA') ||
-    normalized.includes('INDÍGENA')
-  ) {
-    return 'ALDEIA INDIGENA';
-  }
-  return 'LOCAL';
-}
 
 export function normalizeTotvs(code: string | number | null | undefined): string {
   if (code === null || code === undefined) return '';
@@ -306,7 +282,7 @@ export default function ColigacoesPage() {
     return matches.slice(0, 10);
   }, [selectedChurch, reorganizationParentSearch, igrejas]);
 
-  // Client-side Excel reading and parsing (reproducing EXACT /api/igrejas/upload logic)
+  // Client-side Excel reading and parsing using centralized parser
   const handleExcelFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -319,268 +295,19 @@ export default function ColigacoesPage() {
       try {
         const arrayBuffer = event.target?.result;
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-
-        const targetSheets = [
-          'Centro Oeste',
-          'Nordeste',
-          'Norte',
-          'Sudeste - MG',
-          'Sudeste - SP',
-          'Sudeste - ES - RJ',
-          'Sul',
-        ];
-
-        const sheetsToParse = targetSheets.filter((name) =>
-          workbook.SheetNames.includes(name)
-        );
-        const finalSheets =
-          sheetsToParse.length > 0 ? sheetsToParse : workbook.SheetNames;
-
-        const allChurches: Igreja[] = [];
-
-        for (const sheetName of finalSheets) {
-          const sheet = workbook.Sheets[sheetName];
-          const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
-
-          let headerIdx = -1;
-          const colMap: Record<string, number> = {};
-
-          // Search for the floating header row
-          for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            if (!Array.isArray(row)) continue;
-
-            const normalizedRow = row.map((val) =>
-              String(val || '').trim().toLowerCase()
-            );
-
-            const hasCodigo =
-              normalizedRow.includes('codigo') ||
-              normalizedRow.includes('código') ||
-              normalizedRow.includes('codigo_totvs');
-            const hasDescIgreja =
-              normalizedRow.includes('desc igreja') ||
-              normalizedRow.includes('desc_igreja') ||
-              normalizedRow.includes('descricao') ||
-              normalizedRow.includes('descrição');
-            const hasEndereco =
-              normalizedRow.includes('endereco') ||
-              normalizedRow.includes('endereço');
-
-            if (hasCodigo && (hasDescIgreja || hasEndereco)) {
-              headerIdx = i;
-              normalizedRow.forEach((colName, colIdx) => {
-                if (
-                  colName === 'codigo' ||
-                  colName === 'código' ||
-                  colName === 'codigo_totvs'
-                )
-                  colMap['codigo'] = colIdx;
-                if (
-                  colName === 'nome' ||
-                  colName === 'desc igreja' ||
-                  colName === 'desc_igreja' ||
-                  colName === 'descricao' ||
-                  colName === 'descrição'
-                )
-                  colMap['desc_igreja'] = colIdx;
-                if (colName === 'endereco' || colName === 'endereço')
-                  colMap['endereco'] = colIdx;
-                if (colName === 'bairro') colMap['bairro'] = colIdx;
-                if (colName === 'municipio' || colName === 'município')
-                  colMap['municipio'] = colIdx;
-                if (colName === 'estado') colMap['estado'] = colIdx;
-                if (colName === 'cep') colMap['cep'] = colIdx;
-                if (
-                  colName === 'tipo imovel' ||
-                  colName === 'tipo_imovel' ||
-                  colName === 'tipo_imóvel'
-                )
-                  colMap['tipo_imovel'] = colIdx;
-                if (
-                  colName === 'endereco www' ||
-                  colName === 'endereço www' ||
-                  colName === 'link_google_maps' ||
-                  colName === 'link'
-                )
-                  colMap['link_google_maps'] = colIdx;
-                if (
-                  colName === 'lat e long' ||
-                  colName === 'lat_long' ||
-                  colName === 'lat_lng' ||
-                  colName === 'latitude' ||
-                  colName === 'longitude'
-                )
-                  colMap['lat_long'] = colIdx;
-              });
-              break;
-            }
-          }
-
-          if (headerIdx === -1) {
-            headerIdx = 0;
-            colMap['codigo'] = 0;
-            colMap['desc_igreja'] = 1;
-            colMap['endereco'] = 2;
-            colMap['bairro'] = 3;
-            colMap['municipio'] = 4;
-            colMap['estado'] = 5;
-            colMap['cep'] = 6;
-          }
-
-          let currentEstadual: any = null;
-          let currentSetorial: any = null;
-          let currentCentral: any = null;
-          let currentRegional: any = null;
-
-          // Iterate row-by-row
-          for (let i = headerIdx + 1; i < rows.length; i++) {
-            const row = rows[i];
-            const isEmptyLine =
-              !Array.isArray(row) ||
-              row.length === 0 ||
-              row.every(
-                (val) =>
-                  val === null ||
-                  val === undefined ||
-                  String(val).trim() === ''
-              );
-
-            if (isEmptyLine) {
-              currentEstadual = null;
-              currentSetorial = null;
-              currentCentral = null;
-              currentRegional = null;
-              continue;
-            }
-
-            const getVal = (key: string): string => {
-              const idx = colMap[key];
-              return idx !== undefined &&
-                row[idx] !== undefined &&
-                row[idx] !== null
-                ? String(row[idx]).trim()
-                : '';
-            };
-
-            const codigoVal = getVal('codigo');
-            if (
-              !codigoVal ||
-              isNaN(Number(codigoVal)) ||
-              codigoVal.toLowerCase().includes('totvs') ||
-              codigoVal.toLowerCase().includes('legend')
-            ) {
-              continue; // Skip invalid rows or legends
-            }
-
-            const desc_igreja = getVal('desc_igreja');
-            const tipo_imovel = getVal('tipo_imovel');
-            const endereco = getVal('endereco');
-            const bairro = getVal('bairro');
-            const municipio = getVal('municipio');
-            const estado = getVal('estado');
-            const cep = getVal('cep');
-            const link_google_maps = getVal('link_google_maps');
-
-            let latitude: number | null = null;
-            let longitude: number | null = null;
-
-            const latLongVal = getVal('lat_long');
-            if (latLongVal) {
-              if (latLongVal.includes(',')) {
-                const parts = latLongVal.split(',');
-                if (parts.length >= 2) {
-                  const latParsed = parseFloat(
-                    parts[0].replace(',', '.').trim()
-                  );
-                  const lngParsed = parseFloat(
-                    parts[1].replace(',', '.').trim()
-                  );
-                  if (!isNaN(latParsed)) latitude = latParsed;
-                  if (!isNaN(lngParsed)) longitude = lngParsed;
-                }
-              } else {
-                const parts = latLongVal.split(/\s+/);
-                if (parts.length >= 2) {
-                  const latParsed = parseFloat(parts[0].trim());
-                  const lngParsed = parseFloat(parts[1].trim());
-                  if (!isNaN(latParsed)) latitude = latParsed;
-                  if (!isNaN(lngParsed)) longitude = lngParsed;
-                }
-              }
-            }
-
-            const parsed: Igreja = {
-              codigo_totvs: codigoVal,
-              desc_igreja,
-              tipo_imovel,
-              endereco,
-              bairro,
-              municipio,
-              estado,
-              cep,
-              link_google_maps,
-              latitude: latitude === 0 ? null : latitude,
-              longitude: longitude === 0 ? null : longitude,
-              status: 'PENDENTE',
-            };
-
-            const descNormalized = desc_igreja.toUpperCase();
-
-            // Stateful vertical hierarchy calculation
-            if (descNormalized.includes('ESTADUAL')) {
-              currentEstadual = parsed;
-              currentSetorial = null;
-              currentCentral = null;
-              currentRegional = null;
-              parsed.codigo_totvs_pai = null;
-            } else if (descNormalized.includes('SETORIAL')) {
-              currentSetorial = parsed;
-              currentCentral = null;
-              currentRegional = null;
-              parsed.codigo_totvs_pai = currentEstadual
-                ? currentEstadual.codigo_totvs
-                : null;
-            } else if (descNormalized.includes('CENTRAL')) {
-              currentCentral = parsed;
-              currentRegional = null;
-              parsed.codigo_totvs_pai = currentSetorial
-                ? currentSetorial.codigo_totvs
-                : currentEstadual
-                ? currentEstadual.codigo_totvs
-                : null;
-            } else if (descNormalized.includes('REGIONAL')) {
-              currentRegional = parsed;
-              parsed.codigo_totvs_pai = currentCentral
-                ? currentCentral.codigo_totvs
-                : currentSetorial
-                ? currentSetorial.codigo_totvs
-                : currentEstadual
-                ? currentEstadual.codigo_totvs
-                : null;
-            } else {
-              parsed.codigo_totvs_pai = currentRegional
-                ? currentRegional.codigo_totvs
-                : currentCentral
-                ? currentCentral.codigo_totvs
-                : currentSetorial
-                ? currentSetorial.codigo_totvs
-                : currentEstadual
-                ? currentEstadual.codigo_totvs
-                : null;
-            }
-
-            allChurches.push(parsed);
-          }
-        }
+        const allChurches = parseWorkbook(workbook);
 
         setParsedChurchesBuffer(allChurches);
-        toast.success(
-          `Sucesso! ${allChurches.length} igrejas foram detectadas e calculadas com sucesso na planilha.`
-        );
+        if (allChurches.length > 0) {
+          toast.success(
+            `Sucesso! ${allChurches.length} igrejas foram detectadas e calculadas com sucesso na planilha.`
+          );
+        } else {
+          toast.error('Nenhuma igreja válida foi encontrada na planilha. Verifique as colunas de Código e Descrição/Endereço.');
+        }
       } catch (err) {
         console.error(err);
-        toast.error('Erro ao ler a planilha. Verifique se o formato está correto.');
+        toast.error('Erro ao ler a planilha. Verifique se o arquivo é um Excel (.xlsx) válido.');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -668,6 +395,7 @@ export default function ColigacoesPage() {
           codigo_totvs: selectedChurch.codigo_totvs,
           codigo_totvs_pai: editParentId,
           desc_igreja: updatedDesc,
+          porte: editPorte,
         }),
       });
       const data = await res.json();
