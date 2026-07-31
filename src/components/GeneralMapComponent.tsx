@@ -37,8 +37,11 @@ export function normalizeTotvs(code: string | number | null | undefined): string
 }
 
 // Strict Church classification by porte based on 'desc_igreja'
-export function getPorte(desc: string): string {
-  const normalized = desc.toUpperCase();
+export function getPorte(desc: string, porteField?: string | null): string {
+  if (porteField && porteField.trim() !== '') {
+    return porteField;
+  }
+  const normalized = (desc || '').toUpperCase();
   if (normalized.includes('ESTADUAL')) return 'ESTADUAL';
   if (normalized.includes('SETORIAL')) return 'SETORIAL';
   if (normalized.includes('CENTRAL')) return 'CENTRAL';
@@ -686,7 +689,7 @@ export default function GeneralMapComponent() {
   };
 
   const renderChurchTooltip = (ig: Igreja) => {
-    const porte = getPorte(ig.desc_igreja);
+    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
     return (
       <Tooltip direction="top" offset={[0, -20]} opacity={0.95} permanent={false}>
         <div className="p-1.5 space-y-1 font-sans text-xs">
@@ -712,7 +715,7 @@ export default function GeneralMapComponent() {
 
   // Helper function to render uniform descriptive Leaflet popups
   const renderChurchPopup = (ig: Igreja) => {
-    const porte = getPorte(ig.desc_igreja);
+    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
     const parentChurch = ig.codigo_totvs_pai
       ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
       : null;
@@ -1043,27 +1046,47 @@ export default function GeneralMapComponent() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Fetch validated churches on mount
-  const fetchValidatedChurches = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchValidatedChurches = async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const res = await fetch('/api/igrejas/validadas');
       const data = await res.json();
       if (data.success) {
         setIgrejas(data.igrejas || []);
       } else {
-        setError(data.error || 'Erro ao carregar igrejas.');
+        if (!silent) {
+          setError(data.error || 'Erro ao carregar igrejas.');
+        }
       }
     } catch (err) {
       console.error('Error fetching validated churches:', err);
-      setError('Erro ao se conectar com o servidor.');
+      if (!silent) {
+        setError('Erro ao se conectar com o servidor.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchValidatedChurches();
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchValidatedChurches(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Compute distinct States/UFs from loaded validated churches for filter dropdown
@@ -1116,7 +1139,7 @@ export default function GeneralMapComponent() {
       }
 
       // 4. Size/Porte filter
-      const porte = getPorte(ig.desc_igreja);
+      const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
       if (selectedPortes.length > 0 && !selectedPortes.includes(porte)) {
         return false;
       }
@@ -1507,7 +1530,7 @@ export default function GeneralMapComponent() {
           </a>
 
           <button
-            onClick={fetchValidatedChurches}
+            onClick={() => fetchValidatedChurches()}
             disabled={loading}
             className="p-1.5 bg-white text-zinc-600 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
             title="Atualizar dados do banco"
@@ -1693,7 +1716,7 @@ export default function GeneralMapComponent() {
             <h3 className="text-base font-bold text-zinc-900">Falha ao buscar dados</h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">{error}</p>
             <button
-              onClick={fetchValidatedChurches}
+              onClick={() => fetchValidatedChurches()}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-md hover:bg-indigo-700 transition-all"
             >
               Tentar Novamente
@@ -1848,7 +1871,7 @@ export default function GeneralMapComponent() {
                 igrejas
                   .filter((ig) => activeChainCodes.includes(ig.codigo_totvs) && ig.latitude && ig.longitude)
                   .map((ig) => {
-                    const porte = getPorte(ig.desc_igreja);
+                    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
                     const isSource = ig.codigo_totvs === connectionPathSource;
                     const icon = getHighlightedMarkerIcon(porte, isSource);
                     const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
@@ -1946,7 +1969,7 @@ export default function GeneralMapComponent() {
                   .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
                   .map((ig) => {
                     const isSedeMundial = ig.desc_igreja.toUpperCase().includes("SEDE MUNDIAL");
-                    const porte = getPorte(ig.desc_igreja);
+                    const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
                     const icon = getMarkerIcon(porte);
 
                     return (

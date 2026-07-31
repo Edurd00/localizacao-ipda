@@ -5,43 +5,8 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 551ms
-Attention: Next.js now collects completely anonymous telemetry regarding usage.
-This information is used to shape Next.js' roadmap and prioritize features.
-You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-https://nextjs.org/telemetry
-
+✓ Ready in 552ms
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 
 ○ Compiling /login ...
- GET /login 200 in 5.0s (next.js: 4.6s, application-code: 391ms)
- POST /api/auth/login 200 in 564ms (next.js: 527ms, application-code: 36ms)
- GET /validacao 200 in 2.1s (next.js: 1898ms, proxy.ts: 15ms, application-code: 144ms)
- GET /api/igrejas?status=PENDENTE 200 in 245ms (next.js: 234ms, application-code: 11ms)
- GET /login 200 in 70ms (next.js: 5ms, application-code: 65ms)
- POST /api/auth/login 200 in 11ms (next.js: 4ms, application-code: 7ms)
- GET /validacao 200 in 98ms (next.js: 5ms, proxy.ts: 6ms, application-code: 87ms)
- GET /api/igrejas?status=PENDENTE 200 in 10ms (next.js: 4ms, application-code: 6ms)
- GET /validacao 200 in 71ms (next.js: 5ms, proxy.ts: 6ms, application-code: 60ms)
- GET /api/igrejas?status=PENDENTE 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /login 200 in 68ms (next.js: 4ms, application-code: 64ms)
- POST /api/auth/login 200 in 9ms (next.js: 2ms, application-code: 6ms)
- GET /validacao 200 in 65ms (next.js: 4ms, proxy.ts: 5ms, application-code: 56ms)
- GET /api/igrejas?status=PENDENTE 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /validacao 200 in 81ms (next.js: 6ms, proxy.ts: 6ms, application-code: 68ms)
- GET /api/igrejas?status=PENDENTE 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/igrejas? 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /login 200 in 475ms (next.js: 109ms, application-code: 367ms)
- POST /api/auth/login 200 in 23ms (next.js: 7ms, application-code: 16ms)
- GET /validacao 200 in 92ms (next.js: 14ms, proxy.ts: 9ms, application-code: 69ms)
- GET /api/igrejas?status=PENDENTE 200 in 18ms (next.js: 7ms, application-code: 11ms)
- GET /validacao 200 in 94ms (next.js: 6ms, proxy.ts: 9ms, application-code: 80ms)
- GET /api/igrejas?status=PENDENTE 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/igrejas? 200 in 10ms (next.js: 4ms, application-code: 6ms)
- GET /login 200 in 668ms (next.js: 94ms, application-code: 574ms)
- POST /api/auth/login 200 in 57ms (next.js: 7ms, application-code: 50ms)
- GET /validacao 200 in 277ms (next.js: 20ms, proxy.ts: 38ms, application-code: 218ms)
- GET /api/igrejas?status=PENDENTE 200 in 13ms (next.js: 5ms, application-code: 8ms)
- GET /validacao 200 in 93ms (next.js: 5ms, proxy.ts: 8ms, application-code: 80ms)
- GET /api/igrejas?status=PENDENTE 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/igrejas? 200 in 20ms (next.js: 7ms, application-code: 13ms)
+ GET /login 200 in 4.5s (next.js: 4.2s, application-code: 306ms)
