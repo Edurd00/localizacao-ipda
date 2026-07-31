@@ -397,6 +397,11 @@ function MapBoundsController({
 
     // 3. If Connection Mesh (Malha de Conexão) is active
     if (connectionPathSource && activeChainCodes.length > 0) {
+      const sourceChurch = igrejas.find((ig) => ig.codigo_totvs === connectionPathSource);
+      const sourcePorte = sourceChurch ? (sourceChurch.porte || getPorte(sourceChurch.desc_igreja, sourceChurch.porte)) : 'LOCAL';
+      const isLowLevel = sourcePorte === 'LOCAL' || sourcePorte === 'CASA DE ORAÇÃO' || sourcePorte === 'ALDEIA INDIGENA';
+      const selectedPadding = isLowLevel ? [80, 80] : [60, 60];
+
       const meshCoords: [number, number][] = [];
       activeChainCodes.forEach((totvs) => {
         const found = igrejas.find((ig) => ig.codigo_totvs === totvs);
@@ -409,7 +414,8 @@ function MapBoundsController({
         // Enforce soft fitBounds centering the entire active family tree teia
         const boundsObj = L.latLngBounds(meshCoords);
         map.fitBounds(boundsObj, {
-          padding: [60, 60],
+          padding: selectedPadding as any,
+          maxZoom: 14,
           animate: true,
           duration: 0.8,
         });
@@ -1245,53 +1251,86 @@ export default function GeneralMapComponent() {
       const chainCodes = new Set<string>();
       const pathSegments: Array<[ [number, number], [number, number] ]> = [];
 
-      // Find the absolute root ancestor for the clicked church by climbing up
-      let rootChurch: Igreja = startChurch;
-      const climbVisited = new Set<string>();
-      while (rootChurch.codigo_totvs_pai) {
-        if (climbVisited.has(rootChurch.codigo_totvs)) {
+      const startPorte = startChurch.porte || getPorte(startChurch.desc_igreja, startChurch.porte);
+
+      // A) Climb up to the root (ESTADUAL) to collect all upstream/ancestor nodes
+      const ancestryChain = [startChurch];
+      const climbVisited = new Set();
+      let currentUp = startChurch;
+      while (currentUp.codigo_totvs_pai) {
+        if (climbVisited.has(currentUp.codigo_totvs)) {
           break; // Avoid cycle
         }
-        climbVisited.add(rootChurch.codigo_totvs);
-        const parent = igrejas.find((ig) => ig.codigo_totvs === rootChurch.codigo_totvs_pai);
+        climbVisited.add(currentUp.codigo_totvs);
+        const parent = igrejas.find((ig) => ig.codigo_totvs === currentUp.codigo_totvs_pai);
         if (!parent) {
           break;
         }
-        rootChurch = parent;
+        ancestryChain.push(parent);
+        currentUp = parent;
       }
 
-      // Now, we have rootChurch as the root of the exclusive tree (Nível 0).
-      // Let's recursively gather all descendants of this rootChurch
-      chainCodes.add(rootChurch.codigo_totvs);
-      const queue = [rootChurch.codigo_totvs];
-      const visitedDescendants = new Set<string>([rootChurch.codigo_totvs]);
+      // Root church is the last element of the ancestry chain
+      const rootChurch = ancestryChain[ancestryChain.length - 1];
 
-      while (queue.length > 0) {
-        const currentCode = queue.shift()!;
-        const directChildren = igrejas.filter(
-          (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
-        );
-        for (const child of directChildren) {
-          visitedDescendants.add(child.codigo_totvs);
-          chainCodes.add(child.codigo_totvs);
-          queue.push(child.codigo_totvs);
+      if (startPorte === 'LOCAL' || startPorte === 'CASA DE ORAÇÃO' || startPorte === 'ALDEIA INDIGENA') {
+        // Rule 1: LOW-LEVEL PORTE - ONLY DIRECT ANCESTRY PATH (UPSTREAM)
+        ancestryChain.forEach((ig) => chainCodes.add(ig.codigo_totvs));
+      } else if (startPorte === 'REGIONAL' || startPorte === 'CENTRAL' || startPorte === 'SETORIAL') {
+        // Rule 2: INTERMEDIATE PORTE - ANCESTRY (UPSTREAM) + DIRECT DESCENDANTS SUB-TREE (DOWNSTREAM)
+        // 1. Add full ancestry path to root
+        ancestryChain.forEach((ig) => chainCodes.add(ig.codigo_totvs));
+
+        // 2. Add sub-tree of descendants starting from the selected intermediate church (startChurch)
+        const queue = [startChurch.codigo_totvs];
+        const visitedDescendants = new Set([startChurch.codigo_totvs]);
+
+        while (queue.length > 0) {
+          const currentCode = queue.shift();
+          const directChildren = igrejas.filter(
+            (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
+          );
+          for (const child of directChildren) {
+            visitedDescendants.add(child.codigo_totvs);
+            chainCodes.add(child.codigo_totvs);
+            queue.push(child.codigo_totvs);
+          }
+        }
+      } else {
+        // Rule 3: ESTADUAL (or ROOT) PORTE - FULL commands network downstream under its command
+        chainCodes.add(rootChurch.codigo_totvs);
+        const queue = [rootChurch.codigo_totvs];
+        const visitedDescendants = new Set([rootChurch.codigo_totvs]);
+
+        while (queue.length > 0) {
+          const currentCode = queue.shift();
+          const directChildren = igrejas.filter(
+            (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
+          );
+          for (const child of directChildren) {
+            visitedDescendants.add(child.codigo_totvs);
+            chainCodes.add(child.codigo_totvs);
+            queue.push(child.codigo_totvs);
+          }
         }
       }
 
-      // B) For each church in the processing set, trace a segment line ONLY to its direct parent
+      // B) For each church in the processing set, trace a segment line ONLY to its direct parent if the parent is also in chainCodes
       chainCodes.forEach((codigoTotvs) => {
         const daughter = igrejas.find((ig) => ig.codigo_totvs === codigoTotvs);
 
         if (daughter && daughter.codigo_totvs_pai) {
-          const parent = igrejas.find((ig) => ig.codigo_totvs === daughter.codigo_totvs_pai);
+          if (chainCodes.has(daughter.codigo_totvs_pai)) {
+            const parent = igrejas.find((ig) => ig.codigo_totvs === daughter.codigo_totvs_pai);
 
-          if (daughter.latitude && daughter.longitude && parent?.latitude && parent?.longitude) {
-            pathSegments.push([
-              [Number(daughter.latitude), Number(daughter.longitude)],
-              [Number(parent.latitude), Number(parent.longitude)]
-            ]);
-            // Ensure parent is also included in active chain highlights
-            chainCodes.add(parent.codigo_totvs);
+            if (daughter.latitude && daughter.longitude && parent?.latitude && parent?.longitude) {
+              pathSegments.push([
+                [Number(daughter.latitude), Number(daughter.longitude)],
+                [Number(parent.latitude), Number(parent.longitude)]
+              ]);
+              // Ensure parent is also included in active chain highlights
+              chainCodes.add(parent.codigo_totvs);
+            }
           }
         }
       });
