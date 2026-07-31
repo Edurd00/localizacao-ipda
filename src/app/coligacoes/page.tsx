@@ -395,6 +395,7 @@ export default function ColigacoesPage() {
           codigo_totvs: selectedChurch.codigo_totvs,
           codigo_totvs_pai: editParentId,
           desc_igreja: updatedDesc,
+          porte: editPorte,
         }),
       });
       const data = await res.json();

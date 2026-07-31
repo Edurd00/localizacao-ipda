@@ -18,29 +18,29 @@ export function normalizeTotvsCode(val: unknown): string {
  */
 export function getPorte(porteVal?: string, descVal?: string): string {
   const pNorm = (porteVal || '').toUpperCase().trim();
+  // 1st priority: explicit porte column value
   if (['ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL', 'LOCAL', 'CASA DE ORAÇÃO', 'ALDEIA INDIGENA'].includes(pNorm)) {
     return pNorm;
   }
-  const descNorm = (descVal || '').toUpperCase();
-  if (descNorm.includes('ESTADUAL')) return 'ESTADUAL';
-  if (descNorm.includes('SETORIAL') || descNorm.includes('SECTORIAL')) return 'SETORIAL';
-  if (descNorm.includes('CENTRAL')) return 'CENTRAL';
-  if (descNorm.includes('REGIONAL')) return 'REGIONAL';
-  if (
-    descNorm.includes('CASA DE ORAÇÃO') ||
-    descNorm.includes('CASA DE ORACOA') ||
-    descNorm.includes('ORAÇÃO') ||
-    descNorm.includes('ORACAO')
-  ) {
-    return 'CASA DE ORAÇÃO';
-  }
-  if (
-    descNorm.includes('ALDEIA') ||
-    descNorm.includes('INDIGENA') ||
-    descNorm.includes('INDÍGENA')
-  ) {
-    return 'ALDEIA INDIGENA';
-  }
+
+  const descNorm = (descVal || '').toUpperCase().trim();
+
+  // 2nd priority: infer by NAME PREFIX (startsWith) — most precise signal
+  if (descNorm.startsWith('ESTADUAL')) return 'ESTADUAL';
+  if (descNorm.startsWith('SETORIAL') || descNorm.startsWith('SECTORIAL')) return 'SETORIAL';
+  if (descNorm.startsWith('CENTRAL')) return 'CENTRAL';
+  if (descNorm.startsWith('REGIONAL')) return 'REGIONAL';
+  if (descNorm.startsWith('ALDEIA INDIGENA') || descNorm.startsWith('ALDEIA INDÍGENA') || descNorm.startsWith('ALDEIA')) return 'ALDEIA INDIGENA';
+  if (descNorm.startsWith('CASA DE ORAÇÃO') || descNorm.startsWith('CASA DE ORACAO')) return 'CASA DE ORAÇÃO';
+
+  // 3rd priority: loose includes fallback (porte column had partial text)
+  if (pNorm.includes('ESTADUAL')) return 'ESTADUAL';
+  if (pNorm.includes('SETORIAL') || pNorm.includes('SECTORIAL')) return 'SETORIAL';
+  if (pNorm.includes('CENTRAL')) return 'CENTRAL';
+  if (pNorm.includes('REGIONAL')) return 'REGIONAL';
+  if (pNorm.includes('CASA DE ORAÇÃO') || pNorm.includes('ORACAO')) return 'CASA DE ORAÇÃO';
+  if (pNorm.includes('ALDEIA') || pNorm.includes('INDIGENA') || pNorm.includes('INDÍGENA')) return 'ALDEIA INDIGENA';
+
   return 'LOCAL';
 }
 
@@ -316,6 +316,7 @@ export function parseWorkbook(workbook: XLSX.WorkBook): Igreja[] {
         latitude: latitude === 0 ? null : latitude,
         longitude: longitude === 0 ? null : longitude,
         status: 'PENDENTE',
+        porte,
       };
 
       // Hierarchical vertical tree calculation rules:
