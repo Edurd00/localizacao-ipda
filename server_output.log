@@ -5,12 +5,4 @@
 ▲ Next.js 16.2.11
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 334ms
-API Error in GET /api/organizacao: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
-    at i (.next/server/chunks/[root-of-the-server]__1hlvctf._.js:1:2144)
-    at n (.next/server/chunks/[root-of-the-server]__1hlvctf._.js:20:2366)
-    at s (.next/server/chunks/[root-of-the-server]__12afim5._.js:63:2303)
-API Error in GET /api/organizacao: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
-    at i (.next/server/chunks/[root-of-the-server]__1hlvctf._.js:1:2144)
-    at s (.next/server/chunks/[root-of-the-server]__1hlvctf._.js:20:1370)
-    at s (.next/server/chunks/[root-of-the-server]__12afim5._.js:63:2545)
+✓ Ready in 203ms
