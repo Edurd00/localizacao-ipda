@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 
 export interface Igreja {
+  id?: string;
   codigo_totvs: string;
   desc_igreja: string;
   tipo_imovel: string;
@@ -17,6 +18,10 @@ export interface Igreja {
   codigo_totvs_pai?: string | null;
   porte?: string | null;
   updated_at?: string;
+  created_at?: string;
+  validado_por?: string | null;
+  validado_em?: string | null;
+  observacoes?: string | null;
 }
 
 // Check database URL in env
@@ -86,7 +91,8 @@ async function ensurePostgresTable() {
     try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS igrejas (
-          codigo_totvs VARCHAR(100) PRIMARY KEY,
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          codigo_totvs VARCHAR(100) UNIQUE NOT NULL,
           desc_igreja VARCHAR(255) NOT NULL,
           tipo_imovel VARCHAR(100),
           endereco TEXT,
@@ -97,23 +103,26 @@ async function ensurePostgresTable() {
           link_google_maps TEXT,
           latitude DOUBLE PRECISION,
           longitude DOUBLE PRECISION,
-          status VARCHAR(20) DEFAULT 'PENDENTE',
+          status VARCHAR(50) DEFAULT 'PENDENTE',
+          validado_por VARCHAR(100),
+          validado_em TIMESTAMP,
           usuario_validador VARCHAR(100),
+          observacoes TEXT,
           codigo_totvs_pai VARCHAR(100),
           porte VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      // Run alter table just in case the table exists but lacks columns
+      // Run alter table/checks just in case the table exists but lacks columns
       try {
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS codigo_totvs_pai VARCHAR(100);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS validado_por VARCHAR(100);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS validado_em TIMESTAMP;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS observacoes TEXT;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
       } catch (alterErr) {
-        console.warn('Alter table column check failed (might be expected):', alterErr);
-      }
-      try {
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS porte VARCHAR(50);`);
-      } catch (alterErr) {
-        console.warn('Alter table porte column check failed (might be expected):', alterErr);
+        console.warn('Alter table columns check failed (might be expected):', alterErr);
       }
 
       // ---------------------------------------------------------------
@@ -164,6 +173,7 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
       query += ' ORDER BY desc_igreja ASC';
       const res = await pool.query(query, params);
       return res.rows.map((row) => ({
+        id: row.id,
         codigo_totvs: row.codigo_totvs,
         desc_igreja: row.desc_igreja,
         tipo_imovel: row.tipo_imovel,
@@ -180,6 +190,10 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
         codigo_totvs_pai: row.codigo_totvs_pai,
         porte: row.porte,
         updated_at: row.updated_at,
+        created_at: row.created_at,
+        validado_por: row.validado_por,
+        validado_em: row.validado_em,
+        observacoes: row.observacoes,
       }));
     } catch (err) {
       console.error('Postgres error in getIgrejas:', err);
