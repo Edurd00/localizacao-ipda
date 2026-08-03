@@ -1557,15 +1557,6 @@ export default function GeneralMapComponent() {
 
         {/* Right Section: Actions & Access Buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 border border-zinc-200 dark:border-slate-700 text-zinc-600 dark:text-zinc-300 rounded-xl transition-all shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
-            title="Alternar Tema"
-          >
-            {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-500" />}
-          </button>
-
           {/* Collapsible Popover Filters Trigger Button */}
           <button
             onClick={() => {
@@ -1584,7 +1575,7 @@ export default function GeneralMapComponent() {
 
           <a
             href="/organizacao"
-            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 min-h-[44px]"
             title="Ver Estrutura Organizacional"
           >
             <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -1592,17 +1583,8 @@ export default function GeneralMapComponent() {
           </a>
 
           <a
-            href="/coligacoes"
-            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
-            title="Ir para Gestão de Coligações"
-          >
-            <GitBranch className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-xs font-semibold hidden sm:inline">🌳 Coligações</span>
-          </a>
-
-          <a
             href="/validacao"
-            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm"
+            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
             title="Acessar Área Restrita"
           >
             <Lock className="h-3.5 w-3.5 text-white" />
@@ -1612,7 +1594,7 @@ export default function GeneralMapComponent() {
           <button
             onClick={() => fetchValidatedChurches()}
             disabled={loading}
-            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50 min-h-[44px]"
             title="Atualizar dados do banco"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />

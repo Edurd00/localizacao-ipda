@@ -18,6 +18,51 @@ import type { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
 import { useTheme } from '@/lib/theme';
 
+// Region states schematic vector layout for the interactive mini map
+const REGION_STATES_LAYOUT: Record<string, { id: string; name: string; x: number; y: number; color: string }[]> = {
+  'Norte': [
+    { id: 'RR', name: 'Roraima', x: 110, y: 30, color: '#FBCFE8' },
+    { id: 'AM', name: 'Amazonas', x: 60, y: 90, color: '#C084FC' },
+    { id: 'AC', name: 'Acre', x: 20, y: 150, color: '#818CF8' },
+    { id: 'RO', name: 'Rondônia', x: 90, y: 170, color: '#60A5FA' },
+    { id: 'PA', name: 'Pará', x: 200, y: 90, color: '#34D399' },
+    { id: 'AP', name: 'Amapá', x: 220, y: 30, color: '#A7F3D0' },
+    { id: 'TO', name: 'Tocantins', x: 220, y: 170, color: '#FBBF24' },
+  ],
+  'Nordeste': [
+    { id: 'MA', name: 'Maranhão', x: 40, y: 60, color: '#FBCFE8' },
+    { id: 'PI', name: 'Piauí', x: 90, y: 80, color: '#C084FC' },
+    { id: 'CE', name: 'Ceará', x: 140, y: 50, color: '#818CF8' },
+    { id: 'RN', name: 'Rio Grande do Norte', x: 190, y: 50, color: '#60A5FA' },
+    { id: 'PB', name: 'Paraíba', x: 200, y: 90, color: '#34D399' },
+    { id: 'PE', name: 'Pernambuco', x: 160, y: 120, color: '#A7F3D0' },
+    { id: 'AL', name: 'Alagoas', x: 210, y: 140, color: '#FBBF24' },
+    { id: 'SE', name: 'Sergipe', x: 200, y: 170, color: '#F87171' },
+    { id: 'BA', name: 'Bahia', x: 110, y: 170, color: '#F472B6' },
+  ],
+  'Centro-Oeste': [
+    { id: 'MT', name: 'Mato Grosso', x: 50, y: 60, color: '#FBCFE8' },
+    { id: 'GO', name: 'Goiás', x: 150, y: 90, color: '#C084FC' },
+    { id: 'DF', name: 'Distrito Federal', x: 210, y: 90, color: '#818CF8' },
+    { id: 'MS', name: 'Mato Grosso do Sul', x: 90, y: 170, color: '#60A5FA' },
+  ],
+  'Sudeste - SP': [
+    { id: 'SP', name: 'São Paulo', x: 140, y: 110, color: '#FBBF24' },
+  ],
+  'Sudeste - MG': [
+    { id: 'MG', name: 'Minas Gerais', x: 140, y: 110, color: '#F472B6' },
+  ],
+  'Sudeste - ES e RJ': [
+    { id: 'ES', name: 'Espírito Santo', x: 170, y: 70, color: '#34D399' },
+    { id: 'RJ', name: 'Rio de Janeiro', x: 110, y: 140, color: '#60A5FA' },
+  ],
+  'Sul': [
+    { id: 'PR', name: 'Paraná', x: 140, y: 50, color: '#FBCFE8' },
+    { id: 'SC', name: 'Santa Catarina', x: 140, y: 110, color: '#C084FC' },
+    { id: 'RS', name: 'Rio Grande do Sul', x: 140, y: 170, color: '#818CF8' },
+  ],
+};
+
 // Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
   ESTADUAL: { name: 'ESTADUAL', color: '#8CAEE0', label: 'Estadual (Azul Claro)' },
@@ -356,102 +401,201 @@ export default function OrganizacaoPage() {
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Selector Panel */}
         <section className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5 transition-colors duration-200">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-100 dark:border-slate-800 pb-4">
-            <div>
-              <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wide flex items-center gap-1.5">
-                <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                Estrutura Hierárquica da Igreja
-              </h2>
-              <p className="text-xs text-zinc-500 dark:text-slate-400 font-medium">
-                Selecione a Região de Jurisdição e o Estado Físico para filtrar igrejas, inclusive de divisa.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              {/* Selector 1: Campo / Jurisdição */}
-              <div className="flex-1 sm:flex-none">
-                <label className="text-[10px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jurisdição / Campo</label>
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => {
-                    setSelectedRegion(e.target.value);
-                    setExpandedNodes(new Set());
-                  }}
-                  className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-48 transition-colors duration-200"
-                >
-                  {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
-                    <option key={reg} value={reg}>
-                      {reg}
-                    </option>
-                  ))}
-                </select>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Left 7 cols: Controls & Information */}
+            <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
+              <div className="border-b border-zinc-100 dark:border-slate-800 pb-4">
+                <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wide flex items-center gap-1.5">
+                  <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  Estrutura Hierárquica da Igreja
+                </h2>
+                <p className="text-xs text-zinc-500 dark:text-slate-400 font-medium leading-relaxed">
+                  Selecione a Região de Jurisdição para visualizar a teia de coligações. Use o Mini Mapa à direita para filtrar e focar rapidamente em um Estado Físico (UF) específico.
+                </p>
               </div>
 
-              {/* Selector 2: Physical State UF */}
-              <div className="flex-1 sm:flex-none">
-                <label className="text-[10px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Estado Físico (UF)</label>
-                {loadingStates ? (
-                  <div className="flex items-center space-x-2 text-zinc-500 text-xs font-semibold py-2">
-                    <RefreshCw className="h-4 w-4 animate-spin text-indigo-600 dark:text-indigo-400" />
-                    <span>Carregando...</span>
-                  </div>
-                ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Selector 1: Campo / Jurisdição */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jurisdição / Campo</label>
                   <select
-                    value={selectedStateFilter}
+                    value={selectedRegion}
                     onChange={(e) => {
-                      setSelectedStateFilter(e.target.value);
+                      setSelectedRegion(e.target.value);
+                      setSelectedStateFilter('ALL');
                       setExpandedNodes(new Set());
                     }}
-                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-44 transition-colors duration-200"
+                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
                   >
-                    <option value="ALL">Todos os Estados</option>
-                    {states.map((st) => (
-                      <option key={st} value={st}>
-                        {st}
+                    {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
+                      <option key={reg} value={reg}>
+                        {reg}
                       </option>
                     ))}
                   </select>
-                )}
+                </div>
+
+                {/* Selector 2: Physical State UF */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Estado Físico (UF)</label>
+                  {loadingStates ? (
+                    <div className="flex items-center space-x-2 text-zinc-500 text-xs font-semibold py-2">
+                      <RefreshCw className="h-4 w-4 animate-spin text-indigo-600 dark:text-indigo-400" />
+                      <span>Carregando...</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedStateFilter}
+                      onChange={(e) => {
+                        setSelectedStateFilter(e.target.value);
+                        setExpandedNodes(new Set());
+                      }}
+                      className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                    >
+                      <option value="ALL">Todos os Estados</option>
+                      {states.map((st) => (
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {!loadingChurches && (
+                <div className="relative pt-2">
+                  <Search className="absolute left-3.5 top-5 h-4 w-4 text-zinc-400 dark:text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar por Código TOTVS, nome ou município..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      if (e.target.value.trim().length > 1) {
+                        const query = e.target.value.trim().toLowerCase();
+                        const matched = churches.filter(
+                          (ig) =>
+                            ig.codigo_totvs.toLowerCase().includes(query) ||
+                            ig.desc_igreja.toLowerCase().includes(query) ||
+                            (ig.municipio || '').toLowerCase().includes(query)
+                        );
+                        const newSet = new Set(expandedNodes);
+                        matched.forEach((m) => {
+                          let current = m;
+                          while (current && current.codigo_totvs_pai) {
+                            newSet.add(current.codigo_totvs_pai);
+                            const p = churches.find(
+                              (ig) => ig.codigo_totvs === current.codigo_totvs_pai
+                            );
+                            current = p || (null as any);
+                          }
+                        });
+                        setExpandedNodes(newSet);
+                      }
+                    }}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-750 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Right 5 cols: Interactive SVG Mini-Map of Jurisdictions */}
+            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[220px]">
+              <div className="text-center mb-2.5">
+                <span className="text-[10px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider block">
+                  🗺️ Mini Mapa de Jurisdição
+                </span>
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                  {selectedRegion}
+                </span>
+              </div>
+
+              {/* Schematic SVG Map */}
+              <div className="relative w-full max-w-[280px] h-[190px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-2 flex items-center justify-center">
+                <svg viewBox="0 0 280 200" className="w-full h-full select-none">
+                  {/* Subtle connection lines between states inside the active region */}
+                  {REGION_STATES_LAYOUT[selectedRegion]?.map((st, idx, arr) => {
+                    if (idx === 0) return null;
+                    const prev = arr[idx - 1];
+                    return (
+                      <line
+                        key={`line-${idx}`}
+                        x1={prev.x}
+                        y1={prev.y}
+                        x2={st.x}
+                        y2={st.y}
+                        stroke="#6366F1"
+                        strokeWidth="1.5"
+                        strokeDasharray="4 4"
+                        opacity="0.3"
+                      />
+                    );
+                  })}
+
+                  {/* Interactive state circles/shapes representing geographic directions */}
+                  {REGION_STATES_LAYOUT[selectedRegion]?.map((st) => {
+                    const active = selectedStateFilter === st.id;
+                    return (
+                      <g
+                        key={st.id}
+                        className="cursor-pointer group"
+                        onClick={() => {
+                          if (selectedStateFilter === st.id) {
+                            setSelectedStateFilter('ALL'); // Reset if clicked again
+                          } else {
+                            setSelectedStateFilter(st.id);
+                          }
+                          setExpandedNodes(new Set());
+                        }}
+                      >
+                        {/* Interactive glow ring */}
+                        <circle
+                          cx={st.x}
+                          cy={st.y}
+                          r={active ? "22" : "18"}
+                          fill="transparent"
+                          stroke={active ? "#6366F1" : "transparent"}
+                          strokeWidth="2"
+                          className="transition-all duration-300 group-hover:stroke-indigo-400/50"
+                        />
+                        {/* State base background */}
+                        <circle
+                          cx={st.x}
+                          cy={st.y}
+                          r="16"
+                          fill={st.color}
+                          stroke={active ? "#4338CA" : "#FFFFFF"}
+                          strokeWidth="2"
+                          className="transition-all duration-300 group-hover:scale-110 shadow-md"
+                          style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.15))" }}
+                        />
+                        {/* State code label */}
+                        <text
+                          x={st.x}
+                          y={st.y + 4}
+                          textAnchor="middle"
+                          fill="#1E293B"
+                          fontSize="11"
+                          fontWeight="black"
+                          className="pointer-events-none select-none"
+                        >
+                          {st.id}
+                        </text>
+                        {/* Hover Tooltip name bubble */}
+                        <title>{`${st.name} (UF: ${st.id})`}</title>
+                      </g>
+                    );
+                  })}
+                </svg>
+
+                {/* Micro instructions overlay */}
+                <div className="absolute bottom-1 right-2 text-[9px] text-zinc-400 dark:text-slate-500 font-semibold pointer-events-none">
+                  Toque na UF para filtrar
+                </div>
               </div>
             </div>
           </div>
-
-          {!loadingChurches && (
-            <div className="relative">
-              <Search className="absolute left-3.5 top-3 h-4 w-4 text-zinc-400 dark:text-slate-500" />
-              <input
-                type="text"
-                placeholder="Pesquisar por Código TOTVS, nome ou município para expandir..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  if (e.target.value.trim().length > 1) {
-                    // Automatically expand matching nodes & their parents to keep them visible
-                    const query = e.target.value.trim().toLowerCase();
-                    const matched = churches.filter(
-                      (ig) =>
-                        ig.codigo_totvs.toLowerCase().includes(query) ||
-                        ig.desc_igreja.toLowerCase().includes(query) ||
-                        (ig.municipio || '').toLowerCase().includes(query)
-                    );
-                    const newSet = new Set(expandedNodes);
-                    matched.forEach((m) => {
-                      let current = m;
-                      while (current && current.codigo_totvs_pai) {
-                        newSet.add(current.codigo_totvs_pai);
-                        const p = churches.find(
-                          (ig) => ig.codigo_totvs === current.codigo_totvs_pai
-                        );
-                        current = p || (null as any);
-                      }
-                    });
-                    setExpandedNodes(newSet);
-                  }
-                }}
-                className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-750 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              />
-            </div>
-          )}
 
           {searchTerm.trim() && filteredChurchesList.length > 0 && (
             <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-900 rounded-xl space-y-2">
