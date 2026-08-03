@@ -26,8 +26,10 @@ export async function GET(request: Request) {
       );
     }
 
-    // Return churches for specified state/UF (excluding DESATIVADO)
-    const allChurches = await getIgrejas({ estado });
+    // Return ALL active churches for hierarchical tree structure matching
+    // (excluding DESATIVADO) to support divisa/cross-state hierarchy.
+    // When estado is 'ALL' or a specific jurisdiction region, we return all churches to map cross-border links.
+    const allChurches = await getIgrejas();
     const churches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
 
     return new NextResponse(

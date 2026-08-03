@@ -18,9 +18,12 @@ import {
   SlidersHorizontal,
   GitBranch,
   Lock,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
+import { useTheme } from '@/lib/theme';
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -475,6 +478,7 @@ export interface RouteMeta {
 }
 
 export default function GeneralMapComponent() {
+  const { theme, toggleTheme } = useTheme();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1509,7 +1513,7 @@ export default function GeneralMapComponent() {
       <Toaster position="top-right" richColors closeButton />
 
       {/* Modern Compact Floating Header Overlay (Floating Pill Bar centered with left/right free space) */}
-      <header className="absolute top-2 left-1/2 -translate-x-1/2 w-[95%] md:w-[90%] max-w-6xl mx-auto mt-2 md:mt-3 z-[1020] bg-white/85 backdrop-blur-md border border-zinc-200 shadow-xl rounded-2xl md:rounded-full p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
+      <header className="absolute top-2 left-1/2 -translate-x-1/2 w-[95%] md:w-[90%] max-w-6xl mx-auto mt-2 md:mt-3 z-[1020] bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-zinc-200 dark:border-slate-800 shadow-xl rounded-2xl md:rounded-full p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
         {/* Left Section: Logo & Counter */}
         <div className="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
           <div className="flex items-center space-x-2">
@@ -1519,32 +1523,32 @@ export default function GeneralMapComponent() {
               className="h-10 w-auto object-contain"
             />
             <div>
-              <h1 className="text-xs font-black text-zinc-950 tracking-tight leading-tight">
+              <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight">
                 GEO-VALIG IPDA
               </h1>
-              <p className="text-[9px] text-zinc-500 font-semibold">MAPA DE VALIDAÇÃO</p>
+              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">MAPA DE VALIDAÇÃO</p>
             </div>
           </div>
-          <span className="text-[10px] bg-indigo-50 border border-indigo-150 text-indigo-700 font-bold px-2 py-0.5 rounded-full">
+          <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 border border-indigo-150 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full">
             {filteredIgrejas.length} no mapa
           </span>
         </div>
 
         {/* Center Section: Compact Quick Search */}
         <div className="relative w-full md:max-w-md flex-1">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Buscar por código TOTVS, nome, rua ou município..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white font-medium transition-all"
+            className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-all"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 p-0.5"
+              className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -1553,6 +1557,15 @@ export default function GeneralMapComponent() {
 
         {/* Right Section: Actions & Access Buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 border border-zinc-200 dark:border-slate-700 text-zinc-600 dark:text-zinc-300 rounded-xl transition-all shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            title="Alternar Tema"
+          >
+            {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-500" />}
+          </button>
+
           {/* Collapsible Popover Filters Trigger Button */}
           <button
             onClick={() => {
@@ -1562,7 +1575,7 @@ export default function GeneralMapComponent() {
             className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
               showFilters
                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                : 'bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-50'
             }`}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -1571,19 +1584,19 @@ export default function GeneralMapComponent() {
 
           <a
             href="/organizacao"
-            className="p-1.5 bg-white text-zinc-650 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
             title="Ver Estrutura Organizacional"
           >
-            <Building2 className="h-3.5 w-3.5 text-indigo-600" />
+            <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
             <span className="text-xs font-semibold hidden sm:inline">🏛️ Organização</span>
           </a>
 
           <a
             href="/coligacoes"
-            className="p-1.5 bg-white text-zinc-650 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
             title="Ir para Gestão de Coligações"
           >
-            <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+            <GitBranch className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
             <span className="text-xs font-semibold hidden sm:inline">🌳 Coligações</span>
           </a>
 
@@ -1599,7 +1612,7 @@ export default function GeneralMapComponent() {
           <button
             onClick={() => fetchValidatedChurches()}
             disabled={loading}
-            className="p-1.5 bg-white text-zinc-600 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
             title="Atualizar dados do banco"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -1615,16 +1628,16 @@ export default function GeneralMapComponent() {
             className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
             onClick={() => setShowFilters(false)}
           />
-          <section className="fixed bottom-0 left-0 right-0 md:absolute md:top-20 md:right-4 md:bottom-auto md:left-auto w-full md:max-w-sm rounded-t-3xl md:rounded-2xl bg-white md:bg-white/95 backdrop-blur-md border-t md:border border-zinc-200 shadow-2xl md:shadow-xl p-5 md:p-4 space-y-4 z-[1030] md:z-[1015] max-h-[85vh] overflow-y-auto md:overflow-visible flex flex-col transition-all duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 duration-200">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-              <span className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
+          <section className="fixed bottom-0 left-0 right-0 md:absolute md:top-20 md:right-4 md:bottom-auto md:left-auto w-full md:max-w-sm rounded-t-3xl md:rounded-2xl bg-white md:bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t md:border border-zinc-200 dark:border-slate-800 shadow-2xl md:shadow-xl p-5 md:p-4 space-y-4 z-[1030] md:z-[1015] max-h-[85vh] overflow-y-auto md:overflow-visible flex flex-col transition-all duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-2">
+              <span className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                 🎛️ Painel de Filtros Rápidos
               </span>
               <button
                 onClick={() => setShowFilters(false)}
-                className="text-zinc-400 hover:text-zinc-600 p-2.5 hover:bg-zinc-100 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="text-zinc-400 hover:text-zinc-650 p-2.5 hover:bg-zinc-100 dark:hover:bg-slate-800 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 text-zinc-500 dark:text-slate-400" />
               </button>
             </div>
 
@@ -1633,14 +1646,14 @@ export default function GeneralMapComponent() {
             <div className="space-y-3">
               {/* Região Geográfica */}
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                  <Layers className="h-3 w-3 text-zinc-400" />
+                <label className="text-[9px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <Layers className="h-3 w-3 text-zinc-400 dark:text-slate-500" />
                   Região
                 </label>
                 <select
                   value={selectedRegionGeo}
                   onChange={(e) => handleRegionGeoChange(e.target.value)}
-                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                  className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
                 >
                   <option value="ALL">Todas as Regiões</option>
                   {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
@@ -1653,14 +1666,14 @@ export default function GeneralMapComponent() {
 
               {/* Estado (UF) */}
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-zinc-400" />
+                <label className="text-[9px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <MapPin className="h-3 w-3 text-zinc-400 dark:text-slate-500" />
                   Estado (UF)
                 </label>
                 <select
                   value={selectedUF}
                   onChange={(e) => setSelectedUF(e.target.value)}
-                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                  className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
                 >
                   <option value="ALL">Todos os Estados</option>
                   {distinctUFs.map((uf) => (
@@ -1676,15 +1689,15 @@ export default function GeneralMapComponent() {
             <div className="space-y-3">
               {/* Estadual de Referência */}
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                  <Building2 className="h-3 w-3 text-zinc-400" />
+                <label className="text-[9px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <Building2 className="h-3 w-3 text-zinc-400 dark:text-slate-500" />
                   Estadual Ref.
                 </label>
                 <select
                   value={selectedEstadual}
                   disabled={selectedRegionGeo === 'ALL'}
                   onChange={(e) => handleSelectEstadual(e.target.value)}
-                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 >
                   <option value="">Selecione...</option>
                   {selectedRegionGeo !== 'ALL' &&
@@ -1700,14 +1713,14 @@ export default function GeneralMapComponent() {
 
               {/* Tipo de Imóvel */}
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                  <Building2 className="h-3 w-3 text-zinc-400" />
+                <label className="text-[9px] font-black text-zinc-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <Building2 className="h-3 w-3 text-zinc-400 dark:text-slate-500" />
                   Imóvel
                 </label>
                 <select
                   value={selectedTipoImovel}
                   onChange={(e) => setSelectedTipoImovel(e.target.value)}
-                  className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                  className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
                 >
                   <option value="ALL">Todos</option>
                   <option value="PROPRIO">Próprio</option>
@@ -1907,8 +1920,11 @@ export default function GeneralMapComponent() {
                 </>
               ) : (
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  url={theme === 'dark'
+                    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  }
                 />
               )}
 

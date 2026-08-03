@@ -31,7 +31,10 @@ import {
   Clipboard,
   GitBranch,
   Power,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { useTheme } from '@/lib/theme';
 
 function getPorte(desc: string, porteField?: string | null): string {
   if (porteField && porteField.trim() !== '') {
@@ -192,6 +195,7 @@ async function fetchGeocodeUnstructured(
 }
 
 export default function ValidacaoPage() {
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
 
@@ -770,7 +774,7 @@ export default function ValidacaoPage() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col font-sans text-zinc-900">
+    <div className="min-h-screen bg-zinc-50 dark:bg-slate-950 flex flex-col font-sans text-zinc-900 dark:text-slate-100 transition-colors duration-200">
       {/* Toast Notification Container */}
       <Toaster position="top-right" richColors closeButton />
 
@@ -815,7 +819,7 @@ export default function ValidacaoPage() {
       )}
 
       {/* Top Banner Navigation */}
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-[1001] shadow-sm">
+      <header className="bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 sticky top-0 z-[1001] shadow-sm transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between h-auto sm:h-16 py-3 sm:py-0 items-center gap-3 sm:gap-0">
             {/* Logo & Branding */}
@@ -826,28 +830,28 @@ export default function ValidacaoPage() {
                 className="h-10 w-auto object-contain shadow-sm"
               />
               <div>
-                <h1 className="text-base font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">
-                  GEO-VALIG IPDA <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100 font-bold">12K</span>
+                <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
+                  GEO-VALIG IPDA <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">12K</span>
                 </h1>
-                <p className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider">Validação e Geolocalização</p>
+                <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Validação e Geolocalização</p>
               </div>
             </div>
 
             {/* QUICK SEARCH BAR */}
             <form onSubmit={handleSearchChurch} className="relative flex items-center w-full sm:w-72 lg:w-96">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500" />
               <input
                 type="text"
                 placeholder="Buscar por Código TOTVS, Nome ou Rua..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-100 border border-zinc-200 rounded-xl pl-8 pr-8 py-1.5 text-xs text-zinc-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-medium transition-all"
+                className="w-full bg-zinc-100 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-8 pr-8 py-1.5 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-600 p-0.5"
+                  className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -856,24 +860,33 @@ export default function ValidacaoPage() {
 
             {/* Unified Navigation Layout */}
             <div className="flex flex-wrap items-center gap-3 shrink-0 mt-3 sm:mt-0">
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 border border-zinc-200 dark:border-slate-700 text-zinc-650 dark:text-zinc-300 rounded-xl transition-all shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
+                title="Alternar Tema"
+              >
+                {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-500" />}
+              </button>
+
               {/* Block 1: Visualização */}
-              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 items-center">
+              <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 items-center">
                 <a
                   href="/"
-                  className="px-3 py-1.5 text-xs font-bold text-indigo-750 hover:text-indigo-900 bg-white rounded-lg shadow-2xs border border-zinc-200/50 flex items-center space-x-1 transition-all"
+                  className="px-3 py-1.5 text-xs font-bold text-indigo-750 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-white bg-white dark:bg-slate-700 rounded-lg shadow-2xs border border-zinc-200/50 dark:border-slate-600 flex items-center space-x-1 transition-all"
                 >
                   <span>🗺️ Mapa Geral</span>
                 </a>
               </div>
 
               {/* Block 2: Gestão (Pill Bar Segmentada) */}
-              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-0.5 items-center">
+              <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-0.5 items-center">
                 <button
                   onClick={() => setActiveTab('validation')}
                   className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
                     activeTab === 'validation'
-                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
-                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
+                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
                   }`}
                 >
                   <span>📍 Validação</span>
@@ -881,7 +894,7 @@ export default function ValidacaoPage() {
 
                 <a
                   href="/coligacoes"
-                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
                 >
                   <span>🌳 Coligações</span>
                 </a>
@@ -890,8 +903,8 @@ export default function ValidacaoPage() {
                   onClick={() => setActiveTab('dashboard')}
                   className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
                     activeTab === 'dashboard'
-                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
-                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
+                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
                   }`}
                 >
                   <span>📊 Dashboard</span>
@@ -901,19 +914,19 @@ export default function ValidacaoPage() {
                   onClick={() => setActiveTab('upload')}
                   className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
                     activeTab === 'upload'
-                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
-                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
+                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
                   }`}
                 >
                   <span>📥 Importar</span>
                 </button>
               </div>
 
-              <div className="w-px h-5 bg-zinc-300 mx-1 hidden lg:block" />
+              <div className="w-px h-5 bg-zinc-300 dark:bg-slate-700 mx-1 hidden lg:block" />
 
               <button
                 onClick={handleLogout}
-                className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+                className="p-1.5 bg-rose-50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-450 border border-rose-200 dark:border-rose-900/60 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0"
                 title="Sair do painel administrativo"
               >
                 <Power className="h-3.5 w-3.5" />
@@ -975,20 +988,20 @@ export default function ValidacaoPage() {
           /* VALIDATION WORKSPACE (Split Screen) */
           <div className="flex-1 flex flex-col gap-5">
             {/* Filter Bar */}
-            <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
-              <div className="flex items-center space-x-2 text-zinc-800 shrink-0">
-                <Filter className="h-4 w-4 text-indigo-600" />
+            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4 transition-colors duration-200">
+              <div className="flex items-center space-x-2 text-zinc-800 dark:text-slate-100 shrink-0">
+                <Filter className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 <span className="text-sm font-semibold">Filtros de Pesquisa:</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start lg:justify-center flex-1">
                 {/* State selector */}
                 <div className="flex items-center space-x-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Estado:</label>
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider">Estado:</label>
                   <select
                     value={filterEstado}
                     onChange={(e) => setFilterEstado(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-32"
+                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-32 transition-colors duration-200"
                   >
                     <option value="ALL">Todos</option>
                     {states.map((st) => (
@@ -1001,11 +1014,11 @@ export default function ValidacaoPage() {
 
                 {/* Status selector */}
                 <div className="flex items-center space-x-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status:</label>
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider">Status:</label>
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-36"
+                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-36 transition-colors duration-200"
                   >
                     <option value="ALL">Todos</option>
                     <option value="PENDENTE">Pendentes</option>
@@ -1017,11 +1030,11 @@ export default function ValidacaoPage() {
 
                 {/* Porte selector */}
                 <div className="flex items-center space-x-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Porte:</label>
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider">Porte:</label>
                   <select
                     value={filterPorte}
                     onChange={(e) => setFilterPorte(e.target.value)}
-                    className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-44"
+                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-44 transition-colors duration-200"
                   >
                     <option value="ALL">Todos os Portes</option>
                     <option value="ESTADUAL">🔵 ESTADUAL</option>
@@ -1094,22 +1107,22 @@ export default function ValidacaoPage() {
               /* SPLIT SCREEN WORKSPACE */
               <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[600px] items-stretch">
                 {/* LEFT COLUMN: Data Validation Details (5 cols) */}
-                <div className="lg:col-span-5 flex flex-col gap-4 bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm justify-between">
+                <div className="lg:col-span-5 flex flex-col gap-4 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm justify-between transition-colors duration-200">
                   <div>
                     {/* Header: Navigation & Status Badge */}
-                    <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-100">
+                    <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-100 dark:border-slate-800">
                       <div className="flex items-center space-x-1">
                         <button
                           onClick={() => setCurrentIndex((prev) => {
                             const newIndex = prev > 0 ? prev - 1 : filteredIgrejasList.length - 1;
                             return Math.min(newIndex, filteredIgrejasList.length - 1);
                           })}
-                          className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
+                          className="p-1 hover:bg-zinc-100 dark:hover:bg-slate-800 rounded text-zinc-600 dark:text-slate-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                           title="Anterior"
                         >
                           <ChevronLeft className="h-5 w-5" />
                         </button>
-                        <span className="text-xs font-bold text-zinc-700 font-mono">
+                        <span className="text-xs font-bold text-zinc-700 dark:text-slate-350 font-mono">
                           {currentIndex + 1} / {filteredIgrejasList.length}
                         </span>
                         <button
@@ -1117,7 +1130,7 @@ export default function ValidacaoPage() {
                             const newIndex = prev < filteredIgrejasList.length - 1 ? prev + 1 : 0;
                             return Math.min(newIndex, filteredIgrejasList.length - 1);
                           })}
-                          className="p-1 hover:bg-zinc-100 rounded text-zinc-600 hover:text-zinc-900 transition-colors"
+                          className="p-1 hover:bg-zinc-100 dark:hover:bg-slate-800 rounded text-zinc-600 dark:text-slate-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                           title="Próxima"
                         >
                           <ChevronRight className="h-5 w-5" />
@@ -1149,15 +1162,15 @@ export default function ValidacaoPage() {
                     {/* Church Primary Info */}
                     <div className="space-y-4">
                       <div>
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Código TOTVS</p>
-                        <p className="text-sm font-semibold text-zinc-900 font-mono mt-0.5">{currentIgreja?.codigo_totvs}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 dark:text-slate-500 uppercase tracking-wider">Código TOTVS</p>
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-white font-mono mt-0.5">{currentIgreja?.codigo_totvs}</p>
                       </div>
 
                       <div>
                         <div className="flex justify-between items-start gap-2">
                           <div>
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Descrição da Igreja</p>
-                            <p className="text-base font-bold text-zinc-900 mt-0.5">{currentIgreja?.desc_igreja}</p>
+                            <p className="text-[10px] font-bold text-zinc-400 dark:text-slate-500 uppercase tracking-wider">Descrição da Igreja</p>
+                            <p className="text-base font-bold text-zinc-900 dark:text-white mt-0.5">{currentIgreja?.desc_igreja}</p>
                           </div>
                         </div>
 
@@ -1398,10 +1411,10 @@ export default function ValidacaoPage() {
                 </div>
 
                 {/* RIGHT COLUMN: Leaflet Interactive Map (7 cols) */}
-                <div className="lg:col-span-7 flex flex-col bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm min-h-[450px] lg:min-h-0">
+                <div className="lg:col-span-7 flex flex-col bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm min-h-[450px] lg:min-h-0 transition-colors duration-200">
                   <div className="flex items-center justify-between mb-3 shrink-0">
-                    <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
-                      <Layers className="h-4 w-4 text-indigo-600" />
+                    <h3 className="text-xs font-bold text-zinc-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+                      <Layers className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       Visualização de Satélite e Posicionador do Pin
                     </h3>
                     <div className="text-[10px] text-zinc-500 font-medium italic">

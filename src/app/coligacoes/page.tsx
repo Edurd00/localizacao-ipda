@@ -22,9 +22,12 @@ import {
   Layers,
   HelpCircle,
   FileCheck,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
 import { parseWorkbook, getPorte } from '@/lib/parser';
+import { useTheme } from '@/lib/theme';
 
 // Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
@@ -71,6 +74,7 @@ function updatePorteInDescription(desc: string, newPorte: string): string {
 }
 
 export default function ColigacoesPage() {
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'tree' | 'import'>('tree');
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [states, setStates] = useState<string[]>([]);
@@ -655,7 +659,7 @@ export default function ColigacoesPage() {
   }, [igrejas, expandedNodes, selectedChurch]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col font-sans text-zinc-900">
+    <div className="min-h-screen bg-zinc-50 dark:bg-slate-950 flex flex-col font-sans text-zinc-900 dark:text-slate-100 transition-colors duration-200">
       <Toaster position="top-right" richColors closeButton />
 
       {/* Mandatory Transfer / Reorganization Modal */}
@@ -748,22 +752,30 @@ export default function ColigacoesPage() {
       )}
 
       {/* Main Header navigation */}
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-[1001] shadow-sm">
+      <header className="bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 sticky top-0 z-[1001] shadow-sm transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center space-x-3">
               <a
                 href="/"
-                className="p-2 hover:bg-zinc-100 rounded-xl transition-all border border-zinc-200 text-zinc-600 flex items-center justify-center shrink-0"
+                className="p-2 hover:bg-zinc-100 dark:hover:bg-slate-800 rounded-xl transition-all border border-zinc-200 dark:border-slate-700 text-zinc-650 dark:text-slate-300 flex items-center justify-center shrink-0"
                 title="Voltar"
               >
                 <ArrowLeft className="h-4 w-4" />
               </a>
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 border border-zinc-200 dark:border-slate-700 text-zinc-650 dark:text-zinc-300 rounded-xl transition-all shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
+                title="Alternar Tema"
+              >
+                {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-500" />}
+              </button>
               <div>
-                <h1 className="text-base font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">
+                <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
                   🌳 Gestão de Coligações e Hierarquia
                 </h1>
-                <p className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider">
+                <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
                   GEO-VALIG • Inteligência de Dados e Topologias
                 </p>
               </div>
@@ -968,18 +980,18 @@ export default function ColigacoesPage() {
           /* INTERACTIVE TREE VIEW & DETAILS PANEL SPLIT WORKSPACE */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* LEFT COLUMN: Scrollable Expandable Tree view (7 cols) */}
-            <section className="lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col h-[700px]">
+            <section className="lg:col-span-7 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col h-[700px] transition-colors duration-200">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                 <div>
-                  <h2 className="text-sm font-black text-zinc-900 uppercase tracking-wide flex items-center gap-1.5">
-                    <GitBranch className="h-5 w-5 text-indigo-600" />
+                  <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wide flex items-center gap-1.5">
+                    <GitBranch className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                     Árvore de Coligação Vertical
                   </h2>
-                  <p className="text-[10px] text-zinc-500 font-medium">
+                  <p className="text-[10px] text-zinc-500 dark:text-slate-400 font-medium">
                     Navegue pela topologia organizacional da IPDA agrupada por Estado.
                   </p>
                 </div>
-                <div className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200 shrink-0">
+                <div className="text-xs font-bold text-zinc-500 dark:text-slate-400 bg-zinc-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-slate-700 shrink-0 transition-colors duration-200">
                   {igrejas.filter((i) => i.status !== 'DESATIVADO').length} Igrejas Ativas
                 </div>
               </div>
@@ -1061,7 +1073,7 @@ export default function ColigacoesPage() {
             </section>
 
             {/* RIGHT COLUMN: Selected Node detail panel & coligacao editor (5 cols) */}
-            <section className="lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm space-y-5 h-auto lg:h-[700px] flex flex-col justify-between">
+            <section className="lg:col-span-5 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5 h-auto lg:h-[700px] flex flex-col justify-between transition-colors duration-200">
               {selectedChurch ? (
                 <div className="space-y-4 flex-1 overflow-y-auto pr-1">
                   {/* Title Header */}
