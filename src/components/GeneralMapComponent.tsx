@@ -1083,6 +1083,25 @@ export default function GeneralMapComponent() {
     fetchValidatedChurches();
   }, []);
 
+  // Handle ?totvs=CODE query parameter on load
+  useEffect(() => {
+    if (igrejas.length > 0 && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const totvsParam = params.get('totvs');
+      if (totvsParam) {
+        const normalizedParam = normalizeTotvs(totvsParam);
+        const found = igrejas.find((ig) => normalizeTotvs(ig.codigo_totvs) === normalizedParam);
+        if (found && found.latitude && found.longitude) {
+          setFlyToTarget({
+            center: [found.latitude, found.longitude],
+            zoom: 15,
+            totvs: found.codigo_totvs,
+          });
+        }
+      }
+    }
+  }, [igrejas]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -1549,6 +1568,15 @@ export default function GeneralMapComponent() {
             <SlidersHorizontal className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Filtros</span>
           </button>
+
+          <a
+            href="/organizacao"
+            className="p-1.5 bg-white text-zinc-650 hover:text-zinc-950 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3"
+            title="Ver Estrutura Organizacional"
+          >
+            <Building2 className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="text-xs font-semibold hidden sm:inline">🏛️ Organização</span>
+          </a>
 
           <a
             href="/coligacoes"
