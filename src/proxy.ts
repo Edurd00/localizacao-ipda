@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 import { verifySessionToken } from '@/lib/auth';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get('session_token');
 
   // Define strictly protected paths
