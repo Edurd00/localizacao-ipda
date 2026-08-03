@@ -2,12 +2,73 @@
 > test-dir@0.1.0 dev
 > next dev
 
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.2.11 (Turbopack)
-- Local:         http://localhost:3000
-- Network:       http://192.168.0.2:3000
-✓ Ready in 552ms
+- Local:         http://localhost:3001
+- Network:       http://192.168.0.2:3001
+✓ Ready in 618ms
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 
-○ Compiling /login ...
- GET /login 200 in 4.5s (next.js: 4.2s, application-code: 306ms)
- GET /login 200 in 592ms (next.js: 73ms, application-code: 520ms)
+React expects the `children` prop of <title> tags to be a string, number, bigint, or object with a novel `toString` method but found an Array with length 4 instead. Browsers treat all child Nodes of <title> tags as Text content and React expects to be able to convert `children` of <title> tags to a single string value which is why Arrays of length greater than 1 are not supported. When using JSX it can be common to combine text nodes and value nodes. For example: <title>hello {nameOfUser}</title>. While not immediately apparent, `children` in this case is an Array with length 2. If your `children` prop is using this form try rewriting it using a template string: <title>{`hello ${nameOfUser}`}</title>.
+ GET /organizacao 200 in 640ms (next.js: 336ms, application-code: 304ms)
+ GET /api/organizacao 200 in 219ms (next.js: 197ms, application-code: 22ms)
+ GET /api/organizacao?estado=ALL 200 in 226ms (next.js: 221ms, application-code: 6ms)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SegmentViewNode type="page" pagePath="src/organi...">
+      <SegmentTrieNode>
+      <ClientPageRoot Component={function OrganizacaoPage} serverProvidedParams={{...}}>
+        <OrganizacaoPage params={Promise} searchParams={Promise}>
+          <div className="min-h-scre...">
+            <Toaster>
+            <header>
+            <main className="flex-1 max...">
+              <section className="bg-white d...">
+                <div className="grid grid-...">
+                  <div>
+                  <div className="lg:col-spa...">
+                    <div>
+                    <div className="relative w...">
+                      <svg viewBox="0 0 280 200" className="w-full h-f...">
+                        <g className="cursor-poi..." onClick={function onClick}>
+                          <circle>
+                          <circle>
+                          <text>
+                          <title>
++                           São Paulo
+                            ...
+                      ...
+              ...
+    ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at title (<anonymous>)
+    at <unknown> (src/app/organizacao/page.tsx:586:25)
+    at Array.map (<anonymous>)
+    at OrganizacaoPage (src/app/organizacao/page.tsx:537:58)
+  584 |                         </text>
+  585 |                         {/* Hover Tooltip name bubble */}
+> 586 |                         <title>{st.name} (UF: {st.id})</title>
+      |                         ^
+  587 |                       </g>
+  588 |                     );
+  589 |                   })}
+ GET /api/organizacao 200 in 10ms (next.js: 5ms, application-code: 5ms)
+ GET /api/organizacao?estado=ALL 200 in 16ms (next.js: 11ms, application-code: 5ms)
+ GET /organizacao 200 in 93ms (next.js: 7ms, application-code: 87ms)
+ GET /api/organizacao 200 in 14ms (next.js: 4ms, application-code: 10ms)
+ GET /api/organizacao?estado=ALL 200 in 25ms (next.js: 16ms, application-code: 9ms)
+ GET /organizacao 200 in 77ms (next.js: 5ms, application-code: 73ms)
+ GET /api/organizacao 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/organizacao?estado=ALL 200 in 7ms (next.js: 3ms, application-code: 4ms)
