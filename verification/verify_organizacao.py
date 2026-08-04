@@ -9,9 +9,9 @@ def main():
         page = context.new_page()
 
         try:
-            # Navigate to /organizacao on port 3001
-            print("Navegando para http://localhost:3001/organizacao...")
-            page.goto("http://localhost:3001/organizacao")
+            # Navigate to /organizacao on port 3000
+            print("Navegando para http://localhost:3000/organizacao...")
+            page.goto("http://localhost:3000/organizacao")
 
             # Wait for content to load
             print("Aguardando carregamento da página...")
