@@ -248,6 +248,27 @@ function getPorte(desc: string, porteField?: string | null): string {
   return 'LOCAL';
 }
 
+export const PORTE_PRIORITY: Record<string, number> = {
+  'ESTADUAL': 1,
+  'SETORIAL': 2,
+  'CENTRAL': 3,
+  'REGIONAL': 4,
+  'LOCAL': 5,
+  'CASA DE ORAÇÃO': 6,
+  'ALDEIA INDIGENA': 7,
+};
+
+export const sortChurchesByPorte = (a: Igreja, b: Igreja) => {
+  const pA = getPorte(a.desc_igreja, a.porte);
+  const pB = getPorte(b.desc_igreja, b.porte);
+  const priorityA = PORTE_PRIORITY[pA] || 99;
+  const priorityB = PORTE_PRIORITY[pB] || 99;
+  if (priorityA !== priorityB) {
+    return priorityA - priorityB;
+  }
+  return (a.desc_igreja || '').localeCompare(b.desc_igreja || '');
+};
+
 export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
   'Sudeste - SP': ['SP'],
   'Sudeste - MG': ['MG'],
@@ -351,6 +372,22 @@ export default function OrganizacaoPage() {
     };
   }, [churches]);
 
+  // Determine if a church is a "Divisa" church (physical state is different from its parent state or its region main state)
+  const getDivisaJurisdiction = useMemo(() => {
+    return (child: Igreja) => {
+      if (!child.codigo_totvs_pai) return null;
+      const parent = churches.find((p) => p.codigo_totvs === child.codigo_totvs_pai);
+      if (parent && parent.estado !== child.estado) {
+        return parent.estado;
+      }
+      // Check if the church state itself is outside this active Region states list
+      if (!allowedUFsInRegion.includes(child.estado)) {
+        return allowedUFsInRegion[0] || 'SP';
+      }
+      return null;
+    };
+  }, [churches, allowedUFsInRegion]);
+
   // Unified dynamic filtering logic applying both filters simultaneously
   const filteredChurches = useMemo(() => {
     return churches.filter((ig) => {
@@ -370,30 +407,46 @@ export default function OrganizacaoPage() {
     });
   }, [churches, allowedUFsInRegion, selectedStateFilter, getRootStateOf]);
 
-  // Compute counts for the sub-tabs
+  // Compute counts for the sub-tabs with strict separation
   const localCount = useMemo(() => {
     if (selectedStateFilter === 'ALL') return 0;
-    return filteredChurches.filter((ig) => getRootStateOf(ig) === selectedStateFilter.toUpperCase()).length;
-  }, [filteredChurches, selectedStateFilter, getRootStateOf]);
+    return filteredChurches.filter((ig) => {
+      const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
+      const divisa = getDivisaJurisdiction(ig);
+      return isLocal && !divisa;
+    }).length;
+  }, [filteredChurches, selectedStateFilter, getRootStateOf, getDivisaJurisdiction]);
 
   const externalCount = useMemo(() => {
     if (selectedStateFilter === 'ALL') return 0;
-    return filteredChurches.filter((ig) => getRootStateOf(ig) !== selectedStateFilter.toUpperCase()).length;
-  }, [filteredChurches, selectedStateFilter, getRootStateOf]);
+    return filteredChurches.filter((ig) => {
+      const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
+      const divisa = getDivisaJurisdiction(ig);
+      return !isLocal || !!divisa;
+    }).length;
+  }, [filteredChurches, selectedStateFilter, getRootStateOf, getDivisaJurisdiction]);
 
-  // Filter based on active sub-tab
+  // Filter based on active sub-tab with strict separation
   const activeChurchesForTab = useMemo(() => {
     if (selectedStateFilter === 'ALL') {
       return filteredChurches;
     }
     return activeSubTab === 'local'
-      ? filteredChurches.filter((ig) => getRootStateOf(ig) === selectedStateFilter.toUpperCase())
-      : filteredChurches.filter((ig) => getRootStateOf(ig) !== selectedStateFilter.toUpperCase());
-  }, [filteredChurches, selectedStateFilter, activeSubTab, getRootStateOf]);
+      ? filteredChurches.filter((ig) => {
+          const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
+          const divisa = getDivisaJurisdiction(ig);
+          return isLocal && !divisa;
+        })
+      : filteredChurches.filter((ig) => {
+          const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
+          const divisa = getDivisaJurisdiction(ig);
+          return !isLocal || !!divisa;
+        });
+  }, [filteredChurches, selectedStateFilter, activeSubTab, getRootStateOf, getDivisaJurisdiction]);
 
   // Compute Root-level nodes for this region from the FILTERED tab list!
   const rootChurches = useMemo(() => {
-    return activeChurchesForTab.filter((ig) => {
+    const list = activeChurchesForTab.filter((ig) => {
       const isEstadual = ig.desc_igreja.toUpperCase().includes('ESTADUAL');
 
       if (isEstadual) return true;
@@ -403,6 +456,7 @@ export default function OrganizacaoPage() {
       const parent = activeChurchesForTab.find((p) => p.codigo_totvs === ig.codigo_totvs_pai);
       return !parent;
     });
+    return [...list].sort(sortChurchesByPorte);
   }, [activeChurchesForTab]);
 
   // Expand/collapse single tree node
@@ -418,7 +472,8 @@ export default function OrganizacaoPage() {
 
   // Helper: Find all daughters/children of a parent node from the active tab list!
   const getChildrenOf = (parentCode: string) => {
-    return activeChurchesForTab.filter((ig) => ig.codigo_totvs_pai === parentCode);
+    const list = activeChurchesForTab.filter((ig) => ig.codigo_totvs_pai === parentCode);
+    return [...list].sort(sortChurchesByPorte);
   };
 
   // Compute matching nodes for search highlights & expand their ancestors
@@ -437,20 +492,6 @@ export default function OrganizacaoPage() {
   // Handle locating church on General Map (replaces standard relative href to avoid complete page reloads)
   const handleLocateOnMap = (code: string) => {
     window.location.href = `/?totvs=${code}`;
-  };
-
-  // Determine if a church is a "Divisa" church (physical state is different from its parent state or its region main state)
-  const getDivisaJurisdiction = (child: Igreja) => {
-    if (!child.codigo_totvs_pai) return null;
-    const parent = churches.find((p) => p.codigo_totvs === child.codigo_totvs_pai);
-    if (parent && parent.estado !== child.estado) {
-      return parent.estado;
-    }
-    // Check if the church state itself is outside this active Region states list
-    if (!allowedUFsInRegion.includes(child.estado)) {
-      return allowedUFsInRegion[0] || 'SP';
-    }
-    return null;
   };
 
   // Recursive tree rendering
@@ -711,8 +752,8 @@ export default function OrganizacaoPage() {
             </div>
 
             {/* Right 5 cols: Interactive SVG Mini-Map of Jurisdictions */}
-            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-5 flex flex-col items-center justify-center min-h-[380px] lg:min-h-[440px]">
-              <div className="text-center mb-2.5">
+            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-3 flex flex-col items-center justify-center min-h-[420px] lg:min-h-[460px]">
+              <div className="text-center mb-1">
                 <span className="text-[10px] font-black text-zinc-400 dark:text-slate-550 uppercase tracking-wider block">
                   🗺️ Mini Mapa de Jurisdição
                 </span>
@@ -723,22 +764,22 @@ export default function OrganizacaoPage() {
 
               {/* Schematic SVG Map */}
 
-              <div className="relative w-full max-w-[360px] h-[340px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-3.5 flex items-center justify-center">
+              <div className="relative w-full max-w-full h-[380px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-1 flex items-center justify-center">
                 <svg viewBox="0 0 450 460" className="w-full h-full select-none">
                   {BRAZIL_STATES_GEO_DATA.map((st) => {
                     const isActiveRegion = allowedUFsInRegion.includes(st.id);
                     const isSelected = selectedStateFilter === st.id;
 
                     // Style states dynamically based on status and theme
-                    let fillClass = "fill-zinc-100 dark:fill-slate-800/40 stroke-zinc-250 dark:stroke-slate-700/50 opacity-40 hover:opacity-60";
+                    let fillClass = "fill-zinc-150 dark:fill-slate-800/20 stroke-zinc-250 dark:stroke-slate-700/50 opacity-40";
                     if (isActiveRegion) {
                       if (isSelected) {
                         fillClass = "fill-indigo-600 dark:fill-indigo-500 stroke-white drop-shadow-md";
                       } else if (selectedStateFilter === 'ALL') {
-                        fillClass = "fill-indigo-200 dark:fill-indigo-950/60 stroke-indigo-400/50 hover:fill-indigo-300 dark:hover:fill-indigo-900";
+                        fillClass = "fill-indigo-200 dark:fill-indigo-950/60 stroke-indigo-400/50";
                       } else {
                         // Another state in jurisdiction is selected
-                        fillClass = "fill-indigo-100/40 dark:fill-indigo-950/20 stroke-indigo-300/30 opacity-70 hover:opacity-100 hover:fill-indigo-200";
+                        fillClass = "fill-indigo-100/40 dark:fill-indigo-950/20 stroke-indigo-300/30 opacity-70";
                       }
                     }
 
@@ -768,18 +809,17 @@ export default function OrganizacaoPage() {
                       <g
                         key={st.id}
                         onClick={handleStateClick}
-                        className="cursor-pointer transition-all duration-300 group"
+                        className="cursor-pointer group origin-center transform-gpu hover:scale-[1.02] transition-all duration-300"
+                        style={{ transformBox: 'fill-box' }}
                       >
                         <path
                           d={st.d1}
-                          className={fillClass}
-                          style={{ transition: 'fill 0.3s, stroke 0.3s, opacity 0.3s' }}
+                          className={`${fillClass} transition-all duration-300 group-hover:fill-[#4F46E5] group-hover:opacity-85`}
                         />
                         {st.d2 && (
                           <path
                             d={st.d2}
-                            className={fillClass}
-                            style={{ transition: 'fill 0.3s, stroke 0.3s, opacity 0.3s' }}
+                            className={`${fillClass} transition-all duration-300 group-hover:fill-[#4F46E5] group-hover:opacity-85`}
                           />
                         )}
                         {st.transform && (
@@ -787,10 +827,10 @@ export default function OrganizacaoPage() {
                             transform={st.transform}
                             className={`pointer-events-none select-none tracking-tighter transition-all duration-300 ${
                               isSelected
-                                ? 'fill-white font-black text-[15px] drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.4)]'
+                                ? 'fill-white font-black text-[16px] drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.5)]'
                                 : isActiveRegion
-                                ? 'fill-indigo-950 dark:fill-indigo-100 font-extrabold text-[14px] opacity-90'
-                                : 'fill-zinc-400 dark:fill-slate-550 font-bold text-[11px] opacity-50 group-hover:opacity-85'
+                                ? 'fill-indigo-950 dark:fill-indigo-100 font-extrabold text-[15px] opacity-90'
+                                : 'fill-zinc-400 dark:fill-slate-550 font-bold text-[12px] opacity-50 group-hover:fill-white group-hover:opacity-100'
                             }`}
                             textAnchor="middle"
                           >
