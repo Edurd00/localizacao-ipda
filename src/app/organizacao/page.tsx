@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
-import { useTheme } from '@/lib/theme';
 
 // Region states schematic vector layout for the interactive mini map
 // Cleaned real geographical contours of Brazil's 27 states
@@ -260,7 +259,6 @@ export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
 };
 
 export default function OrganizacaoPage() {
-  const { theme, toggleTheme } = useTheme();
   const [states, setStates] = useState<string[]>([]);
 
   // New Double Selectors:
@@ -557,15 +555,6 @@ export default function OrganizacaoPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Theme Toggle Button */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 border border-zinc-200 dark:border-slate-750 text-zinc-650 dark:text-zinc-350 rounded-xl transition-all shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
-                title="Alternar Tema Escuro/Claro"
-              >
-                {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-500" />}
-              </button>
-
               <a
                 href="/"
                 className="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2 text-xs"

@@ -20,8 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { ThemeProvider } from "@/lib/theme";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,10 +30,8 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+      <body className="min-h-full flex flex-col bg-white text-zinc-900 transition-colors duration-200">
+        {children}
       </body>
     </html>
   );
