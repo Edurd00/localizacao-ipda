@@ -1524,7 +1524,7 @@ export default function GeneralMapComponent() {
               <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight">
                 GEO-VALIG IPDA
               </h1>
-              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">MAPA DE VALIDAÇÃO</p>
+              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
             </div>
           </div>
           <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 border border-indigo-150 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full">
