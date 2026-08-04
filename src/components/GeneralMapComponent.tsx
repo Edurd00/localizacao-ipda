@@ -1766,7 +1766,7 @@ export default function GeneralMapComponent() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <h3 className="text-sm font-bold text-zinc-800">Carregando igrejas validadas...</h3>
-            <p className="text-xs text-zinc-500 mt-1">Carregando dados consolidados diretamente do Neon DB.</p>
+            <p className="text-xs text-zinc-500 mt-1">Carregando dados consolidados diretamente do Superbase.</p>
           </div>
         ) : error ? (
           <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
