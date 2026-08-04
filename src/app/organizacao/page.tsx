@@ -264,9 +264,15 @@ export default function OrganizacaoPage() {
   // New Double Selectors:
   const [selectedRegion, setSelectedRegion] = useState<string>('Sudeste - SP'); // Default to SP
   const [selectedStateFilter, setSelectedStateFilter] = useState<string>('ALL'); // Physical State (ALL/specific)
+  const [activeSubTab, setActiveSubTab] = useState<'local' | 'external'>('local');
 
   const [churches, setChurches] = useState<Igreja[]>([]);
   const [loadingStates, setLoadingStates] = useState(true);
+
+  // Reset sub-tab to local whenever region or state filter changes
+  useEffect(() => {
+    setActiveSubTab('local');
+  }, [selectedRegion, selectedStateFilter]);
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -364,19 +370,40 @@ export default function OrganizacaoPage() {
     });
   }, [churches, allowedUFsInRegion, selectedStateFilter, getRootStateOf]);
 
-  // Compute Root-level nodes for this region from the FILTERED list!
+  // Compute counts for the sub-tabs
+  const localCount = useMemo(() => {
+    if (selectedStateFilter === 'ALL') return 0;
+    return filteredChurches.filter((ig) => getRootStateOf(ig) === selectedStateFilter.toUpperCase()).length;
+  }, [filteredChurches, selectedStateFilter, getRootStateOf]);
+
+  const externalCount = useMemo(() => {
+    if (selectedStateFilter === 'ALL') return 0;
+    return filteredChurches.filter((ig) => getRootStateOf(ig) !== selectedStateFilter.toUpperCase()).length;
+  }, [filteredChurches, selectedStateFilter, getRootStateOf]);
+
+  // Filter based on active sub-tab
+  const activeChurchesForTab = useMemo(() => {
+    if (selectedStateFilter === 'ALL') {
+      return filteredChurches;
+    }
+    return activeSubTab === 'local'
+      ? filteredChurches.filter((ig) => getRootStateOf(ig) === selectedStateFilter.toUpperCase())
+      : filteredChurches.filter((ig) => getRootStateOf(ig) !== selectedStateFilter.toUpperCase());
+  }, [filteredChurches, selectedStateFilter, activeSubTab, getRootStateOf]);
+
+  // Compute Root-level nodes for this region from the FILTERED tab list!
   const rootChurches = useMemo(() => {
-    return filteredChurches.filter((ig) => {
+    return activeChurchesForTab.filter((ig) => {
       const isEstadual = ig.desc_igreja.toUpperCase().includes('ESTADUAL');
 
       if (isEstadual) return true;
       if (!ig.codigo_totvs_pai) return true;
 
-      // If parent is not in the filtered list, it acts as a localized root
-      const parent = filteredChurches.find((p) => p.codigo_totvs === ig.codigo_totvs_pai);
+      // If parent is not in the active list, it acts as a localized root
+      const parent = activeChurchesForTab.find((p) => p.codigo_totvs === ig.codigo_totvs_pai);
       return !parent;
     });
-  }, [filteredChurches]);
+  }, [activeChurchesForTab]);
 
   // Expand/collapse single tree node
   const toggleNode = (nodeId: string) => {
@@ -389,9 +416,9 @@ export default function OrganizacaoPage() {
     setExpandedNodes(newSet);
   };
 
-  // Helper: Find all daughters/children of a parent node from the FILTERED list!
+  // Helper: Find all daughters/children of a parent node from the active tab list!
   const getChildrenOf = (parentCode: string) => {
-    return filteredChurches.filter((ig) => ig.codigo_totvs_pai === parentCode);
+    return activeChurchesForTab.filter((ig) => ig.codigo_totvs_pai === parentCode);
   };
 
   // Compute matching nodes for search highlights & expand their ancestors
@@ -429,7 +456,7 @@ export default function OrganizacaoPage() {
   // Recursive tree rendering
   const renderTreeNodes = (nodes: Igreja[]) => {
     return (
-      <div className="pl-4 sm:pl-6 border-l-2 border-indigo-50 space-y-3 mt-2">
+      <div className="pl-4 sm:pl-6 border-l-2 border-indigo-100 dark:border-indigo-900/40 space-y-3 mt-2 relative">
         {nodes.map((child) => {
           const childPorte = getPorte(child.desc_igreja, child.porte);
           const childColor = PORTE_INFO[childPorte]?.color || '#A6A6A6';
@@ -441,10 +468,13 @@ export default function OrganizacaoPage() {
           const divisaState = getDivisaJurisdiction(child);
 
           return (
-            <div key={child.codigo_totvs} className="space-y-1">
+            <div key={child.codigo_totvs} className="space-y-1 relative">
+              {/* Horizontal Tree View Guide connector */}
+              <div className="absolute -left-[16px] sm:-left-[24px] top-[24px] w-[16px] sm:w-[24px] border-t-2 border-indigo-100 dark:border-indigo-900/40 pointer-events-none" />
+
               {/* Accordion Card block */}
               <div
-                className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all ${
+                className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all relative z-10 ${
                   isExpanded && hasChildren
                     ? 'bg-zinc-50 dark:bg-slate-800/60 border-indigo-200 dark:border-indigo-900/60'
                     : 'bg-white dark:bg-slate-850 border-zinc-200 dark:border-slate-800 hover:border-zinc-300 dark:hover:border-slate-700'
@@ -484,8 +514,14 @@ export default function OrganizacaoPage() {
                         TOTVS: <span className="font-mono font-bold text-zinc-700 dark:text-slate-300">{child.codigo_totvs}</span> • {child.endereco} • {child.municipio} - {child.estado}
                       </span>
                       {divisaState && (
-                        <span className="text-[9px] bg-rose-50 dark:bg-rose-950/30 border border-rose-250 dark:border-rose-900 text-rose-700 dark:text-rose-400 font-bold px-1.5 py-0.5 rounded-md animate-pulse">
-                          📍 {child.estado} (Jurisdição: {divisaState})
+                        <span className="inline-flex items-center gap-1.5 text-[10px] bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-400 font-bold px-2 py-0.5 rounded-md shadow-xs">
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                          </span>
+                          <span>📍 Endereço: {child.estado}</span>
+                          <span className="text-amber-300 dark:text-amber-700">|</span>
+                          <span>🏛️ Responde a: Sede {divisaState}</span>
                         </span>
                       )}
                     </div>
@@ -675,7 +711,7 @@ export default function OrganizacaoPage() {
             </div>
 
             {/* Right 5 cols: Interactive SVG Mini-Map of Jurisdictions */}
-            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[220px]">
+            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-5 flex flex-col items-center justify-center min-h-[380px] lg:min-h-[440px]">
               <div className="text-center mb-2.5">
                 <span className="text-[10px] font-black text-zinc-400 dark:text-slate-550 uppercase tracking-wider block">
                   🗺️ Mini Mapa de Jurisdição
@@ -687,7 +723,7 @@ export default function OrganizacaoPage() {
 
               {/* Schematic SVG Map */}
 
-              <div className="relative w-full max-w-[280px] h-[240px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-2.5 flex items-center justify-center">
+              <div className="relative w-full max-w-[360px] h-[340px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-3.5 flex items-center justify-center">
                 <svg viewBox="0 0 450 460" className="w-full h-full select-none">
                   {BRAZIL_STATES_GEO_DATA.map((st) => {
                     const isActiveRegion = allowedUFsInRegion.includes(st.id);
@@ -746,13 +782,15 @@ export default function OrganizacaoPage() {
                             style={{ transition: 'fill 0.3s, stroke 0.3s, opacity 0.3s' }}
                           />
                         )}
-                        {isActiveRegion && st.transform && (
+                        {st.transform && (
                           <text
                             transform={st.transform}
-                            className={`pointer-events-none select-none text-[13px] font-black tracking-tighter ${
+                            className={`pointer-events-none select-none tracking-tighter transition-all duration-300 ${
                               isSelected
-                                ? 'fill-white font-extrabold'
-                                : 'fill-indigo-950 dark:fill-indigo-100 opacity-80 group-hover:opacity-100'
+                                ? 'fill-white font-black text-[15px] drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.4)]'
+                                : isActiveRegion
+                                ? 'fill-indigo-950 dark:fill-indigo-100 font-extrabold text-[14px] opacity-90'
+                                : 'fill-zinc-400 dark:fill-slate-550 font-bold text-[11px] opacity-50 group-hover:opacity-85'
                             }`}
                             textAnchor="middle"
                           >
@@ -783,8 +821,29 @@ export default function OrganizacaoPage() {
                     key={`search-match-${match.codigo_totvs}`}
                     type="button"
                     onClick={() => {
-                      // Expand target state/hierarchy nodes to show this matching church
-                      const newSet = new Set(expandedNodes);
+                      // 1. Identify matched church's physical state (UF)
+                      const matchedState = match.estado.toUpperCase().trim();
+
+                      // 2. Identify and set correct Jurisdiction Region if current region doesn't include matched state
+                      if (!allowedUFsInRegion.includes(matchedState)) {
+                        const targetRegion = Object.keys(REGIAO_GEOGRAFICA_MAPPING).find(reg =>
+                          REGIAO_GEOGRAFICA_MAPPING[reg].includes(matchedState)
+                        );
+                        if (targetRegion) {
+                          setSelectedRegion(targetRegion);
+                        }
+                      }
+
+                      // 3. Select physical state filter
+                      setSelectedStateFilter(matchedState);
+
+                      // 4. Set appropriate sub-tab (local vs external)
+                      const rootState = getRootStateOf(match);
+                      const isLocal = rootState === matchedState;
+                      setActiveSubTab(isLocal ? 'local' : 'external');
+
+                      // 5. Build and expand target state/hierarchy nodes to show this matching church
+                      const newSet = new Set<string>();
                       let current = match;
                       while (current && current.codigo_totvs_pai) {
                         newSet.add(current.codigo_totvs_pai);
@@ -794,8 +853,9 @@ export default function OrganizacaoPage() {
                         current = p || (null as any);
                       }
                       setExpandedNodes(newSet);
-                      // Scroll to specific church element if possible or show success toast
-                      toast.success(`Igreja localizada na árvore: ${match.desc_igreja}`);
+
+                      // Show success toast
+                      toast.success(`Igreja localizada na aba [${isLocal ? 'Jurisdição do Estado' : 'Igrejas Locais sob Outra Jurisdição'}]: ${match.desc_igreja}`);
                     }}
                     className="text-left text-[11px] text-zinc-800 dark:text-slate-200 hover:text-indigo-700 bg-white dark:bg-slate-800 p-2 rounded-lg border border-zinc-200 dark:border-slate-700 shadow-2xs font-bold flex items-center gap-1.5 transition-colors"
                   >
@@ -818,21 +878,66 @@ export default function OrganizacaoPage() {
               </svg>
               <span className="text-xs text-zinc-500 font-bold">Mapeando hierarquias do campo...</span>
             </div>
-          ) : rootChurches.length === 0 ? (
-            <div className="text-center py-20 text-zinc-400 italic text-xs max-w-sm mx-auto">
-              Nenhuma igreja ativa estruturada nesta região de jurisdição.
-            </div>
           ) : (
             <div className="space-y-4">
-              <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
-                <h3 className="text-xs font-black text-zinc-550 uppercase tracking-wider">
-                  Hierarquia Organizacional ({selectedRegion})
-                </h3>
-                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5">
-                  {churches.length} Igrejas Ativas no Banco
-                </span>
-              </div>
-              <div className="space-y-3">{renderTreeNodes(rootChurches)}</div>
+              {/* Sub-Tabs Selector for Physical State Selection */}
+              {selectedStateFilter !== 'ALL' && (
+                <div className="flex border-b border-zinc-200 dark:border-slate-800 mb-4 gap-2">
+                  <button
+                    onClick={() => setActiveSubTab('local')}
+                    className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+                      activeSubTab === 'local'
+                        ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400'
+                        : 'border-transparent text-zinc-500 dark:text-slate-400 hover:text-zinc-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    <span>Jurisdição do Estado</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      activeSubTab === 'local'
+                        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/55 dark:text-indigo-300 font-black'
+                        : 'bg-zinc-100 text-zinc-650 dark:bg-slate-800 dark:text-slate-400 font-bold'
+                    }`}>
+                      {localCount}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab('external')}
+                    className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+                      activeSubTab === 'external'
+                        ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400'
+                        : 'border-transparent text-zinc-500 dark:text-slate-400 hover:text-zinc-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    <span>Igrejas Locais sob Outra Jurisdição</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      activeSubTab === 'external'
+                        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/55 dark:text-indigo-300 font-black'
+                        : 'bg-zinc-100 text-zinc-650 dark:bg-slate-800 dark:text-slate-400 font-bold'
+                    }`}>
+                      {externalCount}
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {rootChurches.length === 0 ? (
+                <div className="text-center py-20 text-zinc-400 dark:text-slate-550 italic text-xs max-w-sm mx-auto">
+                  Nenhuma igreja ativa estruturada nesta região de jurisdição / aba selecionada.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="border-b border-zinc-150 dark:border-slate-800 pb-3 flex items-center justify-between">
+                    <h3 className="text-xs font-black text-zinc-550 uppercase tracking-wider">
+                      Hierarquia Organizacional ({selectedRegion}{selectedStateFilter !== 'ALL' ? ` - ${selectedStateFilter}` : ''})
+                    </h3>
+                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-900/60">
+                      {activeChurchesForTab.length} Igrejas Selecionadas
+                    </span>
+                  </div>
+                  <div className="space-y-3">{renderTreeNodes(rootChurches)}</div>
+                </div>
+              )}
             </div>
           )}
         </section>
