@@ -34,7 +34,6 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { useTheme } from '@/lib/theme';
 
 function getPorte(desc: string, porteField?: string | null): string {
   if (porteField && porteField.trim() !== '') {
@@ -195,7 +194,6 @@ async function fetchGeocodeUnstructured(
 }
 
 export default function ValidacaoPage() {
-  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
 
@@ -860,15 +858,6 @@ export default function ValidacaoPage() {
 
             {/* Unified Navigation Layout */}
             <div className="flex flex-wrap items-center gap-3 shrink-0 mt-3 sm:mt-0">
-              {/* Theme Toggle Button */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 border border-zinc-200 dark:border-slate-700 text-zinc-650 dark:text-zinc-300 rounded-xl transition-all shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
-                title="Alternar Tema"
-              >
-                {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-500" />}
-              </button>
-
               {/* Block 1: Visualização */}
               <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 items-center">
                 <a

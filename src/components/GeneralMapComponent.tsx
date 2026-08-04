@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
-import { useTheme } from '@/lib/theme';
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -478,7 +477,6 @@ export interface RouteMeta {
 }
 
 export default function GeneralMapComponent() {
-  const { theme, toggleTheme } = useTheme();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1526,7 +1524,7 @@ export default function GeneralMapComponent() {
               <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight">
                 GEO-VALIG IPDA
               </h1>
-              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
+              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">MAPA DE VALIDAÇÃO</p>
             </div>
           </div>
           <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 border border-indigo-150 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full">
@@ -1903,10 +1901,7 @@ export default function GeneralMapComponent() {
               ) : (
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  url={theme === 'dark'
-                    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  }
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
               )}
 

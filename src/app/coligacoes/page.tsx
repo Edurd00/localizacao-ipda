@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
 import { parseWorkbook, getPorte } from '@/lib/parser';
-import { useTheme } from '@/lib/theme';
 
 // Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
@@ -74,7 +73,6 @@ function updatePorteInDescription(desc: string, newPorte: string): string {
 }
 
 export default function ColigacoesPage() {
-  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'tree' | 'import'>('tree');
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [states, setStates] = useState<string[]>([]);
@@ -763,14 +761,6 @@ export default function ColigacoesPage() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </a>
-              {/* Theme Toggle Button */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 border border-zinc-200 dark:border-slate-700 text-zinc-650 dark:text-zinc-300 rounded-xl transition-all shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
-                title="Alternar Tema"
-              >
-                {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-500" />}
-              </button>
               <div>
                 <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
                   🌳 Gestão de Coligações e Hierarquia
