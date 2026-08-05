@@ -9,7 +9,6 @@ async function runTests() {
   console.log('\n--- PART 1: Testing Standard SA1 TOTVS Import Rules ---');
 
   // Test Case 1.1: Protection of Validated Churches (Status 'VALIDADO')
-  // Original 10001 has status: 'VALIDADO', address: 'Avenida do Estado, 4567', coordinates: -23.55052, -46.633308
   console.log('Testing: Protection of Validated Churches');
   const initialChurches = await getIgrejas();
   const c10001Initial = initialChurches.find(c => c.codigo_totvs === '10001');
@@ -111,8 +110,8 @@ async function runTests() {
   // =========================================================================
   console.log('\n--- PART 2: Testing Reclassificação Import Rules ---');
 
-  // Let's reset 10002 first to make sure it is VALIDADO and has coordinates
-  console.log('Setting up 10002 as VALIDADO...');
+  // Let's reset 10002 first to make sure it is VALIDADO, has coordinates, and parent is '10001'
+  console.log('Setting up 10002 as VALIDADO with parent 10001...');
   const setup10002: Igreja = {
     codigo_totvs: '10002',
     desc_igreja: 'Central Franco da Rocha',
@@ -128,7 +127,6 @@ async function runTests() {
     status: 'VALIDADO',
     codigo_totvs_pai: '10001',
   };
-  // We'll just update it in the memory db directly or via normal import
   await saveIgrejasBulk([setup10002]);
 
   const c10002Initial = (await getIgrejas()).find(c => c.codigo_totvs === '10002')!;
@@ -136,8 +134,8 @@ async function runTests() {
   console.log('10002 Initial Address:', c10002Initial.endereco);
   console.log('10002 Initial Parent:', c10002Initial.codigo_totvs_pai);
 
-  // Test Case 2.1: Reclassificação with Identical Address (Status should stay VALIDADO, parent can be updated)
-  console.log('\nTesting Case 2.1: Reclassificação with IDENTICAL Address');
+  // Test Case 2.1: Reclassificação with Identical Address (Status stays VALIDADO, pre-existing parent MUST NOT be overwritten)
+  console.log('\nTesting Case 2.1: Reclassificação with IDENTICAL Address (Blindagem do Pai)');
   const import10002Identical: Igreja = {
     codigo_totvs: '10002',
     desc_igreja: 'Central Franco da Rocha - NOVA DESCRICAO',
@@ -151,7 +149,7 @@ async function runTests() {
     latitude: -23.111,
     longitude: -46.111,
     status: 'PENDENTE',
-    codigo_totvs_pai: '10003', // Updated parent
+    codigo_totvs_pai: '10003', // Trying to change parent
   };
 
   await saveIgrejasBulk([import10002Identical], { isReclassificacao: true });
@@ -164,13 +162,14 @@ async function runTests() {
   if (c10002IdenticalRes.status !== 'VALIDADO') {
     throw new Error(`FAIL: Status should remain VALIDADO when address is identical. Got ${c10002IdenticalRes.status}`);
   }
-  if (c10002IdenticalRes.codigo_totvs_pai !== '10003') {
-    throw new Error(`FAIL: Parent should have been updated on Reclassificacao. Got ${c10002IdenticalRes.codigo_totvs_pai}`);
+  // CRITICAL CHECK: Inviolabilidade de coligação manual!
+  if (c10002IdenticalRes.codigo_totvs_pai !== '10001') {
+    throw new Error(`FAIL: Pre-existing parent link ('10001') was overwritten under Reclassificação! Got ${c10002IdenticalRes.codigo_totvs_pai}`);
   }
-  console.log('✅ PASS: VALIDADO status kept intact, parent updated on identical address Reclassificação.');
+  console.log('✅ PASS: VALIDADO status kept intact, and pre-existing manual parent is strictly blindado/preserved.');
 
-  // Test Case 2.2: Reclassificação with CHANGED Address (Status should become REVISAO_ENDERECO, physical fields updated, coordinates preserved)
-  console.log('\nTesting Case 2.2: Reclassificação with CHANGED Address');
+  // Test Case 2.2: Reclassificação with CHANGED Address (Status -> REVISAO_ENDERECO, physical fields updated, coordinates preserved, parent preserved)
+  console.log('\nTesting Case 2.2: Reclassificação with CHANGED Address (Blindagem do Pai)');
   const import10002Changed: Igreja = {
     codigo_totvs: '10002',
     desc_igreja: 'Central Franco da Rocha - DESCRICAO RECLASS',
@@ -181,10 +180,10 @@ async function runTests() {
     estado: 'SP',
     cep: '07850-999',
     link_google_maps: 'https://maps.google.com/changed',
-    latitude: -11.111, // New coordinates from sheet
+    latitude: -11.111,
     longitude: -22.222,
     status: 'PENDENTE',
-    codigo_totvs_pai: '10001', // New parent again
+    codigo_totvs_pai: '10003', // Trying to change parent again
   };
 
   await saveIgrejasBulk([import10002Changed], { isReclassificacao: true });
@@ -196,18 +195,62 @@ async function runTests() {
   console.log('10002 Coordinates after Changed import:', c10002ChangedRes.latitude, c10002ChangedRes.longitude);
 
   if (c10002ChangedRes.status !== 'REVISAO_ENDERECO') {
-    throw new Error(`FAIL: Status should be REVISAO_ENDERECO due to address change under Reclassificacao. Got ${c10002ChangedRes.status}`);
+    throw new Error(`FAIL: Status should be REVISAO_ENDERECO due to address change. Got ${c10002ChangedRes.status}`);
   }
   if (c10002ChangedRes.endereco !== 'Nova Avenida de Franco da Rocha, 500') {
     throw new Error(`FAIL: Address should have been updated to new address.`);
   }
   if (c10002ChangedRes.latitude !== -23.3275 || c10002ChangedRes.longitude !== -46.7275) {
-    throw new Error(`FAIL: Coordinates should NOT have been overwritten. Expected initial coordinates -23.3275, -46.7275, got ${c10002ChangedRes.latitude}, ${c10002ChangedRes.longitude}`);
+    throw new Error(`FAIL: Coordinates should NOT have been overwritten. Got ${c10002ChangedRes.latitude}, ${c10002ChangedRes.longitude}`);
   }
+  // CRITICAL CHECK: Inviolabilidade de coligação manual!
   if (c10002ChangedRes.codigo_totvs_pai !== '10001') {
-    throw new Error(`FAIL: Parent should have been updated.`);
+    throw new Error(`FAIL: Parent link should have been preserved.`);
   }
-  console.log('✅ PASS: Status correctly set to REVISAO_ENDERECO, physical address fields and parent updated, and coordinates preserved.');
+  console.log('✅ PASS: Status set to REVISAO_ENDERECO, physical address fields updated, and manual parent link and coordinates preserved.');
+
+  // Test Case 2.3: Reclassificação preenche lacuna se estiver nulo
+  console.log('\nTesting Case 2.3: Reclassificação preenche lacuna de pai nulo');
+  const test10004: Igreja = {
+    codigo_totvs: '10004',
+    desc_igreja: 'Central Teste 10004',
+    tipo_imovel: 'PRÓPRIO',
+    endereco: 'Rua de Teste, 789',
+    bairro: 'Bairro 4',
+    municipio: 'Cidade 4',
+    estado: 'SP',
+    cep: '44444-444',
+    link_google_maps: 'https://maps.google.com',
+    latitude: -23.4,
+    longitude: -46.4,
+    status: 'PENDENTE',
+    codigo_totvs_pai: null, // No parent configured
+  };
+  await saveIgrejasBulk([test10004]);
+
+  const import10004: Igreja = {
+    codigo_totvs: '10004',
+    desc_igreja: 'Central Teste 10004',
+    tipo_imovel: 'PRÓPRIO',
+    endereco: 'Rua de Teste, 789',
+    bairro: 'Bairro 4',
+    municipio: 'Cidade 4',
+    estado: 'SP',
+    cep: '44444-444',
+    link_google_maps: 'https://maps.google.com',
+    latitude: -23.4,
+    longitude: -46.4,
+    status: 'PENDENTE',
+    codigo_totvs_pai: '10001', // Parent from sheet
+  };
+  await saveIgrejasBulk([import10004], { isReclassificacao: true });
+
+  const c10004Res = (await getIgrejas()).find(c => c.codigo_totvs === '10004')!;
+  console.log('10004 Parent after filling lacuna:', c10004Res.codigo_totvs_pai);
+  if (c10004Res.codigo_totvs_pai !== '10001') {
+    throw new Error('FAIL: Parent should have been updated to 10001 since it was previously null.');
+  }
+  console.log('✅ PASS: Parent successfully filled from Reclassificação because it was currently null.');
 
   console.log('\n--- ALL UNIT TESTS PASSED SUCCESSFULLY! ---');
 }

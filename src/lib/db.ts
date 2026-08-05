@@ -392,7 +392,10 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
                 WHEN igrejas.status = 'VALIDADO' THEN igrejas.link_google_maps
                 ELSE COALESCE(NULLIF(EXCLUDED.link_google_maps, ''), igrejas.link_google_maps)
               END,
-              codigo_totvs_pai = EXCLUDED.codigo_totvs_pai,
+              codigo_totvs_pai = CASE
+                WHEN igrejas.codigo_totvs_pai IS NOT NULL AND igrejas.codigo_totvs_pai <> '' THEN igrejas.codigo_totvs_pai
+                ELSE EXCLUDED.codigo_totvs_pai
+              END,
               updated_at = CURRENT_TIMESTAMP`
             : `INSERT INTO igrejas (
               codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte
@@ -523,13 +526,17 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
               desc_igreja: ig.desc_igreja || existing.desc_igreja,
               tipo_imovel: ig.tipo_imovel || existing.tipo_imovel,
               status: 'REVISAO_ENDERECO',
-              codigo_totvs_pai: ig.codigo_totvs_pai,
+              codigo_totvs_pai: isParentSet
+                ? existing.codigo_totvs_pai
+                : ig.codigo_totvs_pai || existing.codigo_totvs_pai,
               updated_at: new Date().toISOString(),
             });
           } else {
             map.set(ig.codigo_totvs, {
               ...existing,
-              codigo_totvs_pai: ig.codigo_totvs_pai,
+              codigo_totvs_pai: isParentSet
+                ? existing.codigo_totvs_pai
+                : ig.codigo_totvs_pai || existing.codigo_totvs_pai,
             });
           }
         } else {
@@ -541,7 +548,9 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
             ...existing,
             ...ig,
             porte: novoPorte,
-            codigo_totvs_pai: ig.codigo_totvs_pai,
+            codigo_totvs_pai: isParentSet
+              ? existing.codigo_totvs_pai
+              : ig.codigo_totvs_pai || existing.codigo_totvs_pai,
             updated_at: new Date().toISOString(),
           });
         }
