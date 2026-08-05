@@ -372,13 +372,12 @@ export default function OrganizacaoPage() {
     };
   }, [churches]);
 
-  // Determine if a church is a "Divisa" church (physical state is different from its parent state or its region main state)
+  // Determine if a church is a "Divisa" church (physical state is different from its absolute Sede Raiz state)
   const getDivisaJurisdiction = useMemo(() => {
     return (child: Igreja) => {
-      if (!child.codigo_totvs_pai) return null;
-      const parent = churches.find((p) => p.codigo_totvs === child.codigo_totvs_pai);
-      if (parent && parent.estado !== child.estado) {
-        return parent.estado;
+      const rootState = getRootStateOf(child);
+      if (rootState && rootState !== child.estado) {
+        return rootState;
       }
       // Check if the church state itself is outside this active Region states list
       if (!allowedUFsInRegion.includes(child.estado)) {
@@ -386,7 +385,7 @@ export default function OrganizacaoPage() {
       }
       return null;
     };
-  }, [churches, allowedUFsInRegion]);
+  }, [getRootStateOf, allowedUFsInRegion]);
 
   // Unified dynamic filtering logic applying both filters simultaneously
   const filteredChurches = useMemo(() => {
