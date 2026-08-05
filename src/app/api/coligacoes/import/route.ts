@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     // Process/save the bulk chunk
-    const report = await saveIgrejasBulk(igrejas);
+    const report = await saveIgrejasBulk(igrejas, { isReclassificacao: true });
 
     // Revalidate relevant cache paths on-demand
     revalidatePath('/');

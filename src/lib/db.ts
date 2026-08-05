@@ -13,7 +13,7 @@ export interface Igreja {
   link_google_maps: string;
   latitude: number | null;
   longitude: number | null;
-  status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO';
+  status: 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO' | 'REVISAO_ENDERECO';
   usuario_validador?: string | null;
   codigo_totvs_pai?: string | null;
   porte?: string | null;
@@ -185,7 +185,7 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
         link_google_maps: row.link_google_maps,
         latitude: row.latitude === 0 ? null : row.latitude,
         longitude: row.longitude === 0 ? null : row.longitude,
-        status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO',
+        status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO' | 'REVISAO_ENDERECO',
         usuario_validador: row.usuario_validador,
         codigo_totvs_pai: row.codigo_totvs_pai,
         porte: row.porte,
@@ -277,7 +277,7 @@ export interface BulkImportReport {
   preservadas: number;
 }
 
-export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportReport> {
+export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassificacao?: boolean }): Promise<BulkImportReport> {
   await ensurePostgresTable();
   const report: BulkImportReport = { novas: 0, atualizadas: 0, preservadas: 0 };
 
@@ -313,15 +313,88 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportRepo
             const isStatusValidado = existing.status === 'VALIDADO';
             const isParentSet = existing.codigo_totvs_pai !== null && existing.codigo_totvs_pai !== undefined && existing.codigo_totvs_pai !== '';
 
-            if (isStatusValidado || isParentSet) {
-              report.preservadas++;
+            if (options?.isReclassificacao) {
+              if (isStatusValidado) {
+                report.preservadas++;
+              } else {
+                report.atualizadas++;
+              }
             } else {
-              report.atualizadas++;
+              if (isStatusValidado || isParentSet) {
+                report.preservadas++;
+              } else {
+                report.atualizadas++;
+              }
             }
           }
 
-          await client.query(
-            `INSERT INTO igrejas (
+          const queryText = options?.isReclassificacao
+            ? `INSERT INTO igrejas (
+              codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            ON CONFLICT (codigo_totvs) DO UPDATE SET
+              desc_igreja = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.desc_igreja
+                ELSE EXCLUDED.desc_igreja
+              END,
+              tipo_imovel = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.tipo_imovel
+                ELSE EXCLUDED.tipo_imovel
+              END,
+              endereco = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.endereco
+                ELSE EXCLUDED.endereco
+              END,
+              bairro = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.bairro
+                ELSE EXCLUDED.bairro
+              END,
+              municipio = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.municipio
+                ELSE EXCLUDED.municipio
+              END,
+              estado = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.estado
+                ELSE EXCLUDED.estado
+              END,
+              cep = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.cep
+                ELSE EXCLUDED.cep
+              END,
+              porte = CASE
+                WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.porte
+                ELSE CASE
+                  WHEN EXCLUDED.porte IS NOT NULL AND EXCLUDED.porte <> '' THEN EXCLUDED.porte
+                  ELSE COALESCE(igrejas.porte, EXCLUDED.porte)
+                END
+              END,
+              status = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN
+                  CASE
+                    WHEN TRIM(UPPER(COALESCE(igrejas.endereco, ''))) <> TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN 'REVISAO_ENDERECO'
+                    ELSE 'VALIDADO'
+                  END
+                ELSE EXCLUDED.status
+              END,
+              latitude = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.latitude
+                ELSE COALESCE(EXCLUDED.latitude, igrejas.latitude)
+              END,
+              longitude = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.longitude
+                ELSE COALESCE(EXCLUDED.longitude, igrejas.longitude)
+              END,
+              usuario_validador = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.usuario_validador
+                ELSE EXCLUDED.usuario_validador
+              END,
+              link_google_maps = CASE
+                WHEN igrejas.status = 'VALIDADO' THEN igrejas.link_google_maps
+                ELSE COALESCE(NULLIF(EXCLUDED.link_google_maps, ''), igrejas.link_google_maps)
+              END,
+              codigo_totvs_pai = EXCLUDED.codigo_totvs_pai,
+              updated_at = CURRENT_TIMESTAMP`
+            : `INSERT INTO igrejas (
               codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep, link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             ON CONFLICT (codigo_totvs) DO UPDATE SET
@@ -369,24 +442,24 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportRepo
               updated_at = CASE
                 WHEN igrejas.status = 'VALIDADO' AND TRIM(UPPER(COALESCE(igrejas.endereco, ''))) = TRIM(UPPER(COALESCE(EXCLUDED.endereco, ''))) THEN igrejas.updated_at
                 ELSE CURRENT_TIMESTAMP
-              END`,
-            [
-              ig.codigo_totvs,
-              ig.desc_igreja,
-              ig.tipo_imovel,
-              ig.endereco,
-              ig.bairro,
-              ig.municipio,
-              ig.estado,
-              ig.cep,
-              ig.link_google_maps,
-              ig.latitude,
-              ig.longitude,
-              ig.status || 'PENDENTE',
-              ig.codigo_totvs_pai || null,
-              ig.porte || null,
-            ]
-          );
+              END`;
+
+          await client.query(queryText, [
+            ig.codigo_totvs,
+            ig.desc_igreja,
+            ig.tipo_imovel,
+            ig.endereco,
+            ig.bairro,
+            ig.municipio,
+            ig.estado,
+            ig.cep,
+            ig.link_google_maps,
+            ig.latitude,
+            ig.longitude,
+            ig.status || 'PENDENTE',
+            ig.codigo_totvs_pai || null,
+            ig.porte || null,
+          ]);
         }
         await client.query('COMMIT');
       }
@@ -414,42 +487,93 @@ export async function saveIgrejasBulk(igrejas: Igreja[]): Promise<BulkImportRepo
       const isStatusValidado = existing.status === 'VALIDADO';
       const isParentSet = existing.codigo_totvs_pai !== null && existing.codigo_totvs_pai !== undefined && existing.codigo_totvs_pai !== '';
 
-      if (isStatusValidado || isParentSet) {
-        report.preservadas++;
+      if (options?.isReclassificacao) {
+        if (isStatusValidado) {
+          report.preservadas++;
+        } else {
+          report.atualizadas++;
+        }
       } else {
-        report.atualizadas++;
+        if (isStatusValidado || isParentSet) {
+          report.preservadas++;
+        } else {
+          report.atualizadas++;
+        }
       }
 
       const existingAddr = (existing.endereco || '').trim().toUpperCase();
       const incomingAddr = (ig.endereco || '').trim().toUpperCase();
       const enderecoMudou = existingAddr !== incomingAddr;
-      const novoStatus = enderecoMudou ? 'PENDENTE_REVISAO' : existing.status;
 
-      if (isStatusValidado) {
-        map.set(ig.codigo_totvs, {
-          ...existing,
-          status: novoStatus,
-          updated_at: existing.status !== novoStatus ? new Date().toISOString() : existing.updated_at,
-        });
+      if (options?.isReclassificacao) {
+        if (isStatusValidado) {
+          if (enderecoMudou) {
+            const novoPorte = (ig.porte !== null && ig.porte !== undefined && ig.porte !== '')
+              ? ig.porte
+              : (existing.porte || ig.porte);
+
+            map.set(ig.codigo_totvs, {
+              ...existing,
+              endereco: ig.endereco,
+              bairro: ig.bairro,
+              municipio: ig.municipio,
+              estado: ig.estado,
+              cep: ig.cep,
+              porte: novoPorte,
+              desc_igreja: ig.desc_igreja || existing.desc_igreja,
+              tipo_imovel: ig.tipo_imovel || existing.tipo_imovel,
+              status: 'REVISAO_ENDERECO',
+              codigo_totvs_pai: ig.codigo_totvs_pai,
+              updated_at: new Date().toISOString(),
+            });
+          } else {
+            map.set(ig.codigo_totvs, {
+              ...existing,
+              codigo_totvs_pai: ig.codigo_totvs_pai,
+            });
+          }
+        } else {
+          const novoPorte = (ig.porte !== null && ig.porte !== undefined && ig.porte !== '')
+            ? ig.porte
+            : (existing.porte || ig.porte);
+
+          map.set(ig.codigo_totvs, {
+            ...existing,
+            ...ig,
+            porte: novoPorte,
+            codigo_totvs_pai: ig.codigo_totvs_pai,
+            updated_at: new Date().toISOString(),
+          });
+        }
       } else {
-        const novoPorte = (ig.porte !== null && ig.porte !== undefined && ig.porte !== '')
-          ? ig.porte
-          : (existing.porte || ig.porte);
+        const novoStatus = enderecoMudou ? 'PENDENTE_REVISAO' : existing.status;
 
-        map.set(ig.codigo_totvs, {
-          ...existing,
-          endereco: ig.endereco,
-          bairro: ig.bairro,
-          municipio: ig.municipio,
-          estado: ig.estado,
-          cep: ig.cep,
-          porte: novoPorte,
-          status: novoStatus,
-          codigo_totvs_pai: isParentSet
-            ? existing.codigo_totvs_pai
-            : ig.codigo_totvs_pai || existing.codigo_totvs_pai,
-          updated_at: new Date().toISOString(),
-        });
+        if (isStatusValidado) {
+          map.set(ig.codigo_totvs, {
+            ...existing,
+            status: novoStatus,
+            updated_at: existing.status !== novoStatus ? new Date().toISOString() : existing.updated_at,
+          });
+        } else {
+          const novoPorte = (ig.porte !== null && ig.porte !== undefined && ig.porte !== '')
+            ? ig.porte
+            : (existing.porte || ig.porte);
+
+          map.set(ig.codigo_totvs, {
+            ...existing,
+            endereco: ig.endereco,
+            bairro: ig.bairro,
+            municipio: ig.municipio,
+            estado: ig.estado,
+            cep: ig.cep,
+            porte: novoPorte,
+            status: novoStatus,
+            codigo_totvs_pai: isParentSet
+              ? existing.codigo_totvs_pai
+              : ig.codigo_totvs_pai || existing.codigo_totvs_pai,
+            updated_at: new Date().toISOString(),
+          });
+        }
       }
     } else {
       report.novas++;
