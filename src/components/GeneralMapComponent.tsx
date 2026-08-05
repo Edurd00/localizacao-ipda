@@ -1014,7 +1014,19 @@ export default function GeneralMapComponent() {
   const [mapType, setMapType] = useState<'satellite' | 'osm'>('satellite');
 
   // Filter States
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput]);
+
   const [selectedRegionGeo, setSelectedRegionGeo] = useState<string>('ALL');
   const [selectedUF, setSelectedUF] = useState('ALL');
   const [selectedTipoImovel, setSelectedTipoImovel] = useState('ALL');
@@ -1494,6 +1506,7 @@ export default function GeneralMapComponent() {
   };
 
   const handleResetFilters = () => {
+    setSearchInput('');
     setSearchQuery('');
     setSelectedRegionGeo('ALL');
     setSelectedUF('ALL');
@@ -1538,14 +1551,14 @@ export default function GeneralMapComponent() {
           <input
             type="text"
             placeholder="Buscar por código TOTVS, nome, rua ou município..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-all"
           />
-          {searchQuery && (
+          {searchInput && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchInput('')}
               className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
             >
               <X className="h-3.5 w-3.5" />
