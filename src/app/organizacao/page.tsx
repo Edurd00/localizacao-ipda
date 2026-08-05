@@ -295,8 +295,43 @@ export default function OrganizacaoPage() {
     setActiveSubTab('local');
   }, [selectedRegion, selectedStateFilter]);
   const [loadingChurches, setLoadingChurches] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (searchTerm.trim().length > 1) {
+      const query = searchTerm.trim().toLowerCase();
+      const matched = churches.filter(
+        (ig) =>
+          ig.codigo_totvs.toLowerCase().includes(query) ||
+          ig.desc_igreja.toLowerCase().includes(query) ||
+          (ig.municipio || '').toLowerCase().includes(query)
+      );
+      const newSet = new Set(expandedNodes);
+      matched.forEach((m) => {
+        let current = m;
+        while (current && current.codigo_totvs_pai) {
+          newSet.add(current.codigo_totvs_pai);
+          const p = churches.find(
+            (ig) => ig.codigo_totvs === current.codigo_totvs_pai
+          );
+          current = p || (null as any);
+        }
+      });
+      setExpandedNodes(newSet);
+    }
+  }, [searchTerm, churches]);
 
   // Load available distinct states on mount
   useEffect(() => {
@@ -715,31 +750,8 @@ export default function OrganizacaoPage() {
                   <input
                     type="text"
                     placeholder="Pesquisar por Código TOTVS, nome ou município..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      if (e.target.value.trim().length > 1) {
-                        const query = e.target.value.trim().toLowerCase();
-                        const matched = churches.filter(
-                          (ig) =>
-                            ig.codigo_totvs.toLowerCase().includes(query) ||
-                            ig.desc_igreja.toLowerCase().includes(query) ||
-                            (ig.municipio || '').toLowerCase().includes(query)
-                        );
-                        const newSet = new Set(expandedNodes);
-                        matched.forEach((m) => {
-                          let current = m;
-                          while (current && current.codigo_totvs_pai) {
-                            newSet.add(current.codigo_totvs_pai);
-                            const p = churches.find(
-                              (ig) => ig.codigo_totvs === current.codigo_totvs_pai
-                            );
-                            current = p || (null as any);
-                          }
-                        });
-                        setExpandedNodes(newSet);
-                      }
-                    }}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-750 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>

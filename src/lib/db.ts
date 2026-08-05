@@ -225,14 +225,14 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
   await ensurePostgresTable();
   if (pool) {
     try {
-      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte FROM igrejas WHERE status = 'VALIDADO' ORDER BY desc_igreja ASC";
+      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte FROM igrejas WHERE status = 'VALIDADO' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
       const res = await pool.query(query);
       return res.rows.map((row) => ({
         id: row.id,
         codigo_totvs: row.codigo_totvs,
         desc_igreja: row.desc_igreja,
-        latitude: row.latitude === 0 ? null : row.latitude,
-        longitude: row.longitude === 0 ? null : row.longitude,
+        latitude: row.latitude,
+        longitude: row.longitude,
         status: row.status as Igreja['status'],
         porte: row.porte,
       }));
@@ -243,7 +243,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
 
   // Fallback to In-Memory DB
   return memoryDb
-    .filter((item) => item.status === 'VALIDADO')
+    .filter((item) => item.status === 'VALIDADO' && item.latitude !== null && item.longitude !== null && item.latitude !== 0 && item.longitude !== 0)
     .map((item) => ({
       id: item.id,
       codigo_totvs: item.codigo_totvs,
