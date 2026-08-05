@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getIgrejas } from '@/lib/db';
+import { getIgrejasForMap } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const igrejas = await getIgrejas({ status: 'VALIDADO' });
+    const igrejas = await getIgrejasForMap();
     return new NextResponse(
       JSON.stringify({
         success: true,
@@ -15,7 +15,7 @@ export async function GET() {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
         },
       }
     );

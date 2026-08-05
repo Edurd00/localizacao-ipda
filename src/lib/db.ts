@@ -211,6 +211,51 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
   return data.sort((a, b) => a.desc_igreja.localeCompare(b.desc_igreja));
 }
 
+export interface IgrejaMap {
+  id?: string;
+  codigo_totvs: string;
+  desc_igreja: string;
+  latitude: number | null;
+  longitude: number | null;
+  status: Igreja['status'];
+  porte?: string | null;
+}
+
+export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
+  await ensurePostgresTable();
+  if (pool) {
+    try {
+      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte FROM igrejas WHERE status = 'VALIDADO' ORDER BY desc_igreja ASC";
+      const res = await pool.query(query);
+      return res.rows.map((row) => ({
+        id: row.id,
+        codigo_totvs: row.codigo_totvs,
+        desc_igreja: row.desc_igreja,
+        latitude: row.latitude === 0 ? null : row.latitude,
+        longitude: row.longitude === 0 ? null : row.longitude,
+        status: row.status as Igreja['status'],
+        porte: row.porte,
+      }));
+    } catch (err) {
+      console.error('Postgres error in getIgrejasForMap:', err);
+    }
+  }
+
+  // Fallback to In-Memory DB
+  return memoryDb
+    .filter((item) => item.status === 'VALIDADO')
+    .map((item) => ({
+      id: item.id,
+      codigo_totvs: item.codigo_totvs,
+      desc_igreja: item.desc_igreja,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      status: item.status,
+      porte: item.porte,
+    }))
+    .sort((a, b) => a.desc_igreja.localeCompare(b.desc_igreja));
+}
+
 export async function getDistinctStates(): Promise<string[]> {
   await ensurePostgresTable();
   if (pool) {
