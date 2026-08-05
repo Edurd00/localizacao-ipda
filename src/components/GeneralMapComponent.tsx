@@ -1014,7 +1014,19 @@ export default function GeneralMapComponent() {
   const [mapType, setMapType] = useState<'satellite' | 'osm'>('satellite');
 
   // Filter States
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput]);
+
   const [selectedRegionGeo, setSelectedRegionGeo] = useState<string>('ALL');
   const [selectedUF, setSelectedUF] = useState('ALL');
   const [selectedTipoImovel, setSelectedTipoImovel] = useState('ALL');
@@ -1494,6 +1506,7 @@ export default function GeneralMapComponent() {
   };
 
   const handleResetFilters = () => {
+    setSearchInput('');
     setSearchQuery('');
     setSelectedRegionGeo('ALL');
     setSelectedUF('ALL');
@@ -1522,7 +1535,7 @@ export default function GeneralMapComponent() {
             />
             <div>
               <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight">
-                GEO-VALIG IPDA
+                GEOLOCALIZAÇÕES IPDA
               </h1>
               <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
             </div>
@@ -1538,14 +1551,14 @@ export default function GeneralMapComponent() {
           <input
             type="text"
             placeholder="Buscar por código TOTVS, nome, rua ou município..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-all"
           />
-          {searchQuery && (
+          {searchInput && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchInput('')}
               className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
             >
               <X className="h-3.5 w-3.5" />
@@ -1766,7 +1779,7 @@ export default function GeneralMapComponent() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <h3 className="text-sm font-bold text-zinc-800">Carregando igrejas validadas...</h3>
-            <p className="text-xs text-zinc-500 mt-1">Carregando dados consolidados diretamente do Neon DB.</p>
+            <p className="text-xs text-zinc-500 mt-1">Carregando dados consolidados diretamente do Superbase.</p>
           </div>
         ) : error ? (
           <div className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">

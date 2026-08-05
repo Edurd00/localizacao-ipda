@@ -295,8 +295,43 @@ export default function OrganizacaoPage() {
     setActiveSubTab('local');
   }, [selectedRegion, selectedStateFilter]);
   const [loadingChurches, setLoadingChurches] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (searchTerm.trim().length > 1) {
+      const query = searchTerm.trim().toLowerCase();
+      const matched = churches.filter(
+        (ig) =>
+          ig.codigo_totvs.toLowerCase().includes(query) ||
+          ig.desc_igreja.toLowerCase().includes(query) ||
+          (ig.municipio || '').toLowerCase().includes(query)
+      );
+      const newSet = new Set(expandedNodes);
+      matched.forEach((m) => {
+        let current = m;
+        while (current && current.codigo_totvs_pai) {
+          newSet.add(current.codigo_totvs_pai);
+          const p = churches.find(
+            (ig) => ig.codigo_totvs === current.codigo_totvs_pai
+          );
+          current = p || (null as any);
+        }
+      });
+      setExpandedNodes(newSet);
+    }
+  }, [searchTerm, churches]);
 
   // Load available distinct states on mount
   useEffect(() => {
@@ -372,13 +407,12 @@ export default function OrganizacaoPage() {
     };
   }, [churches]);
 
-  // Determine if a church is a "Divisa" church (physical state is different from its parent state or its region main state)
+  // Determine if a church is a "Divisa" church (physical state is different from its absolute Sede Raiz state)
   const getDivisaJurisdiction = useMemo(() => {
     return (child: Igreja) => {
-      if (!child.codigo_totvs_pai) return null;
-      const parent = churches.find((p) => p.codigo_totvs === child.codigo_totvs_pai);
-      if (parent && parent.estado !== child.estado) {
-        return parent.estado;
+      const rootState = getRootStateOf(child);
+      if (rootState && rootState !== child.estado) {
+        return rootState;
       }
       // Check if the church state itself is outside this active Region states list
       if (!allowedUFsInRegion.includes(child.estado)) {
@@ -386,7 +420,7 @@ export default function OrganizacaoPage() {
       }
       return null;
     };
-  }, [churches, allowedUFsInRegion]);
+  }, [getRootStateOf, allowedUFsInRegion]);
 
   // Unified dynamic filtering logic applying both filters simultaneously
   const filteredChurches = useMemo(() => {
@@ -411,20 +445,18 @@ export default function OrganizacaoPage() {
   const localCount = useMemo(() => {
     if (selectedStateFilter === 'ALL') return 0;
     return filteredChurches.filter((ig) => {
-      const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
       const divisa = getDivisaJurisdiction(ig);
-      return isLocal && !divisa;
+      return !divisa;
     }).length;
-  }, [filteredChurches, selectedStateFilter, getRootStateOf, getDivisaJurisdiction]);
+  }, [filteredChurches, selectedStateFilter, getDivisaJurisdiction]);
 
   const externalCount = useMemo(() => {
     if (selectedStateFilter === 'ALL') return 0;
     return filteredChurches.filter((ig) => {
-      const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
       const divisa = getDivisaJurisdiction(ig);
-      return !isLocal || !!divisa;
+      return !!divisa;
     }).length;
-  }, [filteredChurches, selectedStateFilter, getRootStateOf, getDivisaJurisdiction]);
+  }, [filteredChurches, selectedStateFilter, getDivisaJurisdiction]);
 
   // Filter based on active sub-tab with strict separation
   const activeChurchesForTab = useMemo(() => {
@@ -433,16 +465,14 @@ export default function OrganizacaoPage() {
     }
     return activeSubTab === 'local'
       ? filteredChurches.filter((ig) => {
-          const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
           const divisa = getDivisaJurisdiction(ig);
-          return isLocal && !divisa;
+          return !divisa;
         })
       : filteredChurches.filter((ig) => {
-          const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
           const divisa = getDivisaJurisdiction(ig);
-          return !isLocal || !!divisa;
+          return !!divisa;
         });
-  }, [filteredChurches, selectedStateFilter, activeSubTab, getRootStateOf, getDivisaJurisdiction]);
+  }, [filteredChurches, selectedStateFilter, activeSubTab, getDivisaJurisdiction]);
 
   // Compute Root-level nodes for this region from the FILTERED tab list!
   const rootChurches = useMemo(() => {
@@ -720,31 +750,8 @@ export default function OrganizacaoPage() {
                   <input
                     type="text"
                     placeholder="Pesquisar por Código TOTVS, nome ou município..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      if (e.target.value.trim().length > 1) {
-                        const query = e.target.value.trim().toLowerCase();
-                        const matched = churches.filter(
-                          (ig) =>
-                            ig.codigo_totvs.toLowerCase().includes(query) ||
-                            ig.desc_igreja.toLowerCase().includes(query) ||
-                            (ig.municipio || '').toLowerCase().includes(query)
-                        );
-                        const newSet = new Set(expandedNodes);
-                        matched.forEach((m) => {
-                          let current = m;
-                          while (current && current.codigo_totvs_pai) {
-                            newSet.add(current.codigo_totvs_pai);
-                            const p = churches.find(
-                              (ig) => ig.codigo_totvs === current.codigo_totvs_pai
-                            );
-                            current = p || (null as any);
-                          }
-                        });
-                        setExpandedNodes(newSet);
-                      }
-                    }}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-750 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
@@ -752,7 +759,7 @@ export default function OrganizacaoPage() {
             </div>
 
             {/* Right 5 cols: Interactive SVG Mini-Map of Jurisdictions */}
-            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-3 flex flex-col items-center justify-center min-h-[420px] lg:min-h-[460px]">
+            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[420px] lg:min-h-[460px]">
               <div className="text-center mb-1">
                 <span className="text-[10px] font-black text-zinc-400 dark:text-slate-550 uppercase tracking-wider block">
                   🗺️ Mini Mapa de Jurisdição
@@ -764,7 +771,7 @@ export default function OrganizacaoPage() {
 
               {/* Schematic SVG Map */}
 
-              <div className="relative w-full max-w-full h-[380px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-1 flex items-center justify-center">
+              <div className="relative w-full max-w-full h-[400px] lg:h-[440px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-0 flex items-center justify-center">
                 <svg viewBox="0 0 450 460" className="w-full h-full select-none">
                   {BRAZIL_STATES_GEO_DATA.map((st) => {
                     const isActiveRegion = allowedUFsInRegion.includes(st.id);
@@ -827,10 +834,10 @@ export default function OrganizacaoPage() {
                             transform={st.transform}
                             className={`pointer-events-none select-none tracking-tighter transition-all duration-300 ${
                               isSelected
-                                ? 'fill-white font-black text-[16px] drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.5)]'
+                                ? 'fill-white font-black text-[18px] drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.5)]'
                                 : isActiveRegion
-                                ? 'fill-indigo-950 dark:fill-indigo-100 font-extrabold text-[15px] opacity-90'
-                                : 'fill-zinc-400 dark:fill-slate-550 font-bold text-[12px] opacity-50 group-hover:fill-white group-hover:opacity-100'
+                                ? 'fill-indigo-950 dark:fill-indigo-100 font-extrabold text-[17px] opacity-90'
+                                : 'fill-zinc-400 dark:fill-slate-550 font-bold text-[14px] opacity-50 group-hover:fill-white group-hover:opacity-100'
                             }`}
                             textAnchor="middle"
                           >
