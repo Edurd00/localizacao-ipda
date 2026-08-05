@@ -411,20 +411,18 @@ export default function OrganizacaoPage() {
   const localCount = useMemo(() => {
     if (selectedStateFilter === 'ALL') return 0;
     return filteredChurches.filter((ig) => {
-      const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
       const divisa = getDivisaJurisdiction(ig);
-      return isLocal && !divisa;
+      return !divisa;
     }).length;
-  }, [filteredChurches, selectedStateFilter, getRootStateOf, getDivisaJurisdiction]);
+  }, [filteredChurches, selectedStateFilter, getDivisaJurisdiction]);
 
   const externalCount = useMemo(() => {
     if (selectedStateFilter === 'ALL') return 0;
     return filteredChurches.filter((ig) => {
-      const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
       const divisa = getDivisaJurisdiction(ig);
-      return !isLocal || !!divisa;
+      return !!divisa;
     }).length;
-  }, [filteredChurches, selectedStateFilter, getRootStateOf, getDivisaJurisdiction]);
+  }, [filteredChurches, selectedStateFilter, getDivisaJurisdiction]);
 
   // Filter based on active sub-tab with strict separation
   const activeChurchesForTab = useMemo(() => {
@@ -433,16 +431,14 @@ export default function OrganizacaoPage() {
     }
     return activeSubTab === 'local'
       ? filteredChurches.filter((ig) => {
-          const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
           const divisa = getDivisaJurisdiction(ig);
-          return isLocal && !divisa;
+          return !divisa;
         })
       : filteredChurches.filter((ig) => {
-          const isLocal = getRootStateOf(ig) === selectedStateFilter.toUpperCase();
           const divisa = getDivisaJurisdiction(ig);
-          return !isLocal || !!divisa;
+          return !!divisa;
         });
-  }, [filteredChurches, selectedStateFilter, activeSubTab, getRootStateOf, getDivisaJurisdiction]);
+  }, [filteredChurches, selectedStateFilter, activeSubTab, getDivisaJurisdiction]);
 
   // Compute Root-level nodes for this region from the FILTERED tab list!
   const rootChurches = useMemo(() => {
@@ -752,7 +748,7 @@ export default function OrganizacaoPage() {
             </div>
 
             {/* Right 5 cols: Interactive SVG Mini-Map of Jurisdictions */}
-            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-3 flex flex-col items-center justify-center min-h-[420px] lg:min-h-[460px]">
+            <div className="lg:col-span-5 bg-zinc-50 dark:bg-slate-950 border border-zinc-150 dark:border-slate-850 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[420px] lg:min-h-[460px]">
               <div className="text-center mb-1">
                 <span className="text-[10px] font-black text-zinc-400 dark:text-slate-550 uppercase tracking-wider block">
                   🗺️ Mini Mapa de Jurisdição
@@ -764,7 +760,7 @@ export default function OrganizacaoPage() {
 
               {/* Schematic SVG Map */}
 
-              <div className="relative w-full max-w-full h-[380px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-1 flex items-center justify-center">
+              <div className="relative w-full max-w-full h-[400px] lg:h-[440px] bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner p-0 flex items-center justify-center">
                 <svg viewBox="0 0 450 460" className="w-full h-full select-none">
                   {BRAZIL_STATES_GEO_DATA.map((st) => {
                     const isActiveRegion = allowedUFsInRegion.includes(st.id);
@@ -827,10 +823,10 @@ export default function OrganizacaoPage() {
                             transform={st.transform}
                             className={`pointer-events-none select-none tracking-tighter transition-all duration-300 ${
                               isSelected
-                                ? 'fill-white font-black text-[16px] drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.5)]'
+                                ? 'fill-white font-black text-[18px] drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.5)]'
                                 : isActiveRegion
-                                ? 'fill-indigo-950 dark:fill-indigo-100 font-extrabold text-[15px] opacity-90'
-                                : 'fill-zinc-400 dark:fill-slate-550 font-bold text-[12px] opacity-50 group-hover:fill-white group-hover:opacity-100'
+                                ? 'fill-indigo-950 dark:fill-indigo-100 font-extrabold text-[17px] opacity-90'
+                                : 'fill-zinc-400 dark:fill-slate-550 font-bold text-[14px] opacity-50 group-hover:fill-white group-hover:opacity-100'
                             }`}
                             textAnchor="middle"
                           >
