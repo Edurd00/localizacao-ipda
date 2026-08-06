@@ -1437,7 +1437,11 @@ export default function ValidacaoPage() {
                         <option value="">Selecione o validador para assinar...</option>
                         <option value="Luiz Eduardo">Luiz Eduardo</option>
                         <option value="Caio Rodrigues">Caio Rodrigues</option>
-                        <option value="Guilherme">Guilherme</option>
+                        <option value="Guilherme de Almeida">Guilherme de Almeida</option>
+                        <option value="Christian Azevedo">Christian Azevedo</option>
+                        <option value="Mayara Ruanny">Mayara Ruanny</option>
+                        <option value="Fernanda Brito">Fernanda Brito</option>
+                        <option value="Flaviane Marvilla">Flaviane Marvilla</option>
                       </select>
                     </div>
 
