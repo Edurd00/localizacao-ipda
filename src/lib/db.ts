@@ -150,6 +150,16 @@ async function ensurePostgresTable() {
         console.warn('Validator name fusion failed (non-fatal):', fuseErr);
       }
 
+      // ---------------------------------------------------------------
+      // Validator Name Fusion Migration ('Guilherme' -> 'Guilherme de Almeida')
+      // ---------------------------------------------------------------
+      try {
+        await client.query(`UPDATE igrejas SET validado_por = 'Guilherme de Almeida' WHERE validado_por = 'Guilherme';`);
+        await client.query(`UPDATE igrejas SET usuario_validador = 'Guilherme de Almeida' WHERE usuario_validador = 'Guilherme';`);
+      } catch (fuseErr) {
+        console.warn('Validator name fusion for Guilherme failed (non-fatal):', fuseErr);
+      }
+
       isTableInitialized = true;
     } finally {
       client.release();
@@ -211,11 +221,22 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
   }
 
   // Fallback to In-Memory DB
-  let data = [...memoryDb].map(item => ({
-    ...item,
-    validado_por: item.validado_por === 'Luiz' ? 'Luiz Eduardo' : item.validado_por,
-    usuario_validador: item.usuario_validador === 'Luiz' ? 'Luiz Eduardo' : item.usuario_validador,
-  }));
+  let data = [...memoryDb].map(item => {
+    let validado_por = item.validado_por;
+    let usuario_validador = item.usuario_validador;
+
+    if (validado_por === 'Luiz') validado_por = 'Luiz Eduardo';
+    if (validado_por === 'Guilherme') validado_por = 'Guilherme de Almeida';
+
+    if (usuario_validador === 'Luiz') usuario_validador = 'Luiz Eduardo';
+    if (usuario_validador === 'Guilherme') usuario_validador = 'Guilherme de Almeida';
+
+    return {
+      ...item,
+      validado_por,
+      usuario_validador,
+    };
+  });
   if (filters?.estado && filters.estado !== 'ALL') {
     data = data.filter((item) => item.estado === filters.estado);
   }
