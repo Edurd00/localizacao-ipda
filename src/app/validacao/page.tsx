@@ -198,13 +198,23 @@ export default function ValidacaoPage() {
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
 
-  // Load tab from query params if present
+  // Load tab and status from query params if present
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
       if (tab === 'dashboard' || tab === 'upload' || tab === 'validation') {
         setActiveTab(tab as any);
+      }
+
+      const statusParam = params.get('status');
+      if (statusParam) {
+        let mappedStatus = statusParam;
+        if (statusParam === 'REVISAO_ENDERECO') {
+          mappedStatus = 'PENDENTE_REVISAO';
+        }
+        setFilterStatus(mappedStatus);
+        setActiveTab('validation');
       }
     }
   }, []);
@@ -1417,15 +1427,18 @@ export default function ValidacaoPage() {
                     <div>
                       <label className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 uppercase tracking-wider">
                         <User className="h-3 w-3 text-zinc-500" />
-                        Nome do Operador (Validador)
+                        Nome do Operador (Validador Autorizado)
                       </label>
-                      <input
-                        type="text"
-                        placeholder="Insira seu nome para assinar"
+                      <select
                         value={operator}
                         onChange={(e) => handleOperatorChange(e.target.value)}
-                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5 font-medium"
-                      />
+                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5 font-semibold text-zinc-800 dark:text-slate-100"
+                      >
+                        <option value="">Selecione o validador para assinar...</option>
+                        <option value="Luiz Eduardo">Luiz Eduardo</option>
+                        <option value="Caio Rodrigues">Caio Rodrigues</option>
+                        <option value="Guilherme">Guilherme</option>
+                      </select>
                     </div>
 
                     {/* Action buttons */}

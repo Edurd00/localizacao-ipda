@@ -21,6 +21,31 @@ import {
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
+function getInitials(name: string): string {
+  const clean = (name || '').trim();
+  if (!clean) return '?';
+  const parts = clean.split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return parts[0][0].toUpperCase();
+}
+
+function getAvatarBgColor(name: string): string {
+  const hash = Array.from(name || '').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colors = [
+    'bg-indigo-500 text-white',
+    'bg-emerald-500 text-white',
+    'bg-amber-500 text-zinc-950',
+    'bg-rose-500 text-white',
+    'bg-sky-500 text-white',
+    'bg-purple-500 text-white',
+    'bg-teal-500 text-white',
+    'bg-fuchsia-500 text-white',
+  ];
+  return colors[hash % colors.length];
+}
+
 interface DashboardViewProps {
   igrejas: Igreja[];
   states: string[];
@@ -215,19 +240,26 @@ export default function DashboardView({
       {/* KPI Cards Grid (5 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Churches */}
-        <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <div
+          onClick={() => onSelectStatusAndSwitch('ALL')}
+          className="bg-white border border-indigo-200 hover:border-indigo-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+        >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Total de Igrejas</p>
-              <h3 className="text-3xl font-black text-zinc-900 mt-1">{totalCount.toLocaleString('pt-BR')}</h3>
+              <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Total de Igrejas</p>
+              <h3 className="text-3xl font-black text-indigo-700 mt-1">{totalCount.toLocaleString('pt-BR')}</h3>
             </div>
-            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform">
               <Building2 className="h-6 w-6" />
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-center text-xs text-zinc-500">
-            <span>Cadastradas no sistema</span>
-            <span className="font-semibold text-zinc-800">100%</span>
+          <div className="mt-4 pt-3 border-t border-indigo-100 flex justify-between items-center text-xs">
+            <span className="text-indigo-700 font-medium group-hover:underline flex items-center gap-1">
+              Ver todas as igrejas <ArrowRight className="h-3 w-3" />
+            </span>
+            <span className="font-bold text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200 text-[10px]">
+              100%
+            </span>
           </div>
         </div>
 
@@ -305,7 +337,7 @@ export default function DashboardView({
 
         {/* Pending Revision */}
         <div
-          onClick={() => onSelectStatusAndSwitch('PENDENTE_REVISAO')}
+          onClick={() => onSelectStatusAndSwitch('REVISAO_ENDERECO')}
           className="bg-white border border-purple-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div className="flex justify-between items-start">
@@ -395,7 +427,7 @@ export default function DashboardView({
             <thead className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-200">
               <tr>
                 <th className="p-3">Assinatura / Nome do Validador</th>
-                <th className="p-3 text-center">Igrejas Validadas</th>
+                <th className="p-3 text-center">Igrejas Validadas (Participação %)</th>
                 <th className="p-3 text-right">Última Ação Realizada</th>
               </tr>
             </thead>
@@ -407,28 +439,38 @@ export default function DashboardView({
                   </td>
                 </tr>
               ) : (
-                validatorMetrics.map((val) => (
-                  <tr key={val.name} className="hover:bg-zinc-50 transition-colors">
-                    <td className="p-3 font-semibold text-zinc-900 flex items-center space-x-2">
-                      <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                        <User className="h-4 w-4" />
-                      </span>
-                      <span>{val.name}</span>
-                    </td>
-                    <td className="p-3 text-center font-bold text-emerald-600 font-mono">
-                      {val.total}
-                    </td>
-                    <td className="p-3 text-right font-medium text-zinc-500 font-mono">
-                      {val.lastAction ? new Date(val.lastAction).toLocaleString('pt-BR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      }) : 'N/A'}
-                    </td>
-                  </tr>
-                ))
+                validatorMetrics.map((val) => {
+                  const percentage = validadasCount > 0 ? ((val.total / validadasCount) * 100).toFixed(1) : '0.0';
+                  const initials = getInitials(val.name);
+                  const avatarBg = getAvatarBgColor(val.name);
+                  return (
+                    <tr key={val.name} className="hover:bg-zinc-50 transition-colors">
+                      <td className="p-3 font-semibold text-zinc-900 flex items-center space-x-2">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-inner ${avatarBg}`}>
+                          {initials}
+                        </span>
+                        <span>{val.name}</span>
+                      </td>
+                      <td className="p-3 text-center font-mono">
+                        <div className="flex items-center justify-center space-x-2">
+                          <span className="font-bold text-zinc-800">{val.total.toLocaleString('pt-BR')}</span>
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-150 font-bold">
+                            {percentage}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-right font-medium text-zinc-500 font-mono">
+                        {val.lastAction ? new Date(val.lastAction).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }) : 'N/A'}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
