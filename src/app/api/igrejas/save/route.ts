@@ -23,6 +23,13 @@ export async function POST(request: Request) {
     if (usuario_validador !== undefined) updates.usuario_validador = usuario_validador;
     if (link_google_maps !== undefined) updates.link_google_maps = link_google_maps;
 
+    if (status === 'VALIDADO') {
+      if (usuario_validador !== undefined) {
+        updates.validado_por = usuario_validador;
+      }
+      updates.validado_em = new Date().toISOString();
+    }
+
     await saveIgrejaSingle(codigo_totvs, updates);
 
     // On-demand revalidation

@@ -16,8 +16,10 @@ import {
   Loader2,
   ArrowRight,
   Filter,
+  User,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 
 interface DashboardViewProps {
   igrejas: Igreja[];
@@ -52,6 +54,35 @@ export default function DashboardView({
   const pendentesPct = totalCount > 0 ? ((pendentesCount / totalCount) * 100).toFixed(1) : '0.0';
   const duvidasPct = totalCount > 0 ? ((duvidasCount / totalCount) * 100).toFixed(1) : '0.0';
   const revisoesPct = totalCount > 0 ? ((revisoesCount / totalCount) * 100).toFixed(1) : '0.0';
+
+  // Validator Metrics Calculation
+  const validatorMetrics = useMemo(() => {
+    const map = new Map<string, { name: string; total: number; lastAction: string }>();
+
+    igrejas.forEach((ig) => {
+      // Group by signature, prioritizing validado_por, falling back to usuario_validador
+      const validator = ig.validado_por || ig.usuario_validador;
+      if (validator && (ig.status as string) === 'VALIDADO') {
+        const valName = validator.trim();
+        if (!map.has(valName)) {
+          map.set(valName, { name: valName, total: 0, lastAction: '' });
+        }
+        const item = map.get(valName)!;
+        item.total += 1;
+
+        const dateStr = ig.validado_em || ig.updated_at;
+        if (dateStr) {
+          if (!item.lastAction || new Date(dateStr) > new Date(item.lastAction)) {
+            item.lastAction = dateStr;
+          }
+        }
+      }
+    });
+
+    const list = Array.from(map.values());
+    list.sort((a, b) => b.total - a.total);
+    return list;
+  }, [igrejas]);
 
   // Per State Metrics Calculation
   const stateMetrics = useMemo(() => {
@@ -104,7 +135,7 @@ export default function DashboardView({
     }
 
     if (listToExport.length === 0) {
-      alert('Nenhum registro encontrado para exportar com o filtro selecionado.');
+      toast.error('Nenhum registro encontrado para exportar com o filtro selecionado.');
       return;
     }
 
@@ -218,8 +249,8 @@ export default function DashboardView({
             <span className="text-emerald-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              {validadasPct}%
+            <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 text-[10px]">
+              {validadasPct}% do total
             </span>
           </div>
         </div>
@@ -242,8 +273,8 @@ export default function DashboardView({
             <span className="text-amber-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-              {pendentesPct}%
+            <span className="font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 text-[10px]">
+              {pendentesPct}% do total
             </span>
           </div>
         </div>
@@ -266,8 +297,8 @@ export default function DashboardView({
             <span className="text-rose-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-              {duvidasPct}%
+            <span className="font-bold text-rose-800 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 text-[10px]">
+              {duvidasPct}% do total
             </span>
           </div>
         </div>
@@ -290,8 +321,8 @@ export default function DashboardView({
             <span className="text-purple-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-              {revisoesPct}%
+            <span className="font-bold text-purple-800 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200 text-[10px]">
+              {revisoesPct}% do total
             </span>
           </div>
         </div>
@@ -344,6 +375,63 @@ export default function DashboardView({
             </span>
           </div>
           <span>Total: {totalCount} igrejas</span>
+        </div>
+      </div>
+
+      {/* Validator Productivity Section */}
+      <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="pb-2 border-b border-zinc-100">
+          <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+            <User className="h-4 w-4 text-indigo-600" />
+            Produtividade por Validador (Assinatura)
+          </h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Acompanhamento das metas de validação de endereços e geocodificação executadas por operador
+          </p>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-zinc-200">
+          <table className="w-full text-left text-xs text-zinc-700">
+            <thead className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-200">
+              <tr>
+                <th className="p-3">Assinatura / Nome do Validador</th>
+                <th className="p-3 text-center">Igrejas Validadas</th>
+                <th className="p-3 text-right">Última Ação Realizada</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {validatorMetrics.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="p-6 text-center text-zinc-400 italic">
+                    Nenhuma validação registrada por assinatura até o momento.
+                  </td>
+                </tr>
+              ) : (
+                validatorMetrics.map((val) => (
+                  <tr key={val.name} className="hover:bg-zinc-50 transition-colors">
+                    <td className="p-3 font-semibold text-zinc-900 flex items-center space-x-2">
+                      <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <User className="h-4 w-4" />
+                      </span>
+                      <span>{val.name}</span>
+                    </td>
+                    <td className="p-3 text-center font-bold text-emerald-600 font-mono">
+                      {val.total}
+                    </td>
+                    <td className="p-3 text-right font-medium text-zinc-500 font-mono">
+                      {val.lastAction ? new Date(val.lastAction).toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }) : 'N/A'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
