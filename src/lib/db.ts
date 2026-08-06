@@ -140,6 +140,16 @@ async function ensurePostgresTable() {
         console.warn('Retroactive porte correction failed (non-fatal):', retroErr);
       }
 
+      // ---------------------------------------------------------------
+      // Validator Name Fusion Migration ('Luiz' -> 'Luiz Eduardo')
+      // ---------------------------------------------------------------
+      try {
+        await client.query(`UPDATE igrejas SET validado_por = 'Luiz Eduardo' WHERE validado_por = 'Luiz';`);
+        await client.query(`UPDATE igrejas SET usuario_validador = 'Luiz Eduardo' WHERE usuario_validador = 'Luiz';`);
+      } catch (fuseErr) {
+        console.warn('Validator name fusion failed (non-fatal):', fuseErr);
+      }
+
       isTableInitialized = true;
     } finally {
       client.release();
@@ -201,7 +211,11 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
   }
 
   // Fallback to In-Memory DB
-  let data = [...memoryDb];
+  let data = [...memoryDb].map(item => ({
+    ...item,
+    validado_por: item.validado_por === 'Luiz' ? 'Luiz Eduardo' : item.validado_por,
+    usuario_validador: item.usuario_validador === 'Luiz' ? 'Luiz Eduardo' : item.usuario_validador,
+  }));
   if (filters?.estado && filters.estado !== 'ALL') {
     data = data.filter((item) => item.estado === filters.estado);
   }

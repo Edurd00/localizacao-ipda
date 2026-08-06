@@ -7,6 +7,7 @@ import { Toaster, toast } from 'sonner';
 import SpreadsheetUpload from '@/components/SpreadsheetUpload';
 import MapWrapper from '@/components/MapWrapper';
 import DashboardView from '@/components/DashboardView';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { Igreja } from '@/lib/db';
 import { normalizeUF, isResultInState } from '@/lib/geocoding';
 import {
@@ -197,13 +198,23 @@ export default function ValidacaoPage() {
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
 
-  // Load tab from query params if present
+  // Load tab and status from query params if present
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
       if (tab === 'dashboard' || tab === 'upload' || tab === 'validation') {
         setActiveTab(tab as any);
+      }
+
+      const statusParam = params.get('status');
+      if (statusParam) {
+        let mappedStatus = statusParam;
+        if (statusParam === 'REVISAO_ENDERECO') {
+          mappedStatus = 'PENDENTE_REVISAO';
+        }
+        setFilterStatus(mappedStatus);
+        setActiveTab('validation');
       }
     }
   }, []);
@@ -237,6 +248,9 @@ export default function ValidacaoPage() {
 
   // Fallback Geocoding Cascade states
   const [precision, setPrecision] = useState<'EXACT' | 'APPROX' | 'APPROX_MUNICIPIO' | 'NOT_FOUND'>('NOT_FOUND');
+
+  // Revision Rejection states
+  const [showRejectRevisionConfirm, setShowRejectRevisionConfirm] = useState<boolean>(false);
   const [geocodingLoading, setGeocodingLoading] = useState<boolean>(false);
 
   // Dirigente Link Extractor state
@@ -267,6 +281,39 @@ export default function ValidacaoPage() {
   useEffect(() => {
     setIsRevalidating(false);
   }, [currentIndex]);
+
+  const handleRejectRevision = async () => {
+    if (!currentIgreja) return;
+    try {
+      const response = await fetch('/api/igrejas/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigo_totvs: currentIgreja.codigo_totvs,
+          status: 'VALIDADO',
+          usuario_validador: operator.trim() || 'Validador',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao rejeitar alteração no servidor');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`Alteração para a igreja ${currentIgreja.codigo_totvs} rejeitada com sucesso. O endereço e as coordenadas validadas foram mantidos.`);
+
+        // Go to next church
+        const nextIdx = Math.min(currentIndex + 1, filteredIgrejasList.length - 1);
+        await fetchIgrejas(true, filteredIgrejasList[nextIdx]?.codigo_totvs);
+      } else {
+        toast.error('Falha ao rejeitar alteração: ' + (result.error || 'Erro desconhecido.'));
+      }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error('Erro ao rejeitar alteração: ' + errMsg);
+    }
+  };
 
   // Reset currentIndex when filterPorte changes
   useEffect(() => {
@@ -775,6 +822,21 @@ export default function ValidacaoPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-slate-950 flex flex-col font-sans text-zinc-900 dark:text-slate-100 transition-colors duration-200">
       {/* Toast Notification Container */}
       <Toaster position="top-right" richColors closeButton />
+
+      {/* Reject revision custom confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showRejectRevisionConfirm}
+        title="Rejeitar Alteração em Revisão"
+        message={`Deseja realmente rejeitar as alterações em revisão para a igreja "${currentIgreja?.desc_igreja}"? O status de validação será restaurado e as coordenadas originais serão mantidas intactas.`}
+        confirmLabel="Confirmar Rejeição"
+        cancelLabel="Cancelar"
+        onConfirm={async () => {
+          setShowRejectRevisionConfirm(false);
+          await handleRejectRevision();
+        }}
+        onCancel={() => setShowRejectRevisionConfirm(false)}
+        isDanger={true}
+      />
 
       {/* Confirmation Modal for Batch Geocode */}
       {showBatchModal && (
@@ -1365,36 +1427,53 @@ export default function ValidacaoPage() {
                     <div>
                       <label className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 uppercase tracking-wider">
                         <User className="h-3 w-3 text-zinc-500" />
-                        Nome do Operador (Validador)
+                        Nome do Operador (Validador Autorizado)
                       </label>
-                      <input
-                        type="text"
-                        placeholder="Insira seu nome para assinar"
+                      <select
                         value={operator}
                         onChange={(e) => handleOperatorChange(e.target.value)}
-                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5 font-medium"
-                      />
+                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5 font-semibold text-zinc-800 dark:text-slate-100"
+                      >
+                        <option value="">Selecione o validador para assinar...</option>
+                        <option value="Luiz Eduardo">Luiz Eduardo</option>
+                        <option value="Caio Rodrigues">Caio Rodrigues</option>
+                        <option value="Guilherme">Guilherme</option>
+                      </select>
                     </div>
 
                     {/* Action buttons */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleSaveAndNext('DUVIDA')}
-                        className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold rounded-xl flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-                      >
-                        <HelpCircle className="h-4 w-4 text-zinc-600" />
-                        <span>Marcar como Dúvida</span>
-                      </button>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveAndNext('DUVIDA')}
+                          className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold rounded-xl flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+                        >
+                          <HelpCircle className="h-4 w-4 text-zinc-600" />
+                          <span>Marcar como Dúvida</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleSaveAndNext('VALIDADO')}
-                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all active:scale-[0.98]"
-                      >
-                        <Check className="h-4 w-4" />
-                        <span>Salvar e Próxima</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveAndNext('VALIDADO')}
+                          className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all active:scale-[0.98]"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span>Salvar e Próxima</span>
+                        </button>
+                      </div>
+
+                      {/* Reject revision button when status is in revision */}
+                      {(currentIgreja?.status === 'PENDENTE_REVISAO' || currentIgreja?.status === 'REVISAO_ENDERECO') && (
+                        <button
+                          type="button"
+                          onClick={() => setShowRejectRevisionConfirm(true)}
+                          className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] shadow-2xs"
+                        >
+                          <X className="h-4 w-4" />
+                          <span>Rejeitar Alteração em Revisão</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

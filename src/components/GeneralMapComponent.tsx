@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -501,6 +502,10 @@ export default function GeneralMapComponent() {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Transfer Confirmation state
+  const [showTransferConfirm, setShowTransferConfirm] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<Igreja | null>(null);
+
   useEffect(() => {
     fetch('/api/auth/session')
       .then((res) => res.json())
@@ -608,13 +613,13 @@ export default function GeneralMapComponent() {
     }
   }, [sedeCandidataB]);
 
-  const handleTransferColigacao = async (candidata: Igreja) => {
-    if (!fixedDest) return;
-    const confirmTransfer = window.confirm(
-      `Deseja realmente transferir a coligação de "${fixedDest.desc_igreja}" para a nova sede "${candidata.desc_igreja}"?`
-    );
-    if (!confirmTransfer) return;
+  const handleTransferColigacao = (candidata: Igreja) => {
+    setSelectedCandidate(candidata);
+    setShowTransferConfirm(true);
+  };
 
+  const executeTransferColigacao = async (candidata: Igreja) => {
+    if (!fixedDest) return;
     try {
       const res = await fetch('/api/coligacoes/save', {
         method: 'POST',
@@ -1522,6 +1527,26 @@ export default function GeneralMapComponent() {
     <div className="flex flex-col h-screen overflow-hidden bg-zinc-50 relative">
       {/* Toast Notification Container */}
       <Toaster position="top-right" richColors closeButton />
+
+      {/* Custom Confirm Dialog for Transferring Coligacao */}
+      <ConfirmDialog
+        isOpen={showTransferConfirm}
+        title="Transferir Coligação"
+        message={`Deseja realmente transferir a coligação de "${fixedDest?.desc_igreja}" para a nova sede "${selectedCandidate?.desc_igreja}"?`}
+        confirmLabel="Confirmar Transferência"
+        cancelLabel="Cancelar"
+        onConfirm={async () => {
+          if (selectedCandidate) {
+            setShowTransferConfirm(false);
+            await executeTransferColigacao(selectedCandidate);
+          }
+        }}
+        onCancel={() => {
+          setShowTransferConfirm(false);
+          setSelectedCandidate(null);
+        }}
+        isDanger={false}
+      />
 
       {/* Modern Compact Floating Header Overlay (Floating Pill Bar centered with left/right free space) */}
       <header className="absolute top-2 left-1/2 -translate-x-1/2 w-[95%] md:w-[90%] max-w-6xl mx-auto mt-2 md:mt-3 z-[1020] bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-zinc-200 dark:border-slate-800 shadow-xl rounded-2xl md:rounded-full p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">

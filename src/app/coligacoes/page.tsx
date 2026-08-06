@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
 import { parseWorkbook, getPorte } from '@/lib/parser';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
@@ -98,6 +99,10 @@ export default function ColigacoesPage() {
   const [showDeactivateModal, setShowDeactivateModal] = useState<boolean>(false);
   const [reorganizationParentSearch, setReorganizationParentSearch] = useState<string>('');
   const [reorganizationParentId, setReorganizationParentId] = useState<string | null>(null);
+
+  // Custom ConfirmDialog states
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState<boolean>(false);
+  const [showRemoveColigacaoConfirm, setShowRemoveColigacaoConfirm] = useState<boolean>(false);
 
   // Spreadsheet Upload local states
   const [uploadProgress, setUploadProgress] = useState<{
@@ -382,8 +387,19 @@ export default function ColigacoesPage() {
   };
 
   // Save changes to selected church
-  const handleSaveDetails = async () => {
+  const handleSaveDetails = async (bypassConfirm: any = false) => {
     if (!selectedChurch) return;
+
+    // Check if coligacao was removed (was non-empty, now is empty/null)
+    const wasColigada = !!selectedChurch.codigo_totvs_pai;
+    const isColigadaNow = !!editParentId;
+
+    const shouldBypass = typeof bypassConfirm === 'boolean' ? bypassConfirm : false;
+
+    if (wasColigada && !isColigadaNow && !shouldBypass) {
+      setShowRemoveColigacaoConfirm(true);
+      return;
+    }
 
     setSavingDetails(true);
     try {
@@ -403,7 +419,7 @@ export default function ColigacoesPage() {
       const data = await res.json();
 
       if (data.success) {
-        toast.success('Igreja atualizada com sucesso no banco!');
+        toast.success(`Igreja ${selectedChurch.codigo_totvs} atualizada com sucesso!`);
         await fetchAllData(selectedChurch.codigo_totvs);
       } else {
         toast.error(data.error || 'Erro ao salvar alterações.');
@@ -428,14 +444,8 @@ export default function ColigacoesPage() {
       setReorganizationParentId(null);
       setReorganizationParentSearch('');
     } else {
-      // Standard deactivation confirmation
-      if (
-        confirm(
-          `Deseja realmente desativar a igreja "${selectedChurch.desc_igreja}"? Ela será ocultada de todos os mapas.`
-        )
-      ) {
-        executeDeactivation(null);
-      }
+      // Standard deactivation confirmation with beautiful custom dialog
+      setShowDeactivateConfirm(true);
     }
   };
 
@@ -659,6 +669,36 @@ export default function ColigacoesPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-slate-950 flex flex-col font-sans text-zinc-900 dark:text-slate-100 transition-colors duration-200">
       <Toaster position="top-right" richColors closeButton />
+
+      {/* Custom Confirm Dialog for Deactivation */}
+      <ConfirmDialog
+        isOpen={showDeactivateConfirm}
+        title="Confirmar Inativação"
+        message={`Deseja realmente desativar a igreja "${selectedChurch?.desc_igreja}"? Ela será ocultada de todos os mapas e este processo é irreversível.`}
+        confirmLabel="Confirmar Inativação"
+        cancelLabel="Cancelar"
+        onConfirm={async () => {
+          setShowDeactivateConfirm(false);
+          await executeDeactivation(null);
+        }}
+        onCancel={() => setShowDeactivateConfirm(false)}
+        isDanger={true}
+      />
+
+      {/* Custom Confirm Dialog for Coligacao Removal */}
+      <ConfirmDialog
+        isOpen={showRemoveColigacaoConfirm}
+        title="Remover Coligação"
+        message={`Deseja realmente remover o vínculo de coligação da igreja "${selectedChurch?.desc_igreja}"? Ela não responderá mais a nenhuma igreja superior.`}
+        confirmLabel="Confirmar Remoção"
+        cancelLabel="Cancelar"
+        onConfirm={async () => {
+          setShowRemoveColigacaoConfirm(false);
+          await handleSaveDetails(true);
+        }}
+        onCancel={() => setShowRemoveColigacaoConfirm(false)}
+        isDanger={true}
+      />
 
       {/* Mandatory Transfer / Reorganization Modal */}
       {showDeactivateModal && selectedChurch && (

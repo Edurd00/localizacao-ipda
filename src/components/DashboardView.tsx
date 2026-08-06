@@ -16,8 +16,35 @@ import {
   Loader2,
   ArrowRight,
   Filter,
+  User,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
+
+function getInitials(name: string): string {
+  const clean = (name || '').trim();
+  if (!clean) return '?';
+  const parts = clean.split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return parts[0][0].toUpperCase();
+}
+
+function getAvatarBgColor(name: string): string {
+  const hash = Array.from(name || '').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colors = [
+    'bg-indigo-500 text-white',
+    'bg-emerald-500 text-white',
+    'bg-amber-500 text-zinc-950',
+    'bg-rose-500 text-white',
+    'bg-sky-500 text-white',
+    'bg-purple-500 text-white',
+    'bg-teal-500 text-white',
+    'bg-fuchsia-500 text-white',
+  ];
+  return colors[hash % colors.length];
+}
 
 interface DashboardViewProps {
   igrejas: Igreja[];
@@ -52,6 +79,35 @@ export default function DashboardView({
   const pendentesPct = totalCount > 0 ? ((pendentesCount / totalCount) * 100).toFixed(1) : '0.0';
   const duvidasPct = totalCount > 0 ? ((duvidasCount / totalCount) * 100).toFixed(1) : '0.0';
   const revisoesPct = totalCount > 0 ? ((revisoesCount / totalCount) * 100).toFixed(1) : '0.0';
+
+  // Validator Metrics Calculation
+  const validatorMetrics = useMemo(() => {
+    const map = new Map<string, { name: string; total: number; lastAction: string }>();
+
+    igrejas.forEach((ig) => {
+      // Group by signature, prioritizing validado_por, falling back to usuario_validador
+      const validator = ig.validado_por || ig.usuario_validador;
+      if (validator && (ig.status as string) === 'VALIDADO') {
+        const valName = validator.trim();
+        if (!map.has(valName)) {
+          map.set(valName, { name: valName, total: 0, lastAction: '' });
+        }
+        const item = map.get(valName)!;
+        item.total += 1;
+
+        const dateStr = ig.validado_em || ig.updated_at;
+        if (dateStr) {
+          if (!item.lastAction || new Date(dateStr) > new Date(item.lastAction)) {
+            item.lastAction = dateStr;
+          }
+        }
+      }
+    });
+
+    const list = Array.from(map.values());
+    list.sort((a, b) => b.total - a.total);
+    return list;
+  }, [igrejas]);
 
   // Per State Metrics Calculation
   const stateMetrics = useMemo(() => {
@@ -104,7 +160,7 @@ export default function DashboardView({
     }
 
     if (listToExport.length === 0) {
-      alert('Nenhum registro encontrado para exportar com o filtro selecionado.');
+      toast.error('Nenhum registro encontrado para exportar com o filtro selecionado.');
       return;
     }
 
@@ -184,19 +240,26 @@ export default function DashboardView({
       {/* KPI Cards Grid (5 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Churches */}
-        <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <div
+          onClick={() => onSelectStatusAndSwitch('ALL')}
+          className="bg-white border border-indigo-200 hover:border-indigo-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+        >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Total de Igrejas</p>
-              <h3 className="text-3xl font-black text-zinc-900 mt-1">{totalCount.toLocaleString('pt-BR')}</h3>
+              <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Total de Igrejas</p>
+              <h3 className="text-3xl font-black text-indigo-700 mt-1">{totalCount.toLocaleString('pt-BR')}</h3>
             </div>
-            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform">
               <Building2 className="h-6 w-6" />
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-center text-xs text-zinc-500">
-            <span>Cadastradas no sistema</span>
-            <span className="font-semibold text-zinc-800">100%</span>
+          <div className="mt-4 pt-3 border-t border-indigo-100 flex justify-between items-center text-xs">
+            <span className="text-indigo-700 font-medium group-hover:underline flex items-center gap-1">
+              Ver todas as igrejas <ArrowRight className="h-3 w-3" />
+            </span>
+            <span className="font-bold text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200 text-[10px]">
+              100%
+            </span>
           </div>
         </div>
 
@@ -218,8 +281,8 @@ export default function DashboardView({
             <span className="text-emerald-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              {validadasPct}%
+            <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 text-[10px]">
+              {validadasPct}% do total
             </span>
           </div>
         </div>
@@ -242,8 +305,8 @@ export default function DashboardView({
             <span className="text-amber-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-              {pendentesPct}%
+            <span className="font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 text-[10px]">
+              {pendentesPct}% do total
             </span>
           </div>
         </div>
@@ -266,15 +329,15 @@ export default function DashboardView({
             <span className="text-rose-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-              {duvidasPct}%
+            <span className="font-bold text-rose-800 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 text-[10px]">
+              {duvidasPct}% do total
             </span>
           </div>
         </div>
 
         {/* Pending Revision */}
         <div
-          onClick={() => onSelectStatusAndSwitch('PENDENTE_REVISAO')}
+          onClick={() => onSelectStatusAndSwitch('REVISAO_ENDERECO')}
           className="bg-white border border-purple-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div className="flex justify-between items-start">
@@ -290,8 +353,8 @@ export default function DashboardView({
             <span className="text-purple-700 font-medium group-hover:underline flex items-center gap-1">
               Filtrar no painel <ArrowRight className="h-3 w-3" />
             </span>
-            <span className="font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-              {revisoesPct}%
+            <span className="font-bold text-purple-800 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200 text-[10px]">
+              {revisoesPct}% do total
             </span>
           </div>
         </div>
@@ -344,6 +407,73 @@ export default function DashboardView({
             </span>
           </div>
           <span>Total: {totalCount} igrejas</span>
+        </div>
+      </div>
+
+      {/* Validator Productivity Section */}
+      <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="pb-2 border-b border-zinc-100">
+          <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+            <User className="h-4 w-4 text-indigo-600" />
+            Produtividade por Validador (Assinatura)
+          </h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Acompanhamento das metas de validação de endereços e geocodificação executadas por operador
+          </p>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-zinc-200">
+          <table className="w-full text-left text-xs text-zinc-700">
+            <thead className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-200">
+              <tr>
+                <th className="p-3">Assinatura / Nome do Validador</th>
+                <th className="p-3 text-center">Igrejas Validadas (Participação %)</th>
+                <th className="p-3 text-right">Última Ação Realizada</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {validatorMetrics.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="p-6 text-center text-zinc-400 italic">
+                    Nenhuma validação registrada por assinatura até o momento.
+                  </td>
+                </tr>
+              ) : (
+                validatorMetrics.map((val) => {
+                  const percentage = validadasCount > 0 ? ((val.total / validadasCount) * 100).toFixed(1) : '0.0';
+                  const initials = getInitials(val.name);
+                  const avatarBg = getAvatarBgColor(val.name);
+                  return (
+                    <tr key={val.name} className="hover:bg-zinc-50 transition-colors">
+                      <td className="p-3 font-semibold text-zinc-900 flex items-center space-x-2">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-inner ${avatarBg}`}>
+                          {initials}
+                        </span>
+                        <span>{val.name}</span>
+                      </td>
+                      <td className="p-3 text-center font-mono">
+                        <div className="flex items-center justify-center space-x-2">
+                          <span className="font-bold text-zinc-800">{val.total.toLocaleString('pt-BR')}</span>
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-150 font-bold">
+                            {percentage}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-right font-medium text-zinc-500 font-mono">
+                        {val.lastAction ? new Date(val.lastAction).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }) : 'N/A'}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
