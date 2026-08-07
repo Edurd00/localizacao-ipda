@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -1021,11 +1021,15 @@ export default function GeneralMapComponent() {
   // Filter States
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      setSearchQuery(searchInput);
-    }, 300);
+      const trimmed = searchInput.trim();
+      if (trimmed.length >= 2 || trimmed.length === 0) {
+        setSearchQuery(searchInput);
+      }
+    }, 150);
 
     return () => {
       clearTimeout(handler);
@@ -1189,8 +1193,8 @@ export default function GeneralMapComponent() {
       }
 
       // 5. Search Text Filter (TOTVS or Name)
-      if (searchQuery.trim()) {
-        const query = searchQuery.trim().toLowerCase();
+      if (deferredSearchQuery.trim()) {
+        const query = deferredSearchQuery.trim().toLowerCase();
         const normQueryTotvs = normalizeTotvs(query);
         const normIgTotvs = normalizeTotvs(ig.codigo_totvs);
 
@@ -1207,8 +1211,8 @@ export default function GeneralMapComponent() {
     });
 
     // Exact Match First Sorting & Secondary Text Match Fallback logic
-    if (searchQuery.trim()) {
-      const termNorm = normalizeTotvs(searchQuery);
+    if (deferredSearchQuery.trim()) {
+      const termNorm = normalizeTotvs(deferredSearchQuery);
       const isSearchNumeric = /^\d+$/.test(termNorm);
 
       // 1. If searching numerically, check for exact TOTVS match
@@ -1234,7 +1238,7 @@ export default function GeneralMapComponent() {
     }
 
     return rawFiltered;
-  }, [igrejas, selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes, searchQuery]);
+  }, [igrejas, selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes, deferredSearchQuery]);
 
   // Handle selected reference Estadual change
   const handleSelectEstadual = (totvs: string) => {
