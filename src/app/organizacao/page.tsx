@@ -296,26 +296,11 @@ export default function OrganizacaoPage() {
   }, [selectedRegion, selectedStateFilter]);
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [searchInput, setSearchInput] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      const trimmed = searchInput.trim();
-      if (trimmed.length >= 2 || trimmed.length === 0) {
-        setSearchTerm(searchInput);
-      }
-    }, 150);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchInput]);
-
-  useEffect(() => {
-    if (deferredSearchTerm.trim().length > 1) {
-      const query = deferredSearchTerm.trim().toLowerCase();
+    const query = searchInput.trim().toLowerCase();
+    if (query.length >= 2) {
       const matched = churches.filter(
         (ig) =>
           ig.codigo_totvs.toLowerCase().includes(query) ||
@@ -335,7 +320,7 @@ export default function OrganizacaoPage() {
       });
       setExpandedNodes(newSet);
     }
-  }, [deferredSearchTerm, churches]);
+  }, [searchInput, churches]);
 
   // Load available distinct states on mount
   useEffect(() => {
@@ -512,16 +497,17 @@ export default function OrganizacaoPage() {
 
   // Compute matching nodes for search highlights & expand their ancestors
   const filteredChurchesList = useMemo(() => {
-    if (!deferredSearchTerm.trim()) return [];
-    const term = deferredSearchTerm.trim().toLowerCase();
-    return churches.filter(
+    const term = searchInput.trim().toLowerCase();
+    if (term.length < 2) return [];
+    const matches = churches.filter(
       (ig) =>
         (allowedUFsInRegion.includes(ig.estado) || ig.codigo_totvs_pai) && // inside region or part of the tree
         (ig.codigo_totvs.toLowerCase().includes(term) ||
          ig.desc_igreja.toLowerCase().includes(term) ||
          (ig.municipio || '').toLowerCase().includes(term))
     );
-  }, [churches, deferredSearchTerm, allowedUFsInRegion]);
+    return matches.slice(0, 8);
+  }, [churches, searchInput, allowedUFsInRegion]);
 
   // Handle locating church on General Map (replaces standard relative href to avoid complete page reloads)
   const handleLocateOnMap = (code: string) => {
@@ -861,7 +847,7 @@ export default function OrganizacaoPage() {
             </div>
           </div>
 
-          {deferredSearchTerm.trim() && filteredChurchesList.length > 0 && (
+          {searchInput.trim().length >= 2 && filteredChurchesList.length > 0 && (
             <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-900 rounded-xl space-y-2">
               <span className="text-[10px] font-black text-indigo-900 dark:text-indigo-350 uppercase tracking-wider block">
                 🔍 Resultados Encontrados ({filteredChurchesList.length}):

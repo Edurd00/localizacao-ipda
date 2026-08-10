@@ -1162,7 +1162,7 @@ export default function GeneralMapComponent() {
       return a.desc_igreja.localeCompare(b.desc_igreja);
     });
 
-    return matches.slice(0, 10);
+    return matches.slice(0, 8);
   }, [igrejas, searchInput]);
 
   // Compute filtered churches list in-realtime with other filters
