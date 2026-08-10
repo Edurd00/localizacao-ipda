@@ -1020,21 +1020,7 @@ export default function GeneralMapComponent() {
 
   // Filter States
   const [searchInput, setSearchInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const deferredSearchQuery = useDeferredValue(searchQuery);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      const trimmed = searchInput.trim();
-      if (trimmed.length >= 2 || trimmed.length === 0) {
-        setSearchQuery(searchInput);
-      }
-    }, 150);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchInput]);
+  const [suggestionsClosed, setSuggestionsClosed] = useState(true);
 
   const [selectedRegionGeo, setSelectedRegionGeo] = useState<string>('ALL');
   const [selectedUF, setSelectedUF] = useState('ALL');
@@ -1147,9 +1133,41 @@ export default function GeneralMapComponent() {
     return ufs.sort();
   }, [igrejas, selectedRegionGeo]);
 
-  // Compute filtered churches list in-realtime with exact match prioritization
+  // Compute Autocomplete suggestions list (dropdown) in-realtime
+  const suggestions = useMemo(() => {
+    const term = searchInput.trim().toLowerCase();
+    if (term.length < 2) return [];
+
+    const termNorm = normalizeTotvs(term);
+
+    const matches = igrejas.filter((ig) => {
+      const normIg = normalizeTotvs(ig.codigo_totvs);
+      const codeMatch = normIg === termNorm || ig.codigo_totvs.toLowerCase().includes(term);
+      const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
+      const addressMatch = (ig.endereco || '').toLowerCase().includes(term);
+      const cityMatch = (ig.municipio || '').toLowerCase().includes(term);
+      return codeMatch || nameMatch || addressMatch || cityMatch;
+    });
+
+    // Sort exact matches to the top
+    matches.sort((a, b) => {
+      const aNorm = normalizeTotvs(a.codigo_totvs);
+      const bNorm = normalizeTotvs(b.codigo_totvs);
+
+      const aExact = aNorm === termNorm;
+      const bExact = bNorm === termNorm;
+
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return a.desc_igreja.localeCompare(b.desc_igreja);
+    });
+
+    return matches.slice(0, 10);
+  }, [igrejas, searchInput]);
+
+  // Compute filtered churches list in-realtime with other filters
   const filteredIgrejas = useMemo(() => {
-    const rawFiltered = igrejas.filter((ig) => {
+    return igrejas.filter((ig) => {
       // 1. Coordinates validation
       if (ig.latitude === null || ig.longitude === null || ig.latitude === 0 || ig.longitude === 0) {
         return false;
@@ -1192,53 +1210,21 @@ export default function GeneralMapComponent() {
         return false;
       }
 
-      // 5. Search Text Filter (TOTVS or Name)
-      if (deferredSearchQuery.trim()) {
-        const query = deferredSearchQuery.trim().toLowerCase();
-        const normQueryTotvs = normalizeTotvs(query);
-        const normIgTotvs = normalizeTotvs(ig.codigo_totvs);
-
-        const codeMatch = normIgTotvs === normQueryTotvs || ig.codigo_totvs.toLowerCase().includes(query);
-        const nameMatch = ig.desc_igreja.toLowerCase().includes(query);
-        const addressMatch = (ig.endereco || '').toLowerCase().includes(query);
-        const cityMatch = (ig.municipio || '').toLowerCase().includes(query);
-        if (!codeMatch && !nameMatch && !addressMatch && !cityMatch) {
-          return false;
-        }
-      }
-
       return true;
     });
+  }, [igrejas, selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes]);
 
-    // Exact Match First Sorting & Secondary Text Match Fallback logic
-    if (deferredSearchQuery.trim()) {
-      const termNorm = normalizeTotvs(deferredSearchQuery);
-      const isSearchNumeric = /^\d+$/.test(termNorm);
-
-      // 1. If searching numerically, check for exact TOTVS match
-      if (isSearchNumeric) {
-        const exactMatch = rawFiltered.find((ig) => normalizeTotvs(ig.codigo_totvs) === termNorm);
-        if (exactMatch) {
-          return [exactMatch];
-        }
-      }
-
-      // 2. Otherwise sort exact TOTVS code matches to the absolute top, fallback secondary matches
-      return [...rawFiltered].sort((a, b) => {
-        const aNorm = normalizeTotvs(a.codigo_totvs);
-        const bNorm = normalizeTotvs(b.codigo_totvs);
-
-        const aExact = aNorm === termNorm;
-        const bExact = bNorm === termNorm;
-
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
-        return a.desc_igreja.localeCompare(b.desc_igreja);
+  const handleSelectSuggestion = (ig: Igreja) => {
+    if (ig.latitude && ig.longitude) {
+      setFlyToTarget({
+        center: [ig.latitude, ig.longitude],
+        zoom: 16,
+        totvs: ig.codigo_totvs,
       });
+      setSearchInput(ig.desc_igreja);
+      setSuggestionsClosed(true);
     }
-
-    return rawFiltered;
-  }, [igrejas, selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes, deferredSearchQuery]);
+  };
 
   // Handle selected reference Estadual change
   const handleSelectEstadual = (totvs: string) => {
@@ -1516,7 +1502,7 @@ export default function GeneralMapComponent() {
 
   const handleResetFilters = () => {
     setSearchInput('');
-    setSearchQuery('');
+    setSuggestionsClosed(true);
     setSelectedRegionGeo('ALL');
     setSelectedUF('ALL');
     setSelectedTipoImovel('ALL');
@@ -1574,24 +1560,75 @@ export default function GeneralMapComponent() {
           </span>
         </div>
 
-        {/* Center Section: Compact Quick Search */}
+        {/* Center Section: Compact Quick Search with Autocomplete */}
         <div className="relative w-full md:max-w-md flex-1">
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Buscar por código TOTVS, nome, rua ou município..."
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setSuggestionsClosed(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (suggestions.length > 0) {
+                  handleSelectSuggestion(suggestions[0]);
+                }
+              }
+            }}
             className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-all"
           />
           {searchInput && (
             <button
               type="button"
-              onClick={() => setSearchInput('')}
+              onClick={() => {
+                setSearchInput('');
+                setSuggestionsClosed(true);
+                setFlyToTarget(null);
+              }}
               className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
             >
               <X className="h-3.5 w-3.5" />
             </button>
+          )}
+
+          {/* Autocomplete Dropdown List */}
+          {!suggestionsClosed && suggestions.length > 0 && (
+            <div className="absolute top-11 left-0 right-0 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[5000] divide-y divide-zinc-100 dark:divide-slate-800 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+              {suggestions.map((ig) => {
+                const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+                const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
+                return (
+                  <button
+                    key={ig.codigo_totvs}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(ig)}
+                    className="w-full text-left p-3 hover:bg-zinc-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-xs text-zinc-800 dark:text-slate-200 font-medium"
+                  >
+                    <div className="min-w-0 pr-3">
+                      <span className="font-bold text-zinc-950 dark:text-white block truncate leading-tight">
+                        {ig.desc_igreja}
+                      </span>
+                      <span className="text-[10px] text-zinc-400 dark:text-slate-500 mt-1 block">
+                        TOTVS: {ig.codigo_totvs} • {ig.municipio} - {ig.estado}
+                      </span>
+                    </div>
+                    <span
+                      className="text-[9px] font-bold px-2 py-0.5 rounded-full border text-white uppercase shrink-0"
+                      style={{
+                        backgroundColor: info.color,
+                        borderColor: 'rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      {porte}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 
@@ -1784,7 +1821,7 @@ export default function GeneralMapComponent() {
           </div>
 
           {/* Reset Filter Button */}
-          {(selectedRegionGeo !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchQuery) && (
+          {(selectedRegionGeo !== 'ALL' || selectedEstadual || selectedUF !== 'ALL' || selectedTipoImovel !== 'ALL' || selectedPortes.length > 0 || searchInput) && (
             <div className="pt-2 border-t border-zinc-150 flex justify-end">
               <button
                 onClick={handleResetFilters}
