@@ -37,7 +37,7 @@ Localizar/
 │   ├── components/             # Componentes de interface do usuário (UI)
 │   │   ├── MapComponent.tsx    # Componente de mapa Leaflet (Camadas Esri Satélite / OpenStreetMap e Marker arrastável)
 │   │   ├── MapWrapper.tsx      # Wrapper dynamic import (ssr: false) para carregar o Leaflet apenas no navegador
-│   │   ├── GeneralMapComponent.tsx # Painel principal do Mapa Geral (Filtros, Legenda retrátil, Malhas de conexão, Otimização de Performance)
+│   │   ├── GeneralMapComponent.tsx # Painel principal do Mapa Geral (Filtros, Legenda retrátil, Malhas de conexão, Otimização de Performance, Trava de Câmera)
 │   │   ├── DashboardView.tsx   # Dashboard analítico de progresso da validação
 │   │   └── SpreadsheetUpload.tsx # Drag & Drop e leitor de planilhas Excel/CSV com envio base64
 │   └── lib/                    # Camada de serviços, utilitários e dados
@@ -124,6 +124,7 @@ Damos suporte às relações hierárquicas através da coluna adicionada:
 
 ### 5. ⚡ Otimizações de Performance e Ajustes de UI no Mapa Geral
 - **Escrita Fluidíssima na Busca (60 FPS)**: O campo de busca de texto (`HeaderSearchBar`) foi isolado em componente próprio com estado local e `useTransition` (React 18), garantindo que a digitação seja 100% instantânea sem provocar re-renders síncronos da árvore de marcadores do Leaflet ou do DOM do mapa.
+- **Trava Anti-Bumerangue na Câmera**: Implementação da flag `preventAutoFit` no `MapController` e `RegionBoundsController`. Quando o usuário seleciona uma igreja na busca ou estadual de referência, a câmera realiza o `flyTo` com precisão e permanece fixa na igreja selecionada, bloqueando re-orientações automáticas involuntárias (`setView`/`fitBounds`) para a visão geral. A câmera só retorna à visão global quando o usuário clica explicitamente em "Limpar Filtros".
 - **Painel de Filtros Desacoplado via Portal**: O modal de Filtros Rápidos (`FiltersModal`) foi envolvido em um React Portal (`ReactDOM.createPortal`), desvinculando sua renderização do ciclo do mapa. Sua abertura e fechamento ocorrem instantaneamente (0ms de atraso) sem recalcular a camada geoespacial.
-- **Isolamento de Renderização com `React.memo`**: O mapa geoespacial (`MemoizedMapView`) foi isolado e memoizado, garantindo que digitações no cabeçalho ou interações com modais não provocação reconciliações desnecessárias dos marcadores e clusters ao fundo.
+- **Isolamento de Renderização com `React.memo`**: O mapa geoespacial (`MemoizedMapView`) foi isolado e memoizado, garantindo que digitações no cabeçalho ou interações com modais não provoquem reconciliações desnecessárias dos marcadores e clusters ao fundo.
 - **Ajuste de Posição e Profundidade do Botão "Remover Malha"**: O container de controles flutuantes no canto superior direito foi ajustado com espaçamento superior seguro (`top-36 md:top-24`) e camada de profundidade coerente (`z-[1025]`), impedindo que a ação "Remover Malha / Limpar Linhas" ou a seleção de camada (Satélite/OSM) fiquem ocultas ou sobrepostas pela barra de navegação superior fixada (`Header`).

@@ -251,6 +251,7 @@ function MapController({
   onFlyToComplete,
   region,
   hasActiveRouteOrMesh,
+  preventAutoFit,
 }: {
   center: [number, number];
   zoom: number;
@@ -258,6 +259,7 @@ function MapController({
   onFlyToComplete: () => void;
   region: string;
   hasActiveRouteOrMesh: boolean;
+  preventAutoFit: boolean;
 }) {
   const map = useMap();
   useEffect(() => {
@@ -270,13 +272,13 @@ function MapController({
         onFlyToComplete();
       }, 1600);
       return () => clearTimeout(timer);
-    } else if (region === 'ALL' && !hasActiveRouteOrMesh) {
+    } else if (region === 'ALL' && !hasActiveRouteOrMesh && !preventAutoFit) {
       map.setView(center, zoom, {
         animate: true,
         duration: 1.2,
       });
     }
-  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRouteOrMesh]);
+  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRouteOrMesh, preventAutoFit]);
   return null;
 }
 
@@ -285,14 +287,16 @@ function RegionBoundsController({
   region,
   igrejas,
   hasActiveRouteOrMesh,
+  preventAutoFit,
 }: {
   region: string;
   igrejas: Igreja[];
   hasActiveRouteOrMesh: boolean;
+  preventAutoFit: boolean;
 }) {
   const map = useMap();
   useEffect(() => {
-    if (!region || region === 'ALL' || hasActiveRouteOrMesh) return;
+    if (!region || region === 'ALL' || hasActiveRouteOrMesh || preventAutoFit) return;
 
     const staticBounds = REGIAO_BOUNDS[region];
     if (staticBounds) {
@@ -318,7 +322,7 @@ function RegionBoundsController({
         }
       }
     }
-  }, [region, igrejas, map, hasActiveRouteOrMesh]);
+  }, [region, igrejas, map, hasActiveRouteOrMesh, preventAutoFit]);
   return null;
 }
 
@@ -797,6 +801,7 @@ interface MapViewProps {
   mapZoom: number;
   flyToTarget: { center: [number, number]; zoom: number; totvs: string } | null;
   onFlyToComplete: () => void;
+  preventAutoFit: boolean;
   selectedRegionGeo: string;
   selectedConnectionPath: [number, number][] | null;
   connectionPathSource: string | null;
@@ -843,6 +848,7 @@ const MemoizedMapView = memo(function MapView({
   mapZoom,
   flyToTarget,
   onFlyToComplete,
+  preventAutoFit,
   selectedRegionGeo,
   selectedConnectionPath,
   connectionPathSource,
@@ -1271,6 +1277,7 @@ const MemoizedMapView = memo(function MapView({
           flyToTarget={flyToTarget}
           region={selectedRegionGeo}
           hasActiveRouteOrMesh={!!routeMeta || comparisonMode || !!connectionPathSource}
+          preventAutoFit={preventAutoFit}
           onFlyToComplete={() => {
             if (flyToTarget) {
               const targetTotvs = flyToTarget.totvs;
@@ -1296,6 +1303,7 @@ const MemoizedMapView = memo(function MapView({
           region={selectedRegionGeo}
           igrejas={igrejas}
           hasActiveRouteOrMesh={!!routeMeta || comparisonMode || !!connectionPathSource}
+          preventAutoFit={preventAutoFit}
         />
 
         <MapBoundsController
@@ -1995,6 +2003,9 @@ export default function GeneralMapComponent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Camera lock flag to prevent boomerang reset when user searches or focuses a target
+  const [preventAutoFit, setPreventAutoFit] = useState(false);
+
   // OSRM terrestrial route states
   const [routePath, setRoutePath] = useState<[number, number][] | null>(null);
   const [routeMeta, setRouteMeta] = useState<RouteMeta | null>(null);
@@ -2222,12 +2233,18 @@ export default function GeneralMapComponent() {
     setSelectedRegionGeo(val);
     setSelectedEstadual('');
     setFlyToTarget(null);
+    setPreventAutoFit(false);
     if (val !== 'ALL') {
       const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[val] || [];
       if (selectedUF !== 'ALL' && !allowedUFs.includes(selectedUF)) {
         setSelectedUF('ALL');
       }
     }
+  };
+
+  const handleUFChange = (val: string) => {
+    setSelectedUF(val);
+    setPreventAutoFit(false);
   };
 
   // Map focus / flyTo target state
@@ -2285,6 +2302,7 @@ export default function GeneralMapComponent() {
         const normalizedParam = normalizeTotvs(totvsParam);
         const found = igrejas.find((ig) => normalizeTotvs(ig.codigo_totvs) === normalizedParam);
         if (found && found.latitude && found.longitude) {
+          setPreventAutoFit(true);
           setFlyToTarget({
             center: [found.latitude, found.longitude],
             zoom: 15,
@@ -2361,6 +2379,7 @@ export default function GeneralMapComponent() {
 
   const handleSelectSuggestion = (ig: Igreja) => {
     if (ig.latitude && ig.longitude) {
+      setPreventAutoFit(true);
       setFlyToTarget({
         center: [ig.latitude, ig.longitude],
         zoom: 16,
@@ -2383,6 +2402,7 @@ export default function GeneralMapComponent() {
     }
 
     if (found && found.latitude && found.longitude) {
+      setPreventAutoFit(true);
       setFlyToTarget({
         center: [found.latitude, found.longitude],
         zoom: 14,
@@ -2553,6 +2573,7 @@ export default function GeneralMapComponent() {
     setFlyToTarget(null);
     setSelectedConnectionPath(null);
     setConnectionPathSource(null);
+    setPreventAutoFit(false);
   };
 
   const hasActiveFilters =
@@ -2663,7 +2684,7 @@ export default function GeneralMapComponent() {
         selectedRegionGeo={selectedRegionGeo}
         onRegionGeoChange={handleRegionGeoChange}
         selectedUF={selectedUF}
-        onUFChange={setSelectedUF}
+        onUFChange={handleUFChange}
         distinctUFs={distinctUFs}
         selectedEstadual={selectedEstadual}
         onSelectEstadual={handleSelectEstadual}
@@ -2712,6 +2733,7 @@ export default function GeneralMapComponent() {
             mapZoom={mapZoom}
             flyToTarget={flyToTarget}
             onFlyToComplete={() => setFlyToTarget(null)}
+            preventAutoFit={preventAutoFit}
             selectedRegionGeo={selectedRegionGeo}
             selectedConnectionPath={selectedConnectionPath}
             connectionPathSource={connectionPathSource}
