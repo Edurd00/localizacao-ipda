@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue, useTransition } from 'react';
 import {
   ChevronRight,
   ChevronDown,
@@ -296,10 +296,12 @@ export default function OrganizacaoPage() {
   }, [selectedRegion, selectedStateFilter]);
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [searchInput, setSearchInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isPending, startTransition] = useTransition();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const query = searchInput.trim().toLowerCase();
+    const query = searchTerm.trim().toLowerCase();
     if (query.length >= 2) {
       const matched = churches.filter(
         (ig) =>
@@ -320,7 +322,7 @@ export default function OrganizacaoPage() {
       });
       setExpandedNodes(newSet);
     }
-  }, [searchInput, churches]);
+  }, [searchTerm, churches]);
 
   // Load available distinct states on mount
   useEffect(() => {
@@ -497,7 +499,7 @@ export default function OrganizacaoPage() {
 
   // Compute matching nodes for search highlights & expand their ancestors
   const filteredChurchesList = useMemo(() => {
-    const term = searchInput.trim().toLowerCase();
+    const term = searchTerm.trim().toLowerCase();
     if (term.length < 2) return [];
     const matches = churches.filter(
       (ig) =>
@@ -507,7 +509,7 @@ export default function OrganizacaoPage() {
          (ig.municipio || '').toLowerCase().includes(term))
     );
     return matches.slice(0, 8);
-  }, [churches, searchInput, allowedUFsInRegion]);
+  }, [churches, searchTerm, allowedUFsInRegion]);
 
   // Handle locating church on General Map (replaces standard relative href to avoid complete page reloads)
   const handleLocateOnMap = (code: string) => {
@@ -741,7 +743,13 @@ export default function OrganizacaoPage() {
                     type="text"
                     placeholder="Pesquisar por Código TOTVS, nome ou município..."
                     value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSearchInput(val);
+                      startTransition(() => {
+                        setSearchTerm(val);
+                      });
+                    }}
                     className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-750 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
@@ -847,7 +855,7 @@ export default function OrganizacaoPage() {
             </div>
           </div>
 
-          {searchInput.trim().length >= 2 && filteredChurchesList.length > 0 && (
+          {searchTerm.trim().length >= 2 && filteredChurchesList.length > 0 && (
             <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-900 rounded-xl space-y-2">
               <span className="text-[10px] font-black text-indigo-900 dark:text-indigo-350 uppercase tracking-wider block">
                 🔍 Resultados Encontrados ({filteredChurchesList.length}):

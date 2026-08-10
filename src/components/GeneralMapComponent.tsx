@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useDeferredValue, useTransition } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -1020,6 +1020,8 @@ export default function GeneralMapComponent() {
 
   // Filter States
   const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isPending, startTransition] = useTransition();
   const [suggestionsClosed, setSuggestionsClosed] = useState(true);
 
   const [selectedRegionGeo, setSelectedRegionGeo] = useState<string>('ALL');
@@ -1135,7 +1137,7 @@ export default function GeneralMapComponent() {
 
   // Compute Autocomplete suggestions list (dropdown) in-realtime
   const suggestions = useMemo(() => {
-    const term = searchInput.trim().toLowerCase();
+    const term = searchQuery.trim().toLowerCase();
     if (term.length < 2) return [];
 
     const termNorm = normalizeTotvs(term);
@@ -1163,7 +1165,7 @@ export default function GeneralMapComponent() {
     });
 
     return matches.slice(0, 8);
-  }, [igrejas, searchInput]);
+  }, [igrejas, searchQuery]);
 
   // Compute filtered churches list in-realtime with other filters
   const filteredIgrejas = useMemo(() => {
@@ -1223,6 +1225,9 @@ export default function GeneralMapComponent() {
       });
       setSearchInput(ig.desc_igreja);
       setSuggestionsClosed(true);
+      startTransition(() => {
+        setSearchQuery(ig.desc_igreja);
+      });
     }
   };
 
@@ -1503,6 +1508,9 @@ export default function GeneralMapComponent() {
   const handleResetFilters = () => {
     setSearchInput('');
     setSuggestionsClosed(true);
+    startTransition(() => {
+      setSearchQuery('');
+    });
     setSelectedRegionGeo('ALL');
     setSelectedUF('ALL');
     setSelectedTipoImovel('ALL');
@@ -1568,8 +1576,12 @@ export default function GeneralMapComponent() {
             placeholder="Buscar por código TOTVS, nome, rua ou município..."
             value={searchInput}
             onChange={(e) => {
-              setSearchInput(e.target.value);
+              const val = e.target.value;
+              setSearchInput(val);
               setSuggestionsClosed(false);
+              startTransition(() => {
+                setSearchQuery(val);
+              });
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -1588,6 +1600,9 @@ export default function GeneralMapComponent() {
                 setSearchInput('');
                 setSuggestionsClosed(true);
                 setFlyToTarget(null);
+                startTransition(() => {
+                  setSearchQuery('');
+                });
               }}
               className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
             >
