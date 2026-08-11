@@ -6,8 +6,8 @@ export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
 
-    const expectedEmail = process.env.ADMIN_EMAIL || 'admin@ipda.com.br';
-    const expectedPassword = process.env.ADMIN_PASSWORD_HASH || 'admin123';
+    const expectedEmail = process.env.ADMIN_EMAIL || 'gestaodedados@ipda.com.br';
+    const expectedPassword = process.env.ADMIN_PASSWORD_HASH || '@admgd2026';
 
     if (email === expectedEmail && password === expectedPassword) {
       const response = NextResponse.json({
