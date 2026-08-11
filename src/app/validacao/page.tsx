@@ -758,6 +758,44 @@ export default function ValidacaoPage() {
   // Real-time generated Google Maps link
   const generatedGoogleMapsLink = `https://www.google.com/maps?q=${finalLat},${finalLng}`;
 
+  const handleReactivateChurch = async () => {
+    if (!currentIgreja) return;
+
+    try {
+      const response = await fetch('/api/coligacoes/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigo_totvs: currentIgreja.codigo_totvs,
+          status: 'PENDENTE',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao reativar no servidor');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(`Igreja ${currentIgreja.codigo_totvs} reativada com sucesso! Status atualizado para PENDENTE.`);
+
+        // Remove from local list and keep state synchronized in memory
+        setIgrejas((prev) => prev.filter((ig) => ig.codigo_totvs !== currentIgreja.codigo_totvs));
+        setCurrentIndex((prev) => {
+          const newLength = filteredIgrejasList.length - 1;
+          if (newLength <= 0) return -1;
+          return Math.min(prev, newLength - 1);
+        });
+      } else {
+        toast.error('Falha ao reativar: ' + (result.error || 'Erro desconhecido.'));
+      }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error('Falha ao reativar a igreja. Tente novamente: ' + errMsg);
+    }
+  };
+
   // Save current validation status with Sonner Toast feedback
   const handleSaveAndNext = async (statusOverride: 'VALIDADO' | 'DUVIDA') => {
     if (!currentIgreja) return;
@@ -1108,6 +1146,7 @@ export default function ValidacaoPage() {
                     <option value="VALIDADO">Validados</option>
                     <option value="DUVIDA">Dúvidas</option>
                     <option value="PENDENTE_REVISAO">Revisões</option>
+                    <option value="DESATIVADO">Inativas</option>
                   </select>
                 </div>
 
@@ -1229,6 +1268,8 @@ export default function ValidacaoPage() {
                             ? 'bg-rose-50 text-rose-800 border-rose-200'
                             : (currentIgreja?.status as string) === 'PENDENTE_REVISAO'
                             ? 'bg-purple-50 text-purple-800 border-purple-200'
+                            : (currentIgreja?.status as string) === 'DESATIVADO'
+                            ? 'bg-zinc-100 text-zinc-800 border-zinc-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                             : 'bg-amber-50 text-amber-800 border-amber-200'
                         }`}
                       >
@@ -1238,6 +1279,8 @@ export default function ValidacaoPage() {
                           ? 'Validado'
                           : (currentIgreja?.status as string) === 'PENDENTE_REVISAO'
                           ? 'Revisão Pendente'
+                          : (currentIgreja?.status as string) === 'DESATIVADO'
+                          ? 'Inativa'
                           : 'Dúvida'}
                       </span>
                     </div>
@@ -1479,25 +1522,36 @@ export default function ValidacaoPage() {
 
                     {/* Action buttons */}
                     <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
+                      {currentIgreja?.status === 'DESATIVADO' ? (
                         <button
                           type="button"
-                          onClick={() => handleSaveAndNext('DUVIDA')}
-                          className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold rounded-xl flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-                        >
-                          <HelpCircle className="h-4 w-4 text-zinc-600" />
-                          <span>Marcar como Dúvida</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleSaveAndNext('VALIDADO')}
-                          className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all active:scale-[0.98]"
+                          onClick={handleReactivateChurch}
+                          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] shadow-md"
                         >
                           <Check className="h-4 w-4" />
-                          <span>Salvar e Próxima</span>
+                          <span>Reativar Igreja</span>
                         </button>
-                      </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveAndNext('DUVIDA')}
+                            className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold rounded-xl flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+                          >
+                            <HelpCircle className="h-4 w-4 text-zinc-600" />
+                            <span>Marcar como Dúvida</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSaveAndNext('VALIDADO')}
+                            className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all active:scale-[0.98]"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span>Salvar e Próxima</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Reject revision button when status is in revision */}
                       {(currentIgreja?.status === 'PENDENTE_REVISAO' || currentIgreja?.status === 'REVISAO_ENDERECO') && (
