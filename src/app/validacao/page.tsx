@@ -3,6 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'sonner';
 import SpreadsheetUpload from '@/components/SpreadsheetUpload';
 import MapWrapper from '@/components/MapWrapper';
@@ -196,6 +197,7 @@ async function fetchGeocodeUnstructured(
 }
 
 export default function ValidacaoPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
   const [syncLoading, setSyncLoading] = useState<boolean>(false);
@@ -210,6 +212,7 @@ export default function ValidacaoPage() {
       const data = await res.json();
       if (data.revalidated) {
         toast.success("Mapa público sincronizado com sucesso! As validações e coligações mais recentes já estão visíveis para todos.");
+        router.refresh();
       } else {
         toast.error("Erro ao sincronizar mapa público: Resposta inválida.");
       }
@@ -432,6 +435,7 @@ export default function ValidacaoPage() {
       if (filterStatus && filterStatus !== 'ALL') {
         query.set('status', filterStatus);
       }
+      query.set('t', Date.now().toString());
 
       const res = await fetch(`/api/igrejas?${query.toString()}`);
       const data = await res.json();

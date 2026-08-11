@@ -7,18 +7,20 @@ export async function GET(request: NextRequest) {
   try {
     const path = request.nextUrl.searchParams.get('path') || '/api/mapa-geral';
 
-    // Trigger on-demand revalidation
+    // Trigger on-demand revalidation on all public paths to guarantee immediate real-time updates
     revalidatePath(path);
-    // Also revalidate main pages and validadas endpoint for good measure
     revalidatePath('/');
     revalidatePath('/mapa-geral');
+    revalidatePath('/organizacao');
+    revalidatePath('/api/mapa-geral');
     revalidatePath('/api/igrejas/validadas');
+    revalidatePath('/api/organizacao');
 
     return NextResponse.json({
       revalidated: true,
       path,
       now: Date.now(),
-      message: `Revalidação sob demanda concluída para o caminho: ${path}`
+      message: `Revalidação sob demanda concluída para todos os caminhos públicos.`
     });
   } catch (err: unknown) {
     console.error('API Error in GET /api/revalidate:', err);
@@ -35,18 +37,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const path = body.path || '/api/mapa-geral';
 
-    // Trigger on-demand revalidation
+    // Trigger on-demand revalidation on all public paths to guarantee immediate real-time updates
     revalidatePath(path);
-    // Also revalidate main pages and validadas endpoint for good measure
     revalidatePath('/');
     revalidatePath('/mapa-geral');
+    revalidatePath('/organizacao');
+    revalidatePath('/api/mapa-geral');
     revalidatePath('/api/igrejas/validadas');
+    revalidatePath('/api/organizacao');
 
     return NextResponse.json({
       revalidated: true,
       path,
       now: Date.now(),
-      message: `Revalidação sob demanda concluída para o caminho: ${path}`
+      message: `Revalidação sob demanda concluída para todos os caminhos públicos.`
     });
   } catch (err: unknown) {
     console.error('API Error in POST /api/revalidate:', err);

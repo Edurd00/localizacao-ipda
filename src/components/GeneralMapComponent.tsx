@@ -2271,13 +2271,14 @@ export default function GeneralMapComponent() {
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
-  const fetchValidatedChurches = async (silent = false) => {
+  const fetchValidatedChurches = async (silent = false, force = false) => {
     if (!silent) {
       setLoading(true);
       setError(null);
     }
     try {
-      const res = await fetch('/api/igrejas/validadas');
+      const url = force ? `/api/igrejas/validadas?t=${Date.now()}` : '/api/igrejas/validadas';
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setIgrejas(data.igrejas || []);
@@ -2676,7 +2677,7 @@ export default function GeneralMapComponent() {
           </a>
 
           <button
-            onClick={() => fetchValidatedChurches()}
+            onClick={() => fetchValidatedChurches(false, true)}
             disabled={loading}
             className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50 min-h-[44px]"
             title="Atualizar dados do banco"
@@ -2728,7 +2729,7 @@ export default function GeneralMapComponent() {
             <h3 className="text-base font-bold text-zinc-900">Falha ao buscar dados</h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">{error}</p>
             <button
-              onClick={() => fetchValidatedChurches()}
+              onClick={() => fetchValidatedChurches(false, true)}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-md hover:bg-indigo-700 transition-all"
             >
               Tentar Novamente
