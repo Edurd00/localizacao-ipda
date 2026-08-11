@@ -8,7 +8,28 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || 'ALL';
 
     const [igrejas, states] = await Promise.all([
-      getIgrejas({ estado, status }),
+      getIgrejas({ estado, status }, [
+        'id',
+        'codigo_totvs',
+        'desc_igreja',
+        'tipo_imovel',
+        'endereco',
+        'bairro',
+        'municipio',
+        'estado',
+        'cep',
+        'link_google_maps',
+        'latitude',
+        'longitude',
+        'status',
+        'usuario_validador',
+        'validado_por',
+        'validado_em',
+        'observacoes',
+        'codigo_totvs_pai',
+        'porte',
+        'updated_at'
+      ]),
       getDistinctStates(),
     ]);
 

@@ -3,7 +3,16 @@ import { getIgrejas, getDistinctStates } from '@/lib/db';
 
 export async function GET() {
   try {
-    const igrejas = await getIgrejas();
+    const igrejas = await getIgrejas(undefined, [
+      'id',
+      'codigo_totvs',
+      'codigo_totvs_pai',
+      'desc_igreja',
+      'porte',
+      'status',
+      'municipio',
+      'estado'
+    ]);
     const states = await getDistinctStates();
     return NextResponse.json({
       success: true,
