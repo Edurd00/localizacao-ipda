@@ -2152,8 +2152,15 @@ export default function GeneralMapComponent() {
       if (data.success) {
         toast.success(`Coligação transferida com sucesso! Nova Sede: ${candidata.desc_igreja}`);
         setComparisonMode(false);
+        // Optimize: Update state locally without fetching global list again
+        setIgrejas((prevIgrejas) =>
+          prevIgrejas.map((ig) =>
+            ig.codigo_totvs === fixedDest.codigo_totvs
+              ? { ...ig, codigo_totvs_pai: candidata.codigo_totvs }
+              : ig
+          )
+        );
         setFixedDest(null);
-        await fetchValidatedChurches();
       } else {
         toast.error(data.error || 'Erro ao realizar a transferência.');
       }

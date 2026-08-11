@@ -170,11 +170,15 @@ async function ensurePostgresTable() {
   }
 }
 
-export async function getIgrejas(filters?: { estado?: string; status?: string }): Promise<Igreja[]> {
+export async function getIgrejas(
+  filters?: { estado?: string; status?: string },
+  columns?: string[]
+): Promise<Igreja[]> {
   await ensurePostgresTable();
   if (pool) {
     try {
-      let query = 'SELECT * FROM igrejas WHERE 1=1';
+      const selector = columns && columns.length > 0 ? columns.join(', ') : '*';
+      let query = `SELECT ${selector} FROM igrejas WHERE 1=1`;
       const params: string[] = [];
       let paramCount = 1;
 
@@ -190,31 +194,37 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
         paramCount++;
       }
 
-      query += ' ORDER BY desc_igreja ASC';
+      // Order by desc_igreja ONLY if it's selected/requested
+      if (!columns || columns.includes('desc_igreja')) {
+        query += ' ORDER BY desc_igreja ASC';
+      }
+
       const res = await pool.query(query, params);
-      return res.rows.map((row) => ({
-        id: row.id,
-        codigo_totvs: row.codigo_totvs,
-        desc_igreja: row.desc_igreja,
-        tipo_imovel: row.tipo_imovel,
-        endereco: row.endereco,
-        bairro: row.bairro,
-        municipio: row.municipio,
-        estado: row.estado,
-        cep: row.cep,
-        link_google_maps: row.link_google_maps,
-        latitude: row.latitude === 0 ? null : row.latitude,
-        longitude: row.longitude === 0 ? null : row.longitude,
-        status: row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO' | 'REVISAO_ENDERECO',
-        usuario_validador: row.usuario_validador,
-        codigo_totvs_pai: row.codigo_totvs_pai,
-        porte: row.porte,
-        updated_at: row.updated_at,
-        created_at: row.created_at,
-        validado_por: row.validado_por,
-        validado_em: row.validado_em,
-        observacoes: row.observacoes,
-      }));
+      return res.rows.map((row) => {
+        const item: any = {};
+        if (row.id !== undefined) item.id = row.id;
+        if (row.codigo_totvs !== undefined) item.codigo_totvs = row.codigo_totvs;
+        if (row.desc_igreja !== undefined) item.desc_igreja = row.desc_igreja;
+        if (row.tipo_imovel !== undefined) item.tipo_imovel = row.tipo_imovel;
+        if (row.endereco !== undefined) item.endereco = row.endereco;
+        if (row.bairro !== undefined) item.bairro = row.bairro;
+        if (row.municipio !== undefined) item.municipio = row.municipio;
+        if (row.estado !== undefined) item.estado = row.estado;
+        if (row.cep !== undefined) item.cep = row.cep;
+        if (row.link_google_maps !== undefined) item.link_google_maps = row.link_google_maps;
+        if (row.latitude !== undefined) item.latitude = row.latitude === 0 ? null : row.latitude;
+        if (row.longitude !== undefined) item.longitude = row.longitude === 0 ? null : row.longitude;
+        if (row.status !== undefined) item.status = row.status as 'PENDENTE' | 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'DESATIVADO' | 'REVISAO_ENDERECO';
+        if (row.usuario_validador !== undefined) item.usuario_validador = row.usuario_validador;
+        if (row.codigo_totvs_pai !== undefined) item.codigo_totvs_pai = row.codigo_totvs_pai;
+        if (row.porte !== undefined) item.porte = row.porte;
+        if (row.updated_at !== undefined) item.updated_at = row.updated_at;
+        if (row.created_at !== undefined) item.created_at = row.created_at;
+        if (row.validado_por !== undefined) item.validado_por = row.validado_por;
+        if (row.validado_em !== undefined) item.validado_em = row.validado_em;
+        if (row.observacoes !== undefined) item.observacoes = row.observacoes;
+        return item as Igreja;
+      });
     } catch (err) {
       console.error('Postgres error in getIgrejas:', err);
     }
@@ -243,7 +253,21 @@ export async function getIgrejas(filters?: { estado?: string; status?: string })
   if (filters?.status && filters.status !== 'ALL') {
     data = data.filter((item) => item.status === filters.status);
   }
-  return data.sort((a, b) => a.desc_igreja.localeCompare(b.desc_igreja));
+
+  if (columns && columns.length > 0) {
+    const colSet = new Set(columns);
+    data = data.map((item: any) => {
+      const filtered: any = {};
+      colSet.forEach((col) => {
+        if (item[col] !== undefined) {
+          filtered[col] = item[col];
+        }
+      });
+      return filtered;
+    });
+  }
+
+  return data.sort((a, b) => (a.desc_igreja || '').localeCompare(b.desc_igreja || ''));
 }
 
 export interface IgrejaMap {

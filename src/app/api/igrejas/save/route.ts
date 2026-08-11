@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { saveIgrejaSingle } from '@/lib/db';
-import { revalidatePath } from 'next/cache';
 
 export async function POST(request: Request) {
   try {
@@ -31,10 +30,6 @@ export async function POST(request: Request) {
     }
 
     await saveIgrejaSingle(codigo_totvs, updates);
-
-    // On-demand revalidation
-    revalidatePath('/api/igrejas/validadas');
-    revalidatePath('/api/mapa-geral');
 
     return NextResponse.json({
       success: true,
