@@ -34,6 +34,7 @@ import {
   Power,
   Sun,
   Moon,
+  RefreshCw,
 } from 'lucide-react';
 
 function getPorte(desc: string, porteField?: string | null): string {
@@ -197,6 +198,28 @@ async function fetchGeocodeUnstructured(
 export default function ValidacaoPage() {
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
+  const [syncLoading, setSyncLoading] = useState<boolean>(false);
+
+  const handleSyncPublicMap = async () => {
+    setSyncLoading(true);
+    try {
+      const res = await fetch('/api/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.revalidated) {
+        toast.success("Mapa público sincronizado com sucesso! As validações e coligações mais recentes já estão visíveis para todos.");
+      } else {
+        toast.error("Erro ao sincronizar mapa público: Resposta inválida.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao sincronizar mapa público. Verifique a conexão.");
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   // Load tab and status from query params if present
   useEffect(() => {
@@ -970,6 +993,16 @@ export default function ValidacaoPage() {
                 </button>
               </div>
 
+              <button
+                onClick={handleSyncPublicMap}
+                disabled={syncLoading}
+                className="p-1.5 bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-650 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/60 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
+                title="Sincronizar Mapa Público (Forçar atualização de cache na CDN)"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncLoading ? 'animate-spin' : ''}`} />
+                <span className="hidden lg:inline">Sincronizar Mapa Público</span>
+              </button>
+
               <div className="w-px h-5 bg-zinc-300 dark:bg-slate-700 mx-1 hidden lg:block" />
 
               <button
@@ -996,6 +1029,8 @@ export default function ValidacaoPage() {
             onBatchAutoGeocode={() => setShowBatchModal(true)}
             batchLoading={batchLoading}
             batchProgress={batchProgress}
+            onSyncPublicMap={handleSyncPublicMap}
+            syncLoading={syncLoading}
           />
         ) : activeTab === 'upload' ? (
           <div className="max-w-2xl mx-auto w-full space-y-6 py-6">
