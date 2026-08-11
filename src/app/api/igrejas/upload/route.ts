@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { saveIgrejasBulk, Igreja } from '@/lib/db';
 import { parseWorkbook } from '@/lib/parser';
 import * as XLSX from 'xlsx';
@@ -49,6 +50,12 @@ export async function POST(request: Request) {
     }
 
     const report = await saveIgrejasBulk(parsedChurches);
+
+    // Revalidate relevant cache paths on-demand for spreadsheet imports
+    revalidatePath('/');
+    revalidatePath('/mapa-geral');
+    revalidatePath('/api/mapa-geral');
+    revalidatePath('/api/igrejas/validadas');
 
     return NextResponse.json({
       success: true,

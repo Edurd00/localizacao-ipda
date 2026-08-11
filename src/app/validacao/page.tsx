@@ -303,9 +303,13 @@ export default function ValidacaoPage() {
       if (result.success) {
         toast.success(`Alteração para a igreja ${currentIgreja.codigo_totvs} rejeitada com sucesso. O endereço e as coordenadas validadas foram mantidos.`);
 
-        // Go to next church
-        const nextIdx = Math.min(currentIndex + 1, filteredIgrejasList.length - 1);
-        await fetchIgrejas(true, filteredIgrejasList[nextIdx]?.codigo_totvs);
+        // Remove from local list and keep state synchronized in memory
+        setIgrejas((prev) => prev.filter((ig) => ig.codigo_totvs !== currentIgreja.codigo_totvs));
+        setCurrentIndex((prev) => {
+          const newLength = filteredIgrejasList.length - 1;
+          if (newLength <= 0) return -1;
+          return Math.min(prev, newLength - 1);
+        });
       } else {
         toast.error('Falha ao rejeitar alteração: ' + (result.error || 'Erro desconhecido.'));
       }
@@ -351,6 +355,7 @@ export default function ValidacaoPage() {
 
   // Extract coordinates from a Google Maps link (or WhatsApp message) sent by the church leader
   const handleProcessDirigenteLink = async () => {
+    if (dirigenteLoading) return;
     const input = dirigenteLink.trim();
     if (!input) {
       toast.warning('Cole o link ou mensagem do dirigente antes de processar.');
@@ -766,21 +771,13 @@ export default function ValidacaoPage() {
           toast.warning(`Igreja ${currentIgreja?.codigo_totvs} marcada com Dúvida para revisão.`);
         }
 
-        let nextCode: string | undefined = undefined;
-        const nextPendingIdx = filteredIgrejasList.findIndex(
-          (ig, idx) => idx > currentIndex && ig.status === 'PENDENTE'
-        );
-
-        if (nextPendingIdx !== -1) {
-          nextCode = filteredIgrejasList[nextPendingIdx]?.codigo_totvs;
-        } else {
-          const nextIdx = Math.min(currentIndex + 1, filteredIgrejasList.length - 1);
-          if (nextIdx >= 0 && nextIdx < filteredIgrejasList.length) {
-            nextCode = filteredIgrejasList[nextIdx]?.codigo_totvs;
-          }
-        }
-
-        await fetchIgrejas(true, nextCode);
+        // Remove from local list and keep state synchronized in memory
+        setIgrejas((prev) => prev.filter((ig) => ig.codigo_totvs !== currentIgreja.codigo_totvs));
+        setCurrentIndex((prev) => {
+          const newLength = filteredIgrejasList.length - 1;
+          if (newLength <= 0) return -1;
+          return Math.min(prev, newLength - 1);
+        });
       } else {
         toast.error('Falha ao salvar os dados: ' + (result.error || 'Erro desconhecido.'));
       }

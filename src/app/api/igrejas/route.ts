@@ -33,11 +33,20 @@ export async function GET(request: Request) {
       getDistinctStates(),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      igrejas,
-      states,
-    });
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        igrejas,
+        states,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   } catch (err: unknown) {
     console.error('API Error in GET /api/igrejas:', err);
     const errMsg = err instanceof Error ? err.message : 'Unknown database error';
