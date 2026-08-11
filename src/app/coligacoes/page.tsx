@@ -31,13 +31,13 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 
 // Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
-  ESTADUAL: { name: 'ESTADUAL', color: '#8CAEE0', label: 'Estadual (Azul Claro)' },
-  SETORIAL: { name: 'SETORIAL', color: '#FFFF00', label: 'Setorial (Amarelo)' },
-  CENTRAL: { name: 'CENTRAL', color: '#F4A27E', label: 'Central (Laranja/Salmão)' },
-  REGIONAL: { name: 'REGIONAL', color: '#A2C898', label: 'Regional (Verde Oliva Soft)' },
-  LOCAL: { name: 'LOCAL', color: '#A6A6A6', label: 'Local (Cinza)' },
-  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#D8A2C8', label: 'Casa de Oração (Rosa Pastel)' },
-  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano)' },
+  ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual (Azul de Alto Contraste)' },
+  SETORIAL: { name: 'SETORIAL', color: '#EAB308', label: 'Setorial (Amarelo Ouro)' },
+  CENTRAL: { name: 'CENTRAL', color: '#F97316', label: 'Central (Laranja de Alto Contraste)' },
+  REGIONAL: { name: 'REGIONAL', color: '#22C55E', label: 'Regional (Verde de Alto Contraste)' },
+  LOCAL: { name: 'LOCAL', color: '#6B7280', label: 'Local (Cinza de Alto Contraste)' },
+  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#EC4899', label: 'Casa de Oração (Rosa/Magenta)' },
+  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#06B6D4', label: 'Aldeia Indígena (Ciano/Turquesa)' },
 };
 
 export function normalizeTotvs(code: string | number | null | undefined): string {

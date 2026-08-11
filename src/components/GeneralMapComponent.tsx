@@ -67,13 +67,13 @@ export function getPorte(desc: string, porteField?: string | null): string {
 
 // Map of precise official colors (as requested for high-contrast on satellite imagery)
 export const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
-  ESTADUAL: { name: 'ESTADUAL', color: '#8CAEE0', label: 'Estadual (Azul Claro)' },
-  SETORIAL: { name: 'SETORIAL', color: '#FFFF00', label: 'Setorial (Amarelo)' },
-  CENTRAL: { name: 'CENTRAL', color: '#F4A27E', label: 'Central (Laranja/Salmão)' },
-  REGIONAL: { name: 'REGIONAL', color: '#A2C898', label: 'Regional (Verde Oliva Soft)' },
-  LOCAL: { name: 'LOCAL', color: '#A6A6A6', label: 'Local (Cinza)' },
-  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#D8A2C8', label: 'Casa de Oração (Rosa Pastel)' },
-  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#00FFFF', label: 'Aldeia Indígena (Ciano)' },
+  ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual (Azul de Alto Contraste)' },
+  SETORIAL: { name: 'SETORIAL', color: '#EAB308', label: 'Setorial (Amarelo Ouro)' },
+  CENTRAL: { name: 'CENTRAL', color: '#F97316', label: 'Central (Laranja de Alto Contraste)' },
+  REGIONAL: { name: 'REGIONAL', color: '#22C55E', label: 'Regional (Verde de Alto Contraste)' },
+  LOCAL: { name: 'LOCAL', color: '#6B7280', label: 'Local (Cinza de Alto Contraste)' },
+  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#EC4899', label: 'Casa de Oração (Rosa/Magenta)' },
+  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#06B6D4', label: 'Aldeia Indígena (Ciano/Turquesa)' },
 };
 
 export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
@@ -905,8 +905,9 @@ const MemoizedMapView = memo(function MapView({
     return L.divIcon({
       html: `
         <div class="relative flex flex-col items-center justify-center cursor-pointer" style="width: ${w}px; height: ${h}px; cursor: pointer;">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.6)); cursor: pointer;" class="z-20 cursor-pointer">
-            <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.6)); cursor: pointer;" class="z-20 cursor-pointer">
+            <path fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742z" />
+            <circle cx="12" cy="10.5" r="3" fill="${info.color}" stroke="#FFFFFF" stroke-width="1.5" />
           </svg>
         </div>
       `,
@@ -937,8 +938,9 @@ const MemoizedMapView = memo(function MapView({
       html: `
         <div class="relative flex flex-col items-center justify-center cursor-pointer" style="width: ${w}px; height: ${h}px; cursor: pointer;">
           <div class="absolute rounded-full bg-transparent border-2 border-dashed ${ringAnim} pointer-events-none" style="border-color: ${ringColor}; width: ${w + 10}px; height: ${h + 10}px;"></div>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.7)); cursor: pointer;" class="z-50 cursor-pointer">
-            <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: ${w}px; height: ${h}px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.7)); cursor: pointer;" class="z-50 cursor-pointer">
+            <path fill="${info.color}" stroke="#FFFFFF" stroke-width="2.8" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742z" />
+            <circle cx="12" cy="10.5" r="3" fill="${info.color}" stroke="#FFFFFF" stroke-width="1.5" />
           </svg>
         </div>
       `,
@@ -1892,7 +1894,7 @@ const MemoizedMapView = memo(function MapView({
           {Object.values(PORTE_INFO).map((item) => (
             <div key={item.name} className="flex items-center space-x-2">
               <span
-                className="w-3.5 h-3.5 rounded-md border border-zinc-300 shadow-xs inline-block shrink-0"
+                className="w-3.5 h-3.5 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.15)] inline-block shrink-0"
                 style={{ backgroundColor: item.color }}
               />
               <span className="uppercase tracking-wide font-mono text-zinc-800 text-[9px]">
@@ -1944,7 +1946,7 @@ const MemoizedMapView = memo(function MapView({
                   {Object.values(PORTE_INFO).map((item) => (
                     <div key={item.name} className="flex items-center space-x-2">
                       <span
-                        className="w-4 h-4 rounded-md border border-zinc-300 shadow-xs inline-block shrink-0"
+                        className="w-4 h-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.15)] inline-block shrink-0"
                         style={{ backgroundColor: item.color }}
                       />
                       <span className="uppercase tracking-wide font-mono text-zinc-800 text-[10px]">
