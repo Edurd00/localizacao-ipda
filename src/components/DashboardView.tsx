@@ -212,32 +212,20 @@ export default function DashboardView({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {onSyncPublicMap && (
-            <button
-              type="button"
-              onClick={onSyncPublicMap}
-              disabled={syncLoading}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center space-x-2 transition-all active:scale-[0.98] disabled:opacity-50 shrink-0 border border-indigo-700"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncLoading ? 'animate-spin' : ''}`} />
-              <span>Sincronizar Mapa Público</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={onBatchAutoGeocode}
             disabled={batchLoading || totalCount === 0}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs rounded-xl shadow-lg flex items-center space-x-2 transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
+            className="px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-900 font-bold text-xs rounded-xl shadow-md flex items-center space-x-2 transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
           >
             {batchLoading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-indigo-900" />
                 <span>Localizando ({batchProgress?.current}/{batchProgress?.total})...</span>
               </>
             ) : (
               <>
-                <Zap className="h-4 w-4 fill-zinc-950" />
+                <Zap className="h-4 w-4 fill-indigo-900 text-indigo-900" />
                 <span>Auto-Localizar Pendentes</span>
               </>
             )}
@@ -246,7 +234,7 @@ export default function DashboardView({
           <button
             type="button"
             onClick={handleExportExcel}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl border border-white/20 shadow flex items-center space-x-2 transition-all shrink-0"
+            className="px-4 py-2.5 bg-transparent hover:bg-white/10 text-white font-semibold text-xs rounded-xl border border-white/30 shadow flex items-center space-x-2 transition-all shrink-0"
           >
             <Download className="h-4 w-4" />
             <span>Exportar Excel</span>
