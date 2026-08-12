@@ -1371,10 +1371,11 @@ export default function ValidacaoPage() {
                             id="dirigente-link-input"
                             type="text"
                             value={dirigenteLink}
+                            disabled={dirigenteLoading}
                             onChange={(e) => setDirigenteLink(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleProcessDirigenteLink()}
+                            onKeyDown={(e) => e.key === 'Enter' && !dirigenteLoading && handleProcessDirigenteLink()}
                             placeholder="Cole o link ou mensagem aqui..."
-                            className="pl-8 pr-3 py-2 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-violet-500 focus:border-violet-500 outline-none text-xs rounded-lg w-full font-medium placeholder:text-zinc-400"
+                            className="pl-8 pr-3 py-2 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-violet-500 focus:border-violet-500 outline-none text-xs rounded-lg w-full font-medium placeholder:text-zinc-400 disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </div>
                         <button
