@@ -65,6 +65,25 @@ export function getPorte(desc: string, porteField?: string | null): string {
   return 'LOCAL';
 }
 
+export function getDescendantCount(parentCode: string, list: Igreja[]): number {
+  let count = 0;
+  const queue: string[] = [parentCode];
+  const visited = new Set<string>([parentCode]);
+
+  while (queue.length > 0) {
+    const currentCode = queue.shift()!;
+    const directChildren = list.filter(
+      (ig) => ig.codigo_totvs_pai === currentCode && ig.status !== 'DESATIVADO' && !visited.has(ig.codigo_totvs)
+    );
+    for (const child of directChildren) {
+      visited.add(child.codigo_totvs);
+      count++;
+      queue.push(child.codigo_totvs);
+    }
+  }
+  return count;
+}
+
 // Map of precise official colors (as requested for high-contrast on satellite imagery)
 export const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
   ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual (Azul de Alto Contraste)' },
@@ -1042,9 +1061,7 @@ const MemoizedMapView = memo(function MapView({
       ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
       : null;
 
-    const coligadasCount = igrejas.filter(
-      (c) => c.codigo_totvs_pai === ig.codigo_totvs && c.status !== 'DESATIVADO'
-    ).length;
+    const totalCascata = getDescendantCount(ig.codigo_totvs, igrejas);
 
     return (
       <Popup className="custom-popup-styled !max-w-[340px] w-[340px]">
@@ -1053,7 +1070,7 @@ const MemoizedMapView = memo(function MapView({
             <h3 className="text-sm font-bold text-slate-900 leading-snug">
               {ig.desc_igreja}
             </h3>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
               <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
                 TOTVS: {ig.codigo_totvs}
               </span>
@@ -1066,15 +1083,9 @@ const MemoizedMapView = memo(function MapView({
               >
                 {porte}
               </span>
-            </div>
-            <div className="mt-1.5">
-              {coligadasCount > 0 ? (
-                <span className="bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-md text-xs inline-flex items-center gap-1">
-                  🏛️ {coligadasCount} {coligadasCount === 1 ? 'Igreja Coligada' : 'Igrejas Coligadas'}
-                </span>
-              ) : (
-                <span className="bg-slate-100 text-slate-500 font-semibold px-2.5 py-1 rounded-md text-xs inline-flex items-center gap-1">
-                  🏛️ 0 coligadas
+              {totalCascata > 0 && (
+                <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-bold rounded-full border border-indigo-200 inline-flex items-center gap-1">
+                  🏛️ {totalCascata} na malha
                 </span>
               )}
             </div>

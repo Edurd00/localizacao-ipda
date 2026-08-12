@@ -17,3 +17,12 @@
  GET /api/auth/session 200 in 310ms (next.js: 281ms, application-code: 29ms)
  GET /api/auth/session 200 in 47ms (next.js: 12ms, application-code: 36ms)
  GET /api/igrejas/validadas 200 in 19ms (next.js: 11ms, application-code: 8ms)
+✓ Compiled in 667ms
+ GET /organizacao 200 in 415ms (next.js: 69ms, application-code: 346ms)
+ GET /api/organizacao 200 in 22ms (next.js: 11ms, application-code: 12ms)
+ GET /api/organizacao?estado=ALL 200 in 29ms (next.js: 22ms, application-code: 7ms)
+ GET /?totvs=10001 200 in 276ms (next.js: 17ms, application-code: 259ms)
+ GET /api/auth/session 200 in 39ms (next.js: 16ms, application-code: 23ms)
+ GET /api/igrejas/validadas 200 in 32ms (next.js: 14ms, application-code: 18ms)
+ GET /api/auth/session 200 in 23ms (next.js: 9ms, application-code: 14ms)
+ GET /api/igrejas/validadas 200 in 18ms (next.js: 7ms, application-code: 11ms)
