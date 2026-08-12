@@ -889,6 +889,51 @@ const MemoizedMapView = memo(function MapView({
 }: MapViewProps) {
   const markerRefs = useRef<Record<string, L.Marker | null>>({});
 
+  const [comparisonTransportMode, setComparisonTransportMode] = useState<'car' | 'bus'>('car');
+
+  const shortestOption = useMemo(() => {
+    const options = [];
+    if (metaAtual) options.push({ type: 'atual', distance: metaAtual.distance });
+    if (metaCandidataA) options.push({ type: 'A', distance: metaCandidataA.distance });
+    if (metaCandidataB) options.push({ type: 'B', distance: metaCandidataB.distance });
+
+    if (options.length === 0) return null;
+    let minOpt = options[0];
+    for (let i = 1; i < options.length; i++) {
+      if (options[i].distance < minOpt.distance) {
+        minOpt = options[i];
+      }
+    }
+    return minOpt.type;
+  }, [metaAtual, metaCandidataA, metaCandidataB]);
+
+  const economyA = useMemo(() => {
+    if (metaAtual && metaCandidataA) {
+      return (metaAtual.distance - metaCandidataA.distance).toFixed(1);
+    }
+    return null;
+  }, [metaAtual, metaCandidataA]);
+
+  const economyB = useMemo(() => {
+    if (metaAtual && metaCandidataB) {
+      return (metaAtual.distance - metaCandidataB.distance).toFixed(1);
+    }
+    return null;
+  }, [metaAtual, metaCandidataB]);
+
+  const getRouteMarkerIcon = (label: 'A' | 'B', color: string) => {
+    return L.divIcon({
+      html: `
+        <div class="relative flex items-center justify-center font-bold text-white shadow-lg border-2 border-white rounded-full" style="width: 24px; height: 24px; background-color: ${color}; font-size: 11px; font-family: sans-serif; z-index: 500;">
+          <span>${label}</span>
+        </div>
+      `,
+      className: 'custom-route-marker-badge',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  };
+
   const getMarkerIcon = (porte: string) => {
     const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
 
@@ -1324,29 +1369,37 @@ const MemoizedMapView = memo(function MapView({
           activeChainCodes={activeChainCodes}
         />
 
-        {routePath && (
+        {routePath && routePath.length > 0 && (
           <>
-            <Polyline positions={routePath} color="#1E40AF" weight={8} opacity={0.3} />
-            <Polyline positions={routePath} color="#3B82F6" weight={5} opacity={0.9} />
+            <Polyline positions={routePath} color="#000000" weight={8} opacity={0.35} />
+            <Polyline positions={routePath} color="#3B82F6" weight={5} opacity={0.95} />
+            <Marker position={routePath[0]} icon={getRouteMarkerIcon('A', '#3B82F6')} />
+            <Marker position={routePath[routePath.length - 1]} icon={getRouteMarkerIcon('B', '#3B82F6')} />
           </>
         )}
 
-        {routeAtual && (
+        {routeAtual && routeAtual.length > 0 && (
           <>
-            <Polyline positions={routeAtual} color="#EA580C" weight={8} opacity={0.3} />
-            <Polyline positions={routeAtual} color="#F97316" weight={5} opacity={0.9} />
+            <Polyline positions={routeAtual} color="#000000" weight={8} opacity={0.35} />
+            <Polyline positions={routeAtual} color="#F97316" weight={5} opacity={0.95} />
+            <Marker position={routeAtual[0]} icon={getRouteMarkerIcon('A', '#F97316')} />
+            <Marker position={routeAtual[routeAtual.length - 1]} icon={getRouteMarkerIcon('B', '#F97316')} />
           </>
         )}
-        {routeCandidataA && (
+        {routeCandidataA && routeCandidataA.length > 0 && (
           <>
-            <Polyline positions={routeCandidataA} color="#15803D" weight={8} opacity={0.3} />
-            <Polyline positions={routeCandidataA} color="#22C55E" weight={5} opacity={0.9} />
+            <Polyline positions={routeCandidataA} color="#000000" weight={8} opacity={0.35} />
+            <Polyline positions={routeCandidataA} color="#22C55E" weight={5} opacity={0.95} />
+            <Marker position={routeCandidataA[0]} icon={getRouteMarkerIcon('A', '#22C55E')} />
+            <Marker position={routeCandidataA[routeCandidataA.length - 1]} icon={getRouteMarkerIcon('B', '#22C55E')} />
           </>
         )}
-        {routeCandidataB && (
+        {routeCandidataB && routeCandidataB.length > 0 && (
           <>
-            <Polyline positions={routeCandidataB} color="#0891B2" weight={8} opacity={0.3} />
-            <Polyline positions={routeCandidataB} color="#06B6D4" weight={5} opacity={0.9} />
+            <Polyline positions={routeCandidataB} color="#000000" weight={8} opacity={0.35} />
+            <Polyline positions={routeCandidataB} color="#06B6D4" weight={5} opacity={0.95} />
+            <Marker position={routeCandidataB[0]} icon={getRouteMarkerIcon('A', '#06B6D4')} />
+            <Marker position={routeCandidataB[routeCandidataB.length - 1]} icon={getRouteMarkerIcon('B', '#06B6D4')} />
           </>
         )}
 
@@ -1647,68 +1700,122 @@ const MemoizedMapView = memo(function MapView({
               <span className="font-bold text-zinc-900 block truncate" title={fixedDest.desc_igreja}>{fixedDest.desc_igreja}</span>
             </div>
 
-            <div className="space-y-3 pt-2.5 border-t border-zinc-100 overflow-y-auto">
-              <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
-                    Sede Atual
-                  </span>
+            {/* Seletor de Modo de Transporte Ativo */}
+            <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 shrink-0">
+              <button
+                type="button"
+                onClick={() => setComparisonTransportMode('car')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  comparisonTransportMode === 'car'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
+                }`}
+              >
+                <span>🚗 Carro / Moto</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setComparisonTransportMode('bus')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  comparisonTransportMode === 'bus'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
+                }`}
+              >
+                <span>🚌 Ônibus / Trem</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-zinc-100 overflow-y-auto">
+              {/* Sede Atual Card */}
+              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-orange-500">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                      Sede Atual
+                    </span>
+                    {shortestOption === 'atual' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-250">
+                        ⚡ Mais Próxima
+                      </span>
+                    )}
+                  </div>
                   {metaAtual && (
-                    <span className="text-xs font-black text-zinc-800">{metaAtual.distance} km • {metaAtual.duration}</span>
+                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
+                      {metaAtual.distance} km • {metaAtual.duration}
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-zinc-600 font-bold block truncate max-w-[150px]">
+                  <span className="text-[10px] text-zinc-600 dark:text-slate-400 font-bold block truncate max-w-[150px]">
                     {fixedDest.codigo_totvs_pai ? `TOTVS: ${fixedDest.codigo_totvs_pai}` : 'Nenhuma vinculada'}
                   </span>
                   {fixedDest.codigo_totvs_pai && (
                     <a
-                      href={`https://www.google.com/maps/dir/?api=1&origin=${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.latitude},${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                      href={`https://www.google.com/maps/dir/?api=1&origin=${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.latitude},${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px]"
-                      title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                      className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
+                        comparisonTransportMode === 'bus'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
+                          : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
+                      }`}
+                      title="Ver trajeto e custos no Google Maps"
                     >
-                      <span>🚌 Ônibus</span>
+                      <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
                     </a>
                   )}
                 </div>
               </div>
 
-              <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Candidata A
-                  </span>
+              {/* Sede Candidata A Card */}
+              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-emerald-500">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Candidata A
+                    </span>
+                    {shortestOption === 'A' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-250 animate-pulse">
+                        ⚡ Mais Próxima {economyA && Number(economyA) > 0 ? `(Economia de ${economyA} km)` : ''}
+                      </span>
+                    )}
+                  </div>
                   {metaCandidataA && (
-                    <span className="text-xs font-black text-zinc-800">{metaCandidataA.distance} km • {metaCandidataA.duration}</span>
+                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
+                      {metaCandidataA.distance} km • {metaCandidataA.duration}
+                    </span>
                   )}
                 </div>
                 {sedeCandidataA ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
+                      <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
                         {sedeCandidataA.desc_igreja}
                       </span>
                       <a
-                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px]"
-                        title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                        className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
+                          comparisonTransportMode === 'bus'
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
+                            : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
+                        }`}
+                        title="Ver trajeto e custos no Google Maps"
                       >
-                        <span>🚌 Ônibus</span>
+                        <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
                       </a>
                     </div>
 
                     {metaAtual && metaCandidataA && (
-                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100">
+                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
                         {metaAtual.distance - metaCandidataA.distance > 0 ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
                             🟢 {(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais perto
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
                             🔴 {Math.abs(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais longe
                           </span>
                         )}
@@ -1717,13 +1824,13 @@ const MemoizedMapView = memo(function MapView({
                           <button
                             type="button"
                             onClick={() => handleTransferColigacao(sedeCandidataA)}
-                            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl transition-all border border-indigo-750 shadow-xs flex items-center justify-center gap-1.5 min-h-[44px]"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
                             title="Gravar nova vinculação hierárquica no banco de dados Neon"
                           >
                             <span>🔄 Transferir Coligação para esta Sede</span>
                           </button>
                         ) : (
-                          <span className="text-[10px] text-zinc-400 font-black italic bg-zinc-100 border border-zinc-200 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
+                          <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
                             🔒 Transferência bloqueada (Login requerido)
                           </span>
                         )}
@@ -1735,40 +1842,50 @@ const MemoizedMapView = memo(function MapView({
                 )}
               </div>
 
-              <div className="p-2.5 bg-zinc-50 border border-zinc-150 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
-                    Candidata B
-                  </span>
+              {/* Sede Candidata B Card */}
+              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-cyan-500">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                      Candidata B
+                    </span>
+                    {shortestOption === 'B' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-250 animate-pulse">
+                        ⚡ Mais Próxima {economyB && Number(economyB) > 0 ? `(Economia de ${economyB} km)` : ''}
+                      </span>
+                    )}
+                  </div>
                   {metaCandidataB && (
-                    <span className="text-xs font-black text-zinc-800">{metaCandidataB.distance} km • {metaCandidataB.duration}</span>
+                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
+                      {metaCandidataB.distance} km • {metaCandidataB.duration}
+                    </span>
                   )}
                 </div>
                 {sedeCandidataB ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-zinc-800 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
+                      <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
                         {sedeCandidataB.desc_igreja}
                       </span>
                       <a
-                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=transit`}
+                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px]"
-                        title="Ver linhas de ônibus municipais/urbanos, rodoviárias e custos no Google Maps"
+                        className="px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700"
+                        title="Ver trajeto e custos no Google Maps"
                       >
-                        <span>🚌 Ônibus</span>
+                        <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
                       </a>
                     </div>
 
                     {metaAtual && metaCandidataB && (
-                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100">
+                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
                         {metaAtual.distance - metaCandidataB.distance > 0 ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
                             🟢 {(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais perto
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
                             🔴 {Math.abs(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais longe
                           </span>
                         )}
@@ -1777,13 +1894,13 @@ const MemoizedMapView = memo(function MapView({
                           <button
                             type="button"
                             onClick={() => handleTransferColigacao(sedeCandidataB)}
-                            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl transition-all border border-indigo-750 shadow-xs flex items-center justify-center gap-1.5 min-h-[44px]"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
                             title="Gravar nova vinculação hierárquica no banco de dados Neon"
                           >
                             <span>🔄 Transferir Coligação para esta Sede</span>
                           </button>
                         ) : (
-                          <span className="text-[10px] text-zinc-400 font-black italic bg-zinc-100 border border-zinc-200 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
+                          <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
                             🔒 Transferência bloqueada (Login requerido)
                           </span>
                         )}
@@ -1796,7 +1913,7 @@ const MemoizedMapView = memo(function MapView({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-zinc-100 text-[9px] text-zinc-500 leading-normal shrink-0">
+            <div className="pt-2 border-t border-zinc-100 dark:border-slate-800 text-[9px] text-zinc-500 leading-normal shrink-0">
               <span>ℹ️ Nota: A disponibilidade de transporte público (ônibus/trem) depende do cadastramento das linhas municipais na região. Para áreas rurais ou isoladas, o sistema indicará a rota por veículo próprio.</span>
             </div>
           </div>
