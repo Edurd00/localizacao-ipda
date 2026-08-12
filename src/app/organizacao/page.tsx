@@ -528,6 +528,10 @@ export default function OrganizacaoPage() {
           // Divisa identification
           const divisaState = getDivisaJurisdiction(child);
 
+          const coligadasCount = churches.filter(
+            (c) => c.codigo_totvs_pai === child.codigo_totvs && c.status !== 'DESATIVADO'
+          ).length;
+
           return (
             <div key={child.codigo_totvs} className="space-y-1 relative">
               {/* Horizontal Tree View Guide connector */}
@@ -590,7 +594,12 @@ export default function OrganizacaoPage() {
                 </div>
 
                 {/* Badge and action button */}
-                <div className="flex items-center gap-2 mt-3 sm:mt-0 pl-8 sm:pl-0 shrink-0">
+                <div className="flex items-center gap-2 mt-3 sm:mt-0 pl-8 sm:pl-0 shrink-0 animate-fade-in">
+                  {coligadasCount > 0 && (
+                    <span className="bg-slate-100 text-slate-700 text-xs font-medium px-2 py-0.5 rounded-full border border-slate-200/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/50">
+                      🏛️ {coligadasCount} {coligadasCount === 1 ? 'coligada' : 'coligadas'}
+                    </span>
+                  )}
                   <span
                     className="text-[9px] font-bold px-2 py-0.5 rounded-full border text-white"
                     style={{

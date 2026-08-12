@@ -1042,6 +1042,10 @@ const MemoizedMapView = memo(function MapView({
       ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
       : null;
 
+    const coligadasCount = igrejas.filter(
+      (c) => c.codigo_totvs_pai === ig.codigo_totvs && c.status !== 'DESATIVADO'
+    ).length;
+
     return (
       <Popup className="custom-popup-styled !max-w-[340px] w-[340px]">
         <div className="p-3.5 space-y-2 font-sans">
@@ -1062,6 +1066,17 @@ const MemoizedMapView = memo(function MapView({
               >
                 {porte}
               </span>
+            </div>
+            <div className="mt-1.5">
+              {coligadasCount > 0 ? (
+                <span className="bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-md text-xs inline-flex items-center gap-1">
+                  🏛️ {coligadasCount} {coligadasCount === 1 ? 'Igreja Coligada' : 'Igrejas Coligadas'}
+                </span>
+              ) : (
+                <span className="bg-slate-100 text-slate-500 font-semibold px-2.5 py-1 rounded-md text-xs inline-flex items-center gap-1">
+                  🏛️ 0 coligadas
+                </span>
+              )}
             </div>
           </div>
 

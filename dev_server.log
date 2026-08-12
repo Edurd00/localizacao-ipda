@@ -5,26 +5,15 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 508ms
+✓ Ready in 567ms
 
-○ Compiling /mapa-geral ...
- GET /mapa-geral 200 in 5.2s (next.js: 4.8s, application-code: 381ms)
- GET /api/auth/session 200 in 820ms (next.js: 780ms, application-code: 40ms)
- GET /api/igrejas/validadas 200 in 963ms (next.js: 951ms, application-code: 12ms)
- GET /api/auth/session 200 in 23ms (next.js: 6ms, application-code: 17ms)
- GET /api/igrejas/validadas 200 in 11ms (next.js: 5ms, application-code: 6ms)
- GET /mapa-geral 200 in 72ms (next.js: 5ms, application-code: 67ms)
- GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
- GET /api/igrejas/validadas 200 in 10ms (next.js: 5ms, application-code: 5ms)
- GET /api/auth/session 200 in 20ms (next.js: 12ms, application-code: 9ms)
- GET /api/igrejas/validadas 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /mapa-geral 200 in 82ms (next.js: 6ms, application-code: 76ms)
- GET /api/auth/session 200 in 13ms (next.js: 3ms, application-code: 9ms)
- GET /api/igrejas/validadas 200 in 7ms (next.js: 3ms, application-code: 4ms)
- GET /api/auth/session 200 in 8ms (next.js: 1898µs, application-code: 6ms)
- GET /api/igrejas/validadas 200 in 6ms (next.js: 1991µs, application-code: 4ms)
- GET /mapa-geral 200 in 116ms (next.js: 5ms, application-code: 110ms)
- GET /api/igrejas/validadas 200 in 19ms (next.js: 12ms, application-code: 7ms)
- GET /api/auth/session 200 in 27ms (next.js: 5ms, application-code: 22ms)
- GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 6ms)
- GET /api/igrejas/validadas 200 in 13ms (next.js: 5ms, application-code: 8ms)
+○ Compiling / ...
+ HEAD / 200 in 4.1s (next.js: 3.8s, application-code: 249ms)
+ GET /organizacao 200 in 997ms (next.js: 830ms, application-code: 167ms)
+ GET /api/organizacao 200 in 809ms (next.js: 788ms, application-code: 21ms)
+ GET /api/organizacao?estado=ALL 200 in 815ms (next.js: 808ms, application-code: 7ms)
+ GET /?totvs=10001 200 in 75ms (next.js: 4ms, application-code: 70ms)
+ GET /api/igrejas/validadas 200 in 230ms (next.js: 223ms, application-code: 7ms)
+ GET /api/auth/session 200 in 310ms (next.js: 281ms, application-code: 29ms)
+ GET /api/auth/session 200 in 47ms (next.js: 12ms, application-code: 36ms)
+ GET /api/igrejas/validadas 200 in 19ms (next.js: 11ms, application-code: 8ms)
