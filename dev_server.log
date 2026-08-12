@@ -2,17 +2,29 @@
 > test-dir@0.1.0 dev
 > next dev
 
-⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.2.11 (Turbopack)
-- Local:         http://localhost:3001
-- Network:       http://192.168.0.2:3001
-✓ Ready in 632ms
-⨯ Another next dev server is already running.
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 508ms
 
-- Local:        http://localhost:3000
-- PID:          131669
-- Dir:          /app
-- Log:          .next/dev/logs/next-development.log
-
-Run kill 131669 to stop it.
-[?25h
+○ Compiling /mapa-geral ...
+ GET /mapa-geral 200 in 5.2s (next.js: 4.8s, application-code: 381ms)
+ GET /api/auth/session 200 in 820ms (next.js: 780ms, application-code: 40ms)
+ GET /api/igrejas/validadas 200 in 963ms (next.js: 951ms, application-code: 12ms)
+ GET /api/auth/session 200 in 23ms (next.js: 6ms, application-code: 17ms)
+ GET /api/igrejas/validadas 200 in 11ms (next.js: 5ms, application-code: 6ms)
+ GET /mapa-geral 200 in 72ms (next.js: 5ms, application-code: 67ms)
+ GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/igrejas/validadas 200 in 10ms (next.js: 5ms, application-code: 5ms)
+ GET /api/auth/session 200 in 20ms (next.js: 12ms, application-code: 9ms)
+ GET /api/igrejas/validadas 200 in 8ms (next.js: 3ms, application-code: 5ms)
+ GET /mapa-geral 200 in 82ms (next.js: 6ms, application-code: 76ms)
+ GET /api/auth/session 200 in 13ms (next.js: 3ms, application-code: 9ms)
+ GET /api/igrejas/validadas 200 in 7ms (next.js: 3ms, application-code: 4ms)
+ GET /api/auth/session 200 in 8ms (next.js: 1898µs, application-code: 6ms)
+ GET /api/igrejas/validadas 200 in 6ms (next.js: 1991µs, application-code: 4ms)
+ GET /mapa-geral 200 in 116ms (next.js: 5ms, application-code: 110ms)
+ GET /api/igrejas/validadas 200 in 19ms (next.js: 12ms, application-code: 7ms)
+ GET /api/auth/session 200 in 27ms (next.js: 5ms, application-code: 22ms)
+ GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 6ms)
+ GET /api/igrejas/validadas 200 in 13ms (next.js: 5ms, application-code: 8ms)
