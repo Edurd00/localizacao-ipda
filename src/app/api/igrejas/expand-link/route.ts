@@ -181,9 +181,9 @@ export async function POST(req: NextRequest) {
     const direct = coordsFromUrl(candidate);
     if (direct) {
       return NextResponse.json({
-        success: true, lat: direct[0], lng: direct[1],
-        latitude: direct[0], longitude: direct[1],
-        expanded_url: candidate,
+        success: true,
+        lat: direct[0],
+        lng: direct[1],
       });
     }
 
@@ -195,9 +195,9 @@ export async function POST(req: NextRequest) {
       const c = coordsFromUrl(hop);
       if (c) {
         return NextResponse.json({
-          success: true, lat: c[0], lng: c[1],
-          latitude: c[0], longitude: c[1],
-          expanded_url: hop,
+          success: true,
+          lat: c[0],
+          lng: c[1],
         });
       }
     }
@@ -206,9 +206,9 @@ export async function POST(req: NextRequest) {
       const c = coordsFromHtml(finalHtml);
       if (c) {
         return NextResponse.json({
-          success: true, lat: c[0], lng: c[1],
-          latitude: c[0], longitude: c[1],
-          expanded_url: hops[hops.length - 1] ?? candidate,
+          success: true,
+          lat: c[0],
+          lng: c[1],
         });
       }
     }
@@ -219,9 +219,9 @@ export async function POST(req: NextRequest) {
     const p3 = await fetchFollowAndMine(candidate);
     if (p3) {
       return NextResponse.json({
-        success: true, lat: p3[0], lng: p3[1],
-        latitude: p3[0], longitude: p3[1],
-        expanded_url: candidate,
+        success: true,
+        lat: p3[0],
+        lng: p3[1],
       });
     }
 
