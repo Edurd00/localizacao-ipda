@@ -248,6 +248,25 @@ function getPorte(desc: string, porteField?: string | null): string {
   return 'LOCAL';
 }
 
+export function getDescendantCount(parentCode: string, list: Igreja[]): number {
+  let count = 0;
+  const queue: string[] = [parentCode];
+  const visited = new Set<string>([parentCode]);
+
+  while (queue.length > 0) {
+    const currentCode = queue.shift()!;
+    const directChildren = list.filter(
+      (ig) => ig.codigo_totvs_pai === currentCode && ig.status !== 'DESATIVADO' && !visited.has(ig.codigo_totvs)
+    );
+    for (const child of directChildren) {
+      visited.add(child.codigo_totvs);
+      count++;
+      queue.push(child.codigo_totvs);
+    }
+  }
+  return count;
+}
+
 export const PORTE_PRIORITY: Record<string, number> = {
   'ESTADUAL': 1,
   'SETORIAL': 2,
@@ -528,6 +547,8 @@ export default function OrganizacaoPage() {
           // Divisa identification
           const divisaState = getDivisaJurisdiction(child);
 
+          const coligadasCount = getDescendantCount(child.codigo_totvs, churches);
+
           return (
             <div key={child.codigo_totvs} className="space-y-1 relative">
               {/* Horizontal Tree View Guide connector */}
@@ -566,10 +587,17 @@ export default function OrganizacaoPage() {
                     title={childPorte}
                   />
 
-                  <div className="min-w-0">
-                    <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-slate-550 block leading-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                      {child.desc_igreja}
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-slate-550 leading-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        {child.desc_igreja}
+                      </span>
+                      {coligadasCount > 0 && (
+                        <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/50 shrink-0">
+                          🏛️ {coligadasCount} {coligadasCount === 1 ? 'coligada' : 'coligadas'} na malha
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
                       <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-slate-400 font-medium">
                         TOTVS: <span className="font-mono font-bold text-zinc-700 dark:text-slate-300">{child.codigo_totvs}</span> • {child.endereco} • {child.municipio} - {child.estado}
