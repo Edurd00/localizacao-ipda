@@ -1087,101 +1087,86 @@ export default function ValidacaoPage() {
         ) : (
           /* VALIDATION WORKSPACE (Split Screen) */
           <div className="flex-1 flex flex-col gap-5">
-            {/* Filter Bar */}
-            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4 transition-colors duration-200">
-              <div className="flex items-center space-x-2 text-zinc-800 dark:text-slate-100 shrink-0">
-                <Filter className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                <span className="text-sm font-semibold">Filtros de Pesquisa:</span>
-              </div>
+            {/* Filter Bar (Refactored Grid layout with no line breaks) */}
+            <div className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm transition-colors duration-200">
 
-              <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start lg:justify-center flex-1">
-                {/* QUICK SEARCH BAR (Moved from Header to Operational Filter Panel) */}
-                <form onSubmit={handleSearchChurch} className="relative flex items-center w-full lg:w-64 shrink-0">
-                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Buscar por TOTVS, Nome ou Rua..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-lg pl-8 pr-8 py-2 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-colors duration-200"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5 flex items-center justify-center"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </form>
-
-                {/* State selector */}
-                <div className="flex items-center space-x-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider">Estado:</label>
-                  <select
-                    value={filterEstado}
-                    onChange={(e) => setFilterEstado(e.target.value)}
-                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-32 transition-colors duration-200"
+              {/* QUICK SEARCH BAR (Flexible Grid layout) */}
+              <form onSubmit={handleSearchChurch} className="relative flex items-center flex-1 min-w-[220px] shrink-0">
+                <Search className="absolute left-3 top-3.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar por TOTVS, Nome ou Rua..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-8 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-colors duration-200"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-3 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5 flex items-center justify-center"
                   >
-                    <option value="ALL">Todos</option>
-                    {states.map((st) => (
-                      <option key={st} value={st}>
-                        {st}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </form>
 
-                {/* Status selector */}
-                <div className="flex items-center space-x-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider">Status:</label>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-36 transition-colors duration-200"
-                  >
-                    <option value="ALL">Todos</option>
-                    <option value="PENDENTE">Pendentes</option>
-                    <option value="VALIDADO">Validados</option>
-                    <option value="DUVIDA">Dúvidas</option>
-                    <option value="PENDENTE_REVISAO">Revisões</option>
-                    <option value="DESATIVADO">Inativas</option>
-                  </select>
-                </div>
+              {/* State selector */}
+              <select
+                value={filterEstado}
+                onChange={(e) => setFilterEstado(e.target.value)}
+                className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-32 transition-colors duration-200"
+              >
+                <option value="ALL">Todos Estados</option>
+                {states.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
 
-                {/* Porte selector */}
-                <div className="flex items-center space-x-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider">Porte:</label>
-                  <select
-                    value={filterPorte}
-                    onChange={(e) => setFilterPorte(e.target.value)}
-                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-44 transition-colors duration-200"
-                  >
-                    <option value="ALL">Todos os Portes</option>
-                    <option value="ESTADUAL">🔵 ESTADUAL</option>
-                    <option value="SETORIAL">🟡 SETORIAL</option>
-                    <option value="CENTRAL">🟠 CENTRAL</option>
-                    <option value="REGIONAL">🟢 REGIONAL</option>
-                    <option value="LOCAL">⚪ LOCAL</option>
-                    <option value="CASA DE ORAÇÃO">🟣 CASA DE ORAÇÃO</option>
-                    <option value="ALDEIA INDIGENA">🟢 ALDEIA INDÍGENA</option>
-                  </select>
-                </div>
-              </div>
+              {/* Status selector */}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-36 transition-colors duration-200"
+              >
+                <option value="ALL">Todos Status</option>
+                <option value="PENDENTE">Pendentes</option>
+                <option value="VALIDADO">Validados</option>
+                <option value="DUVIDA">Dúvidas</option>
+                <option value="PENDENTE_REVISAO">Revisões</option>
+                <option value="DESATIVADO">Inativas</option>
+              </select>
 
-              {/* Action & Stats counter */}
-              <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end shrink-0">
+              {/* Porte selector */}
+              <select
+                value={filterPorte}
+                onChange={(e) => setFilterPorte(e.target.value)}
+                className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-44 transition-colors duration-200"
+              >
+                <option value="ALL">Todos os Portes</option>
+                <option value="ESTADUAL">🔵 ESTADUAL</option>
+                <option value="SETORIAL">🟡 SETORIAL</option>
+                <option value="CENTRAL">🟠 CENTRAL</option>
+                <option value="REGIONAL">🟢 REGIONAL</option>
+                <option value="LOCAL">⚪ LOCAL</option>
+                <option value="CASA DE ORAÇÃO">🟣 CASA DE ORAÇÃO</option>
+                <option value="ALDEIA INDIGENA">🟢 ALDEIA INDÍGENA</option>
+              </select>
+
+              {/* Action & Stats counter (Aligned to the Right) */}
+              <div className="ml-auto flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowBatchModal(true)}
                   disabled={batchLoading || loading || filteredIgrejasList.length === 0}
-                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
+                  className="h-10 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
                   title="Localizar automaticamente igrejas sem coordenadas via APIs gratuitas com trava por estado (UF)"
                 >
                   {batchLoading ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
                       <span>{batchProgress?.current}/{batchProgress?.total}...</span>
                     </>
                   ) : (
@@ -1192,7 +1177,7 @@ export default function ValidacaoPage() {
                   )}
                 </button>
 
-                <div className="text-xs font-semibold text-zinc-500 px-3 py-1.5 bg-zinc-100 rounded-lg">
+                <div className="bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-300 px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700">
                   {filteredIgrejasList.length} {filteredIgrejasList.length === 1 ? 'igreja' : 'igrejas'}
                 </div>
               </div>
