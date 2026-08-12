@@ -941,9 +941,9 @@ export default function ValidacaoPage() {
       )}
 
       {/* Top Banner Navigation */}
-      <header className="bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 sticky top-0 z-[1001] shadow-sm transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between h-auto sm:h-16 py-3 sm:py-0 items-center gap-3 sm:gap-0">
+      <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 z-[1001] shadow-xs transition-colors duration-200 flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex justify-between items-center h-full w-full">
             {/* Logo & Branding */}
             <div className="flex items-center space-x-3 shrink-0">
               <img
@@ -951,7 +951,7 @@ export default function ValidacaoPage() {
                 alt="Localização IPDA"
                 className="h-10 w-auto object-contain shadow-sm"
               />
-              <div>
+              <div className="hidden sm:block">
                 <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
                   GEO-VALIG IPDA <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">12K</span>
                 </h1>
@@ -959,101 +959,76 @@ export default function ValidacaoPage() {
               </div>
             </div>
 
-            {/* QUICK SEARCH BAR */}
-            <form onSubmit={handleSearchChurch} className="relative flex items-center w-full sm:w-72 lg:w-96">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500" />
-              <input
-                type="text"
-                placeholder="Buscar por Código TOTVS, Nome ou Rua..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-100 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-8 pr-8 py-1.5 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-all"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </form>
+            {/* Continuous Pill Segmented Control Navigation Tab Bar */}
+            <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-0.5 items-center">
+              <a
+                href="/"
+                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+              >
+                <span>🗺️ Mapa Geral</span>
+              </a>
 
-            {/* Unified Navigation Layout */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0 mt-3 sm:mt-0">
-              {/* Block 1: Visualização */}
-              <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 items-center">
-                <a
-                  href="/"
-                  className="px-3 py-1.5 text-xs font-bold text-indigo-750 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-white bg-white dark:bg-slate-700 rounded-lg shadow-2xs border border-zinc-200/50 dark:border-slate-600 flex items-center space-x-1 transition-all"
-                >
-                  <span>🗺️ Mapa Geral</span>
-                </a>
-              </div>
+              <button
+                onClick={() => setActiveTab('validation')}
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                  activeTab === 'validation'
+                    ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                    : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                <span>📍 Validação</span>
+              </button>
 
-              {/* Block 2: Gestão (Pill Bar Segmentada) */}
-              <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-0.5 items-center">
-                <button
-                  onClick={() => setActiveTab('validation')}
-                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
-                    activeTab === 'validation'
-                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
-                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  <span>📍 Validação</span>
-                </button>
+              <a
+                href="/coligacoes"
+                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+              >
+                <span>🌳 Coligações</span>
+              </a>
 
-                <a
-                  href="/coligacoes"
-                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-                >
-                  <span>🌳 Coligações</span>
-                </a>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                  activeTab === 'dashboard'
+                    ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                    : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                <span>📊 Dashboard</span>
+              </button>
 
-                <button
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
-                    activeTab === 'dashboard'
-                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
-                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  <span>📊 Dashboard</span>
-                </button>
+              <button
+                onClick={() => setActiveTab('upload')}
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                  activeTab === 'upload'
+                    ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                    : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                <span>📥 Importar</span>
+              </button>
+            </div>
 
-                <button
-                  onClick={() => setActiveTab('upload')}
-                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
-                    activeTab === 'upload'
-                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
-                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  <span>📥 Importar</span>
-                </button>
-              </div>
-
+            {/* Right side compact actions */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleSyncPublicMap}
                 disabled={syncLoading}
-                className="p-1.5 bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-650 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/60 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
-                title="Sincronizar Mapa Público (Forçar atualização de cache na CDN)"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-full transition-all shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px]"
+                title="Sincronizar Mapa Público (Forçar revalidação de cache)"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${syncLoading ? 'animate-spin' : ''}`} />
-                <span className="hidden lg:inline">Sincronizar Mapa Público</span>
+                <RefreshCw className={`h-4 w-4 ${syncLoading ? 'animate-spin' : ''}`} />
               </button>
 
-              <div className="w-px h-5 bg-zinc-300 dark:bg-slate-700 mx-1 hidden lg:block" />
+              <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
 
               <button
                 onClick={handleLogout}
-                className="p-1.5 bg-rose-50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-450 border border-rose-200 dark:border-rose-900/60 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+                className="px-3 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0"
                 title="Sair do painel administrativo"
               >
                 <Power className="h-3.5 w-3.5" />
-                <span className="hidden lg:inline">Sair</span>
+                <span className="hidden sm:inline">Sair</span>
               </button>
             </div>
           </div>
@@ -1120,6 +1095,27 @@ export default function ValidacaoPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start lg:justify-center flex-1">
+                {/* QUICK SEARCH BAR (Moved from Header to Operational Filter Panel) */}
+                <form onSubmit={handleSearchChurch} className="relative flex items-center w-full lg:w-64 shrink-0">
+                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por TOTVS, Nome ou Rua..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-lg pl-8 pr-8 py-2 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-colors duration-200"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5 flex items-center justify-center"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </form>
+
                 {/* State selector */}
                 <div className="flex items-center space-x-1.5">
                   <label className="text-xs font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider">Estado:</label>
