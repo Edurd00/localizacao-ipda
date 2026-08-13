@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400; // Cache 24 hours
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=59',
           },
         }
       );
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=59',
         },
       }
     );
