@@ -278,13 +278,14 @@ export interface IgrejaMap {
   longitude: number | null;
   status: Igreja['status'];
   porte?: string | null;
+  codigo_totvs_pai?: string | null;
 }
 
 export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
   await ensurePostgresTable();
   if (pool) {
     try {
-      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte FROM igrejas WHERE status = 'VALIDADO' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
+      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte, codigo_totvs_pai FROM igrejas WHERE status = 'VALIDADO' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
       const res = await pool.query(query);
       return res.rows.map((row) => ({
         id: row.id,
@@ -294,6 +295,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
         longitude: row.longitude,
         status: row.status as Igreja['status'],
         porte: row.porte,
+        codigo_totvs_pai: row.codigo_totvs_pai,
       }));
     } catch (err) {
       console.error('Postgres error in getIgrejasForMap:', err);
@@ -311,6 +313,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
       longitude: item.longitude,
       status: item.status,
       porte: item.porte,
+      codigo_totvs_pai: item.codigo_totvs_pai,
     }))
     .sort((a, b) => a.desc_igreja.localeCompare(b.desc_igreja));
 }
