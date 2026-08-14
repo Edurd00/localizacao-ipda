@@ -29,3 +29,16 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ajuste de tamanho do container Leaflet Popup */
+.custom-leaflet-popup .leaflet-popup-content-wrapper {
+  padding: 8px !important;
+  border-radius: 12px !important;
+  width: 360px !important;
+  max-width: 90vw !important;
+}
+
+.custom-leaflet-popup .leaflet-popup-content {
+  margin: 4px !important;
+  width: auto !important;
+}

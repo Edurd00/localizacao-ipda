@@ -1464,24 +1464,26 @@ const MemoizedMapView = memo(function MapView({
 
   const renderChurchPopup = (ig: Igreja) => {
     return (
-      <Popup className="custom-popup-styled !max-w-[380px] sm:!max-w-[420px] w-full">
-        <ChurchPopupContent
-          ig={ig}
-          igrejas={igrejas}
-          comparisonMode={comparisonMode}
-          fixedDest={fixedDest}
-          sedeCandidataA={sedeCandidataA}
-          sedeCandidataB={sedeCandidataB}
-          connectionPathSource={connectionPathSource}
-          customRouteOrigin={customRouteOrigin}
-          setComparisonMode={setComparisonMode}
-          setFixedDest={setFixedDest}
-          setSedeCandidataA={setSedeCandidataA}
-          setSedeCandidataB={setSedeCandidataB}
-          setCustomRouteOrigin={setCustomRouteOrigin}
-          handleTraceConnectionMesh={handleTraceConnectionMesh}
-          fetchTerrestrialRoute={fetchTerrestrialRoute}
-        />
+      <Popup className="custom-leaflet-popup" maxWidth={380} minWidth={300}>
+        <div className="w-full max-h-[420px] overflow-y-auto p-1 text-slate-800">
+          <ChurchPopupContent
+            ig={ig}
+            igrejas={igrejas}
+            comparisonMode={comparisonMode}
+            fixedDest={fixedDest}
+            sedeCandidataA={sedeCandidataA}
+            sedeCandidataB={sedeCandidataB}
+            connectionPathSource={connectionPathSource}
+            customRouteOrigin={customRouteOrigin}
+            setComparisonMode={setComparisonMode}
+            setFixedDest={setFixedDest}
+            setSedeCandidataA={setSedeCandidataA}
+            setSedeCandidataB={setSedeCandidataB}
+            setCustomRouteOrigin={setCustomRouteOrigin}
+            handleTraceConnectionMesh={handleTraceConnectionMesh}
+            fetchTerrestrialRoute={fetchTerrestrialRoute}
+          />
+        </div>
       </Popup>
     );
   };
