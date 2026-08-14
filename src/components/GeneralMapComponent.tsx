@@ -1115,6 +1115,38 @@ const MemoizedMapView = memo(function MapView({
               </span>
             </p>
 
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 my-2 text-xs">
+              <h4 className="font-bold text-slate-700 flex items-center gap-1.5 mb-2">
+                👥 Liderança & Contatos Local
+              </h4>
+              {ig.dirigente_nome ? (
+                <div className="mb-1.5">
+                  <span className="font-semibold text-slate-800">👔 Dirigente:</span> {ig.dirigente_nome}
+                  {ig.dirigente_telefone && (
+                    <a
+                      href={`https://wa.me/55${ig.dirigente_telefone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-emerald-600 font-medium hover:underline inline-flex items-center gap-1"
+                    >
+                      📱 {ig.dirigente_telefone}
+                    </a>
+                  )}
+                </div>
+              ) : null}
+              {ig.financeira_nome ? (
+                <div>
+                  <span className="font-semibold text-slate-800">💰 Financeira:</span> {ig.financeira_nome}
+                  {ig.financeira_telefone && (
+                    <span className="ml-2 text-slate-600">📱 {ig.financeira_telefone}</span>
+                  )}
+                </div>
+              ) : null}
+              {!ig.dirigente_nome && !ig.financeira_nome && (
+                <p className="text-slate-400 italic">Nenhum responsável cadastrado.</p>
+              )}
+            </div>
+
             {ig.codigo_totvs_pai && (
               <p className="flex items-start gap-1.5 text-[11px] bg-slate-50 p-1.5 rounded-md border border-slate-100">
                 <GitBranch className="h-3.5 w-3.5 text-indigo-500 mt-0.5 shrink-0" />

@@ -795,3 +795,98 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
     updated_at: new Date().toISOString(),
   });
 }
+
+export async function upsertContactsBulk(contacts: Array<{
+  codigo_totvs: string;
+  dirigente_nome?: string | null;
+  dirigente_telefone?: string | null;
+}>): Promise<{ updatedCount: number; insertedCount: number }> {
+  await ensurePostgresTable();
+  let updatedCount = 0;
+  let insertedCount = 0;
+
+  if (pool) {
+    const client = await pool.connect();
+    try {
+      const CHUNK_SIZE = 500;
+      for (let i = 0; i < contacts.length; i += CHUNK_SIZE) {
+        const chunk = contacts.slice(i, i + CHUNK_SIZE);
+        await client.query('BEGIN');
+        for (const item of chunk) {
+          const totvs = item.codigo_totvs ? item.codigo_totvs.toString().trim() : '';
+          if (!totvs) continue;
+          const dirigente = item.dirigente_nome ? item.dirigente_nome.toString().trim() : null;
+          const telefone = item.dirigente_telefone ? item.dirigente_telefone.toString().trim() : null;
+
+          const query = `
+            INSERT INTO igrejas (codigo_totvs, desc_igreja, dirigente_nome, dirigente_telefone, status)
+            VALUES ($1, $2, $3, $4, 'PENDENTE')
+            ON CONFLICT (codigo_totvs) DO UPDATE SET
+              dirigente_nome = COALESCE(EXCLUDED.dirigente_nome, igrejas.dirigente_nome),
+              dirigente_telefone = COALESCE(EXCLUDED.dirigente_telefone, igrejas.dirigente_telefone),
+              updated_at = CURRENT_TIMESTAMP
+            RETURNING (xmax = 0) AS is_inserted;
+          `;
+          const res = await client.query(query, [
+            totvs,
+            `Igreja ${totvs}`,
+            dirigente,
+            telefone,
+          ]);
+          if (res.rows.length > 0 && res.rows[0].is_inserted) {
+            insertedCount++;
+          } else {
+            updatedCount++;
+          }
+        }
+        await client.query('COMMIT');
+      }
+      return { updatedCount, insertedCount };
+    } catch (err) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        console.error('Rollback error:', rollbackErr);
+      }
+      console.error('Postgres error in upsertContactsBulk:', err);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Fallback to In-Memory DB
+  contacts.forEach((item) => {
+    const totvs = item.codigo_totvs ? item.codigo_totvs.toString().trim() : '';
+    if (!totvs) return;
+    const existing = memoryDb.find((ig) => ig.codigo_totvs === totvs);
+    if (existing) {
+      if (item.dirigente_nome) existing.dirigente_nome = item.dirigente_nome.toString().trim();
+      if (item.dirigente_telefone) existing.dirigente_telefone = item.dirigente_telefone.toString().trim();
+      existing.updated_at = new Date().toISOString();
+      updatedCount++;
+    } else {
+      memoryDb.push({
+        codigo_totvs: totvs,
+        desc_igreja: `Igreja ${totvs}`,
+        tipo_imovel: 'ALUGADO',
+        endereco: '',
+        bairro: '',
+        municipio: '',
+        estado: '',
+        cep: '',
+        link_google_maps: '',
+        latitude: null,
+        longitude: null,
+        status: 'PENDENTE',
+        dirigente_nome: item.dirigente_nome ? item.dirigente_nome.toString().trim() : null,
+        dirigente_telefone: item.dirigente_telefone ? item.dirigente_telefone.toString().trim() : null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      insertedCount++;
+    }
+  });
+
+  return { updatedCount, insertedCount };
+}

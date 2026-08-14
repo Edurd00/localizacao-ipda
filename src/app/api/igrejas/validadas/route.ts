@@ -25,6 +25,12 @@ export async function GET() {
       'validado_por',
       'validado_em',
       'updated_at',
+      'dirigente_nome',
+      'dirigente_telefone',
+      'dirigente_email',
+      'financeira_nome',
+      'financeira_telefone',
+      'financeira_email',
     ]);
     return new NextResponse(
       JSON.stringify({
