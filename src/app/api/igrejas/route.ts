@@ -28,7 +28,13 @@ export async function GET(request: Request) {
         'observacoes',
         'codigo_totvs_pai',
         'porte',
-        'updated_at'
+        'updated_at',
+        'dirigente_nome',
+        'dirigente_telefone',
+        'dirigente_email',
+        'financeira_nome',
+        'financeira_telefone',
+        'financeira_email'
       ]),
       getDistinctStates(),
     ]);

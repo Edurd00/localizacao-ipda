@@ -846,6 +846,13 @@ export default function ColigacoesPage() {
                   <span>🌳 Coligações</span>
                 </button>
 
+              <a
+                href="/gestao"
+                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
+              >
+                <span>👥 Gestão</span>
+              </a>
+
                 <a
                   href="/validacao?tab=dashboard"
                   className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"

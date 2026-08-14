@@ -22,6 +22,12 @@ export interface Igreja {
   validado_por?: string | null;
   validado_em?: string | null;
   observacoes?: string | null;
+  dirigente_nome?: string | null;
+  dirigente_telefone?: string | null;
+  dirigente_email?: string | null;
+  financeira_nome?: string | null;
+  financeira_telefone?: string | null;
+  financeira_email?: string | null;
 }
 
 // Check database URL in env
@@ -110,6 +116,12 @@ async function ensurePostgresTable() {
           observacoes TEXT,
           codigo_totvs_pai VARCHAR(100),
           porte VARCHAR(50),
+          dirigente_nome VARCHAR(255),
+          dirigente_telefone VARCHAR(100),
+          dirigente_email VARCHAR(255),
+          financeira_nome VARCHAR(255),
+          financeira_telefone VARCHAR(100),
+          financeira_email VARCHAR(255),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -121,6 +133,12 @@ async function ensurePostgresTable() {
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS validado_em TIMESTAMP;`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS observacoes TEXT;`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_nome VARCHAR(255);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_telefone VARCHAR(100);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_email VARCHAR(255);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_nome VARCHAR(255);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_telefone VARCHAR(100);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_email VARCHAR(255);`);
       } catch (alterErr) {
         console.warn('Alter table columns check failed (might be expected):', alterErr);
       }
@@ -241,6 +259,12 @@ export async function getIgrejas(
         if (row.validado_por !== undefined) item.validado_por = row.validado_por;
         if (row.validado_em !== undefined) item.validado_em = row.validado_em;
         if (row.observacoes !== undefined) item.observacoes = row.observacoes;
+        if (row.dirigente_nome !== undefined) item.dirigente_nome = row.dirigente_nome;
+        if (row.dirigente_telefone !== undefined) item.dirigente_telefone = row.dirigente_telefone;
+        if (row.dirigente_email !== undefined) item.dirigente_email = row.dirigente_email;
+        if (row.financeira_nome !== undefined) item.financeira_nome = row.financeira_nome;
+        if (row.financeira_telefone !== undefined) item.financeira_telefone = row.financeira_telefone;
+        if (row.financeira_email !== undefined) item.financeira_email = row.financeira_email;
         return item as Igreja;
       });
     } catch (err) {
@@ -717,4 +741,57 @@ export async function saveIgrejaSingle(codigo_totvs: string, update: Partial<Igr
   } else {
     throw new Error(`Church with codigo_totvs ${codigo_totvs} not found.`);
   }
+}
+
+export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
+  await ensurePostgresTable();
+  if (pool) {
+    try {
+      const query = `
+        INSERT INTO igrejas (
+          codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep,
+          link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte,
+          dirigente_nome, dirigente_telefone, dirigente_email,
+          financeira_nome, financeira_telefone, financeira_email
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      `;
+      await pool.query(query, [
+        igreja.codigo_totvs,
+        igreja.desc_igreja,
+        igreja.tipo_imovel || 'ALUGADO',
+        igreja.endereco || '',
+        igreja.bairro || '',
+        igreja.municipio || '',
+        igreja.estado || '',
+        igreja.cep || '',
+        igreja.link_google_maps || '',
+        igreja.latitude,
+        igreja.longitude,
+        igreja.status || 'PENDENTE',
+        igreja.codigo_totvs_pai || null,
+        igreja.porte || 'LOCAL',
+        igreja.dirigente_nome || null,
+        igreja.dirigente_telefone || null,
+        igreja.dirigente_email || null,
+        igreja.financeira_nome || null,
+        igreja.financeira_telefone || null,
+        igreja.financeira_email || null,
+      ]);
+      return;
+    } catch (err) {
+      console.error('Postgres error in criarIgrejaSingle:', err);
+      throw err;
+    }
+  }
+
+  // Fallback to In-Memory DB
+  const alreadyExists = memoryDb.some((item) => item.codigo_totvs === igreja.codigo_totvs);
+  if (alreadyExists) {
+    throw new Error(`Igreja com código TOTVS ${igreja.codigo_totvs} já existe.`);
+  }
+  memoryDb.push({
+    ...igreja,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
 }
