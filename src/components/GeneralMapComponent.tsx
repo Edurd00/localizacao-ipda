@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   GitBranch,
   Lock,
+  Users,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
@@ -2809,6 +2810,17 @@ export default function GeneralMapComponent() {
             <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
             <span className="text-xs font-semibold hidden sm:inline">🏛️ Organização</span>
           </a>
+
+          {isAuthenticated && (
+            <a
+              href="/gestao"
+              className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-350 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 min-h-[44px]"
+              title="Gerenciar Igrejas e Contatos"
+            >
+              <Users className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-xs font-semibold hidden sm:inline">👥 Gestão</span>
+            </a>
+          )}
 
           <a
             href="/validacao"
