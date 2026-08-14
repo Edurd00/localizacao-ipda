@@ -21,6 +21,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  Upload,
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
 
@@ -53,6 +54,9 @@ export default function GestaoPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
+  const [isImportContactsModalOpen, setIsImportContactsModalOpen] = useState(false);
+  const [importFile, setFileToImport] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Form State: Create/Edit Church
   const [formTotvs, setFormTotvs] = useState('');
@@ -301,6 +305,40 @@ export default function GestaoPage() {
     }
   };
 
+  const handleBatchImportContacts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) {
+      toast.error('Selecione um arquivo CSV com as colunas TOTVS, Dirigente e Telefone.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const res = await fetch('/api/admin/import-contacts', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || `Importação concluída! ${data.count} registros processados.`);
+        setIsImportContactsModalOpen(false);
+        setFileToImport(null);
+        await fetchIgrejasList();
+      } else {
+        toast.error(data.error || 'Erro ao importar contatos.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro de conexão ao enviar a planilha.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpdateChurchDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedChurch) return;
@@ -477,6 +515,16 @@ export default function GestaoPage() {
             <span className="text-xs font-bold text-zinc-500 bg-zinc-100 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-slate-700">
               {filteredIgrejas.length} {filteredIgrejas.length === 1 ? 'registro' : 'registros'}
             </span>
+            <button
+              onClick={() => {
+                setFileToImport(null);
+                setIsImportContactsModalOpen(true);
+              }}
+              className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all"
+            >
+              <Upload className="h-4 w-4" />
+              <span>📥 Importar Contatos CSV/Excel</span>
+            </button>
             <button
               onClick={openCreateModal}
               className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all"
@@ -999,6 +1047,74 @@ export default function GestaoPage() {
                 >
                   {saving && <Loader2 className="h-3 w-3 animate-spin" />}
                   <span>Salvar Alterações</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📥 Modal: Importar Contatos CSV/Excel */}
+      {isImportContactsModalOpen && (
+        <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-zinc-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="p-5 border-b border-zinc-100 dark:border-slate-800 flex justify-between items-center bg-zinc-50/50 dark:bg-slate-800/40">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <Upload className="h-5 w-5" />
+                <h3 className="font-extrabold text-sm uppercase tracking-wider">Importar Contatos CSV</h3>
+              </div>
+              <button
+                onClick={() => setIsImportContactsModalOpen(false)}
+                className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBatchImportContacts} className="p-6 space-y-4">
+              <p className="text-xs text-zinc-600 dark:text-slate-300">
+                Selecione uma planilha em formato <strong className="font-mono text-emerald-600">.csv</strong> contendo as colunas <strong className="text-zinc-900 dark:text-white">TOTVS</strong>, <strong className="text-zinc-900 dark:text-white">Dirigente</strong> e <strong className="text-zinc-900 dark:text-white">Telefone</strong>.
+              </p>
+
+              <div className="border-2 border-dashed border-zinc-200 dark:border-slate-700 rounded-2xl p-6 text-center hover:bg-zinc-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer relative">
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setFileToImport(e.target.files[0]);
+                    }
+                  }}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                />
+                <Upload className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                {importFile ? (
+                  <div className="text-xs font-bold text-zinc-900 dark:text-white">
+                    📄 {importFile.name} <span className="text-[10px] text-zinc-400 font-normal">({(importFile.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 block">Clique para escolher o arquivo CSV</span>
+                    <span className="text-[10px] text-zinc-400 block mt-0.5">Delimitado por ponto e vírgula (;) ou vírgula (,)</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-zinc-100 dark:border-slate-800 flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsImportContactsModalOpen(false)}
+                  className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-xs rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploading || !importFile}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5"
+                >
+                  {uploading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>{uploading ? 'Processando...' : 'Iniciar Importação'}</span>
                 </button>
               </div>
             </form>
