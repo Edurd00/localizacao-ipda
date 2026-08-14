@@ -1132,40 +1132,66 @@ function ChurchPopupContent({
         {activeTab === 'lideranca' && (
           <div className="space-y-2">
             {ig.dirigente_nome && (
-              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                <div>
-                  <p className="font-bold text-slate-800">👔 {ig.dirigente_nome}</p>
-                  <p className="text-slate-500 text-[11px]">Dirigente Local</p>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">👔 {ig.dirigente_nome}</p>
+                    <p className="text-slate-500 text-[11px] mb-1">Dirigente Local</p>
+
+                    {ig.dirigente_telefone && (
+                      <a
+                        href={`tel:${ig.dirigente_telefone.replace(/\D/g, '')}`}
+                        className="text-slate-700 font-semibold hover:text-blue-600 flex items-center gap-1 mt-1 text-xs"
+                        title="Clique para ligar"
+                      >
+                        📞 {ig.dirigente_telefone}
+                      </a>
+                    )}
+                  </div>
+
+                  {ig.dirigente_telefone && (
+                    <a
+                      href={`https://wa.me/55${ig.dirigente_telefone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-3 py-1.5 rounded-md flex items-center gap-1.5 text-xs transition-colors shrink-0 shadow-sm"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
                 </div>
-                {ig.dirigente_telefone && (
-                  <a
-                    href={`https://wa.me/55${ig.dirigente_telefone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-2.5 py-1 rounded-md flex items-center gap-1 text-[11px] transition-colors shrink-0"
-                  >
-                    💬 WhatsApp
-                  </a>
-                )}
               </div>
             )}
 
             {ig.financeira_nome && (
-              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                <div>
-                  <p className="font-bold text-slate-800">💰 {ig.financeira_nome}</p>
-                  <p className="text-slate-500 text-[11px]">Voluntária Financeira</p>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">💰 {ig.financeira_nome}</p>
+                    <p className="text-slate-500 text-[11px] mb-1">Voluntária Financeira</p>
+
+                    {ig.financeira_telefone && (
+                      <a
+                        href={`tel:${ig.financeira_telefone.replace(/\D/g, '')}`}
+                        className="text-slate-700 font-semibold hover:text-blue-600 flex items-center gap-1 mt-1 text-xs"
+                        title="Clique para ligar"
+                      >
+                        📞 {ig.financeira_telefone}
+                      </a>
+                    )}
+                  </div>
+
+                  {ig.financeira_telefone && (
+                    <a
+                      href={`https://wa.me/55${ig.financeira_telefone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-3 py-1.5 rounded-md flex items-center gap-1.5 text-xs transition-colors shrink-0 shadow-sm"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
                 </div>
-                {ig.financeira_telefone && (
-                  <a
-                    href={`https://wa.me/55${ig.financeira_telefone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-2.5 py-1 rounded-md flex items-center gap-1 text-[11px] transition-colors shrink-0"
-                  >
-                    💬 WhatsApp
-                  </a>
-                )}
               </div>
             )}
 
