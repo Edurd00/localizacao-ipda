@@ -160,6 +160,24 @@ async function ensurePostgresTable() {
         console.warn('Validator name fusion for Guilherme failed (non-fatal):', fuseErr);
       }
 
+      // ---------------------------------------------------------------
+      // Row Level Security (RLS) Activation & Public Read Policy
+      // ---------------------------------------------------------------
+      try {
+        console.log('Activating Row Level Security (RLS) on public.igrejas table...');
+        await client.query(`ALTER TABLE public.igrejas ENABLE ROW LEVEL SECURITY;`);
+
+        console.log('Creating/Updating public select policy "Permitir leitura publica de igrejas" on public.igrejas...');
+        await client.query(`DROP POLICY IF EXISTS "Permitir leitura publica de igrejas" ON public.igrejas;`);
+        await client.query(`
+          CREATE POLICY "Permitir leitura publica de igrejas"
+          ON public.igrejas FOR SELECT
+          USING (true);
+        `);
+      } catch (rlsErr) {
+        console.warn('RLS activation or public read policy setup failed (non-fatal):', rlsErr);
+      }
+
       isTableInitialized = true;
     } finally {
       client.release();
