@@ -17,7 +17,8 @@ export interface PrebendaRowUpdate {
 
 /**
  * Helper to parse date values into ISO string YYYY-MM-DD.
- * Handles Excel date serials, MM/DD/YY, DD/MM/YYYY, YYYY-MM-DD formats.
+ * Handles Excel date serials, DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD formats.
+ * Standard Brazilian format: p1 is day, p2 is month (day = p1, month = p2).
  * Ignores empty or invalid strings like '/  /' or '//'.
  */
 export function parsePosseDate(val: string | number | null | undefined): string | null {
@@ -47,25 +48,15 @@ export function parsePosseDate(val: string | number | null | undefined): string 
         month = p2;
         day = p3;
       } else if (p3 > 1000) {
-        // MM/DD/YYYY or DD/MM/YYYY
+        // DD/MM/YYYY or MM/DD/YYYY -> Brazilian default: p1 is day, p2 is month
         year = p3;
-        if (p1 > 12) {
-          day = p1;
-          month = p2;
-        } else {
-          month = p1;
-          day = p2;
-        }
+        day = p1;
+        month = p2;
       } else {
-        // MM/DD/YY or DD/MM/YY
+        // DD/MM/YY or MM/DD/YY -> Brazilian default: p1 is day, p2 is month
         year = p3 < 50 ? 2000 + p3 : 1900 + p3;
-        if (p1 > 12) {
-          day = p1;
-          month = p2;
-        } else {
-          month = p1;
-          day = p2;
-        }
+        day = p1;
+        month = p2;
       }
       const d = new Date(Date.UTC(year, month - 1, day));
       if (!isNaN(d.getTime())) {
@@ -139,7 +130,7 @@ export async function processPrebendaUpdates(records: PrebendaRowUpdate[]): Prom
   notFoundCount: number;
   errorsCount: number;
 }> {
-  const CHUNK_SIZE = 500;
+  const CHUNK_SIZE = 200;
   let updatedCount = 0;
   let notFoundCount = 0;
   let errorsCount = 0;
@@ -149,48 +140,56 @@ export async function processPrebendaUpdates(records: PrebendaRowUpdate[]): Prom
   const databaseUrl = process.env.DATABASE_URL;
 
   if (supabaseUrl && supabaseKey) {
-    console.log('Using Supabase Service Role Client for chunk updates...');
+    console.log('Using Supabase Service Role Client with Promise.all parallel chunk updates (CHUNK_SIZE = 200)...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     for (let i = 0; i < records.length; i += CHUNK_SIZE) {
       const chunk = records.slice(i, i + CHUNK_SIZE);
       console.log(`Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(records.length / CHUNK_SIZE)} (${chunk.length} items)...`);
 
-      for (const item of chunk) {
-        try {
-          const updateData: Record<string, unknown> = {
-            tipo_prebenda: item.tipo_prebenda,
-            updated_at: new Date().toISOString(),
-          };
+      const results = await Promise.all(
+        chunk.map(async (item) => {
+          try {
+            const updateData: Record<string, unknown> = {
+              tipo_prebenda: item.tipo_prebenda,
+              updated_at: new Date().toISOString(),
+            };
 
-          if (item.qtd_membros !== null) updateData.qtd_membros = item.qtd_membros;
-          if (item.dirigente_nome !== null) updateData.dirigente_nome = item.dirigente_nome;
-          if (item.dirigente_telefone !== null) updateData.dirigente_telefone = item.dirigente_telefone;
-          if (item.dirigente_data_posse !== null) updateData.dirigente_data_posse = item.dirigente_data_posse;
-          if (item.financeira_nome !== null) updateData.financeira_nome = item.financeira_nome;
+            if (item.qtd_membros !== null) updateData.qtd_membros = item.qtd_membros;
+            if (item.dirigente_nome !== null) updateData.dirigente_nome = item.dirigente_nome;
+            if (item.dirigente_telefone !== null) updateData.dirigente_telefone = item.dirigente_telefone;
+            if (item.dirigente_data_posse !== null) updateData.dirigente_data_posse = item.dirigente_data_posse;
+            if (item.financeira_nome !== null) updateData.financeira_nome = item.financeira_nome;
 
-          const { data, error } = await supabase
-            .from('igrejas')
-            .update(updateData)
-            .eq('codigo_totvs', item.codigo_totvs)
-            .select('codigo_totvs');
+            const { data, error } = await supabase
+              .from('igrejas')
+              .update(updateData)
+              .eq('codigo_totvs', item.codigo_totvs)
+              .select('codigo_totvs');
 
-          if (error) {
-            console.error(`Error updating codigo_totvs ${item.codigo_totvs}:`, error);
-            errorsCount++;
-          } else if (data && data.length > 0) {
-            updatedCount++;
-          } else {
-            notFoundCount++;
+            if (error) {
+              console.error(`Error updating codigo_totvs ${item.codigo_totvs}:`, error);
+              return 'error';
+            } else if (data && data.length > 0) {
+              return 'updated';
+            } else {
+              return 'not_found';
+            }
+          } catch (err) {
+            console.error(`Exception updating codigo_totvs ${item.codigo_totvs}:`, err);
+            return 'error';
           }
-        } catch (err) {
-          console.error(`Exception updating codigo_totvs ${item.codigo_totvs}:`, err);
-          errorsCount++;
-        }
+        })
+      );
+
+      for (const res of results) {
+        if (res === 'updated') updatedCount++;
+        else if (res === 'not_found') notFoundCount++;
+        else if (res === 'error') errorsCount++;
       }
     }
   } else if (databaseUrl) {
-    console.log('Using Postgres Pool for chunk updates...');
+    console.log('Using Postgres Pool with parallelized chunk updates...');
     const pool = new Pool({
       connectionString: databaseUrl,
       ssl: { rejectUnauthorized: false },
@@ -203,52 +202,60 @@ export async function processPrebendaUpdates(records: PrebendaRowUpdate[]): Prom
         console.log(`Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(records.length / CHUNK_SIZE)} (${chunk.length} items)...`);
 
         await client.query('BEGIN');
-        for (const item of chunk) {
-          try {
-            const sets: string[] = ['tipo_prebenda = $2', 'updated_at = CURRENT_TIMESTAMP'];
-            const params: unknown[] = [item.codigo_totvs, item.tipo_prebenda];
-            let paramIdx = 3;
+        const results = await Promise.all(
+          chunk.map(async (item) => {
+            try {
+              const sets: string[] = ['tipo_prebenda = $2', 'updated_at = CURRENT_TIMESTAMP'];
+              const params: unknown[] = [item.codigo_totvs, item.tipo_prebenda];
+              let paramIdx = 3;
 
-            if (item.qtd_membros !== null) {
-              sets.push(`qtd_membros = $${paramIdx}`);
-              params.push(item.qtd_membros);
-              paramIdx++;
-            }
-            if (item.dirigente_nome !== null) {
-              sets.push(`dirigente_nome = $${paramIdx}`);
-              params.push(item.dirigente_nome);
-              paramIdx++;
-            }
-            if (item.dirigente_telefone !== null) {
-              sets.push(`dirigente_telefone = $${paramIdx}`);
-              params.push(item.dirigente_telefone);
-              paramIdx++;
-            }
-            if (item.dirigente_data_posse !== null) {
-              sets.push(`dirigente_data_posse = $${paramIdx}`);
-              params.push(item.dirigente_data_posse);
-              paramIdx++;
-            }
-            if (item.financeira_nome !== null) {
-              sets.push(`financeira_nome = $${paramIdx}`);
-              params.push(item.financeira_nome);
-              paramIdx++;
-            }
+              if (item.qtd_membros !== null) {
+                sets.push(`qtd_membros = $${paramIdx}`);
+                params.push(item.qtd_membros);
+                paramIdx++;
+              }
+              if (item.dirigente_nome !== null) {
+                sets.push(`dirigente_nome = $${paramIdx}`);
+                params.push(item.dirigente_nome);
+                paramIdx++;
+              }
+              if (item.dirigente_telefone !== null) {
+                sets.push(`dirigente_telefone = $${paramIdx}`);
+                params.push(item.dirigente_telefone);
+                paramIdx++;
+              }
+              if (item.dirigente_data_posse !== null) {
+                sets.push(`dirigente_data_posse = $${paramIdx}`);
+                params.push(item.dirigente_data_posse);
+                paramIdx++;
+              }
+              if (item.financeira_nome !== null) {
+                sets.push(`financeira_nome = $${paramIdx}`);
+                params.push(item.financeira_nome);
+                paramIdx++;
+              }
 
-            const query = `UPDATE igrejas SET ${sets.join(', ')} WHERE codigo_totvs = $1 RETURNING codigo_totvs`;
-            const res = await client.query(query, params);
+              const query = `UPDATE igrejas SET ${sets.join(', ')} WHERE codigo_totvs = $1 RETURNING codigo_totvs`;
+              const res = await client.query(query, params);
 
-            if (res.rowCount && res.rowCount > 0) {
-              updatedCount++;
-            } else {
-              notFoundCount++;
+              if (res.rowCount && res.rowCount > 0) {
+                return 'updated';
+              } else {
+                return 'not_found';
+              }
+            } catch (err) {
+              console.error(`Error updating codigo_totvs ${item.codigo_totvs}:`, err);
+              return 'error';
             }
-          } catch (err) {
-            console.error(`Error updating codigo_totvs ${item.codigo_totvs}:`, err);
-            errorsCount++;
-          }
-        }
+          })
+        );
         await client.query('COMMIT');
+
+        for (const res of results) {
+          if (res === 'updated') updatedCount++;
+          else if (res === 'not_found') notFoundCount++;
+          else if (res === 'error') errorsCount++;
+        }
       }
     } finally {
       client.release();
@@ -259,7 +266,7 @@ export async function processPrebendaUpdates(records: PrebendaRowUpdate[]): Prom
     updatedCount = records.length;
   }
 
-  // Safe revalidation (only called when Next.js Request context exists)
+  // Safe revalidation
   try {
     if (typeof window === 'undefined' && process.env.NEXT_RUNTIME) {
       revalidatePath('/api/igrejas/validadas');
