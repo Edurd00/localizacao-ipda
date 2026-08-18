@@ -81,6 +81,7 @@ export default function GestaoPage() {
   const [formFinanceiraEmail, setFormFinanceiraEmail] = useState('');
   const [formQtdMembros, setFormQtdMembros] = useState('');
   const [formQtdJovens, setFormQtdJovens] = useState('');
+  const [formTipoPrebenda, setFormTipoPrebenda] = useState('NAO_PREBENDADA');
 
   // ViaCEP Fetcher with Auto-fill
   const handleCepBlurOrChange = async (val: string) => {
@@ -277,6 +278,7 @@ export default function GestaoPage() {
     setFormFinanceiraEmail('');
     setFormQtdMembros('');
     setFormQtdJovens('');
+    setFormTipoPrebenda('NAO_PREBENDADA');
 
     setIsCreateModalOpen(true);
   };
@@ -294,6 +296,7 @@ export default function GestaoPage() {
     setFormPorte(ig.porte || 'LOCAL');
     setFormParentTotvs(ig.codigo_totvs_pai || '');
     setFormTipoImovel(ig.tipo_imovel || 'ALUGADO');
+    setFormTipoPrebenda(ig.tipo_prebenda || 'NAO_PREBENDADA');
 
     setIsEditModalOpen(true);
   };
@@ -309,6 +312,7 @@ export default function GestaoPage() {
     setFormFinanceiraEmail(ig.financeira_email || '');
     setFormQtdMembros(ig.qtd_membros !== null && ig.qtd_membros !== undefined ? String(ig.qtd_membros) : '');
     setFormQtdJovens(ig.qtd_jovens !== null && ig.qtd_jovens !== undefined ? String(ig.qtd_jovens) : '');
+    setFormTipoPrebenda(ig.tipo_prebenda || 'NAO_PREBENDADA');
 
     setIsContactsModalOpen(true);
   };
@@ -346,6 +350,7 @@ export default function GestaoPage() {
           financeira_email: formFinanceiraEmail.trim(),
           qtd_membros: formQtdMembros ? Number(formQtdMembros) : null,
           qtd_jovens: formQtdJovens ? Number(formQtdJovens) : null,
+          tipo_prebenda: formTipoPrebenda,
           status: 'PENDENTE',
         }),
       });
@@ -421,6 +426,7 @@ export default function GestaoPage() {
           link_google_maps: formLinkMaps.trim(),
           porte: formPorte,
           codigo_totvs_pai: formParentTotvs.trim() || null,
+          tipo_prebenda: formTipoPrebenda,
         }),
       });
 
@@ -460,6 +466,7 @@ export default function GestaoPage() {
           financeira_email: formFinanceiraEmail.trim(),
           qtd_membros: formQtdMembros ? Number(formQtdMembros) : null,
           qtd_jovens: formQtdJovens ? Number(formQtdJovens) : null,
+          tipo_prebenda: formTipoPrebenda,
         }),
       });
 
@@ -950,8 +957,18 @@ export default function GestaoPage() {
                       onChange={(e) => setFormDirigenteDataPosse(e.target.value)}
                       className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
                     />
+                    <label className="text-[10px] font-bold text-zinc-500 block">Prebenda do Dirigente</label>
+                    <select
+                      value={formTipoPrebenda}
+                      onChange={(e) => setFormTipoPrebenda(e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    >
+                      <option value="NAO_PREBENDADA">Não Prebendada - Dirigente Voluntário</option>
+                      <option value="PREBENDADA">Prebendada - Dedicação Exclusiva / Remunerado</option>
+                    </select>
                   </div>
-
+                </div>
+                <div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-bold text-zinc-500 block">Nome da Voluntária Financeira</label>
                     <input

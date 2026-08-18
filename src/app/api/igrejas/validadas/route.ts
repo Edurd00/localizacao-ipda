@@ -34,6 +34,7 @@ export async function GET() {
       'financeira_email',
       'qtd_membros',
       'qtd_jovens',
+      'tipo_prebenda',
     ]);
     return new NextResponse(
       JSON.stringify({

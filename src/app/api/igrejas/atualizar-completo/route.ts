@@ -28,7 +28,8 @@ export async function PUT(request: Request) {
       financeira_telefone,
       financeira_email,
       qtd_membros,
-      qtd_jovens
+      qtd_jovens,
+      tipo_prebenda
     } = body;
 
     if (!codigo_totvs) {
@@ -59,6 +60,7 @@ export async function PUT(request: Request) {
     if (financeira_email !== undefined) updates.financeira_email = financeira_email;
     if (qtd_membros !== undefined) updates.qtd_membros = qtd_membros !== '' && qtd_membros !== null ? Number(qtd_membros) : null;
     if (qtd_jovens !== undefined) updates.qtd_jovens = qtd_jovens !== '' && qtd_jovens !== null ? Number(qtd_jovens) : null;
+    if (tipo_prebenda !== undefined) updates.tipo_prebenda = tipo_prebenda || 'NAO_PREBENDADA';
 
     // Recalculate coordinates from Google Maps Link if link changed
     if (link_google_maps !== undefined) {

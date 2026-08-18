@@ -35,6 +35,7 @@ export interface Igreja {
   dirigente_data_posse?: string | null;
   qtd_membros?: number | null;
   qtd_jovens?: number | null;
+  tipo_prebenda?: string | null;
 }
 
 // Check database URL in env
@@ -149,6 +150,7 @@ async function ensurePostgresTable() {
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_data_posse DATE;`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS qtd_membros INTEGER;`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS qtd_jovens INTEGER;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS tipo_prebenda VARCHAR(50) DEFAULT 'NAO_PREBENDADA';`);
       } catch (alterErr) {
         console.warn('Alter table columns check failed (might be expected):', alterErr);
       }
@@ -288,6 +290,7 @@ export async function getIgrejas(
         }
         if (row.qtd_membros !== undefined) item.qtd_membros = row.qtd_membros;
         if (row.qtd_jovens !== undefined) item.qtd_jovens = row.qtd_jovens;
+        if (row.tipo_prebenda !== undefined) item.tipo_prebenda = row.tipo_prebenda;
         return item as Igreja;
       });
     } catch (err) {
@@ -775,8 +778,8 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
           codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep,
           link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte,
           dirigente_nome, dirigente_telefone, dirigente_email, dirigente_data_posse,
-          financeira_nome, financeira_telefone, financeira_email, qtd_membros, qtd_jovens
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+          financeira_nome, financeira_telefone, financeira_email, qtd_membros, qtd_jovens, tipo_prebenda
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       `;
       await pool.query(query, [
         igreja.codigo_totvs,
@@ -802,6 +805,7 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
         igreja.financeira_email || null,
         igreja.qtd_membros !== undefined ? igreja.qtd_membros : null,
         igreja.qtd_jovens !== undefined ? igreja.qtd_jovens : null,
+        igreja.tipo_prebenda || 'NAO_PREBENDADA',
       ]);
       return;
     } catch (err) {

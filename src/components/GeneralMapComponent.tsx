@@ -1183,7 +1183,19 @@ function ChurchPopupContent({
                     <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
                       <span>👔</span> {ig.dirigente_nome}
                     </p>
-                    <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
+                    <div className="flex items-center gap-1.5 my-1 flex-wrap">
+                      <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
+                      <span className="text-slate-300">•</span>
+                      {ig.tipo_prebenda === 'PREBENDADA' ? (
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                          💼 Prebendado
+                        </span>
+                      ) : (
+                        <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-medium">
+                          🤝 Voluntário
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

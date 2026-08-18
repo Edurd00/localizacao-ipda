@@ -28,7 +28,8 @@ export async function POST(request: Request) {
       financeira_telefone,
       financeira_email,
       qtd_membros,
-      qtd_jovens
+      qtd_jovens,
+      tipo_prebenda
     } = body;
 
     if (!codigo_totvs || !desc_igreja) {
@@ -74,7 +75,8 @@ export async function POST(request: Request) {
       financeira_telefone: financeira_telefone || '',
       financeira_email: financeira_email || '',
       qtd_membros: qtd_membros !== undefined && qtd_membros !== '' ? Number(qtd_membros) : null,
-      qtd_jovens: qtd_jovens !== undefined && qtd_jovens !== '' ? Number(qtd_jovens) : null
+      qtd_jovens: qtd_jovens !== undefined && qtd_jovens !== '' ? Number(qtd_jovens) : null,
+      tipo_prebenda: tipo_prebenda || 'NAO_PREBENDADA'
     });
 
     // On-demand revalidation to ensure changes appear instantly on Map and Tree
