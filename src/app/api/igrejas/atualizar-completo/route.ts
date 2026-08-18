@@ -1,11 +1,26 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { saveIgrejaSingle } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { verifySessionToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+async function checkAuth() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session_token');
+  return verifySessionToken(token?.value);
+}
+
 export async function PUT(request: Request) {
   try {
+    if (!(await checkAuth())) {
+      return NextResponse.json(
+        { success: false, error: 'Acesso não autorizado. Faça login novamente.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
       codigo_totvs,
