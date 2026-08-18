@@ -32,6 +32,9 @@ export interface Igreja {
   financeira_nome?: string | null;
   financeira_telefone?: string | null;
   financeira_email?: string | null;
+  dirigente_data_posse?: string | null;
+  qtd_membros?: number | null;
+  qtd_jovens?: number | null;
 }
 
 // Check database URL in env
@@ -143,6 +146,9 @@ async function ensurePostgresTable() {
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_nome VARCHAR(255);`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_telefone VARCHAR(100);`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_email VARCHAR(255);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_data_posse DATE;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS qtd_membros INTEGER;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS qtd_jovens INTEGER;`);
       } catch (alterErr) {
         console.warn('Alter table columns check failed (might be expected):', alterErr);
       }
@@ -273,6 +279,15 @@ export async function getIgrejas(
         if (row.financeira_nome !== undefined) item.financeira_nome = row.financeira_nome;
         if (row.financeira_telefone !== undefined) item.financeira_telefone = row.financeira_telefone;
         if (row.financeira_email !== undefined) item.financeira_email = row.financeira_email;
+        if (row.dirigente_data_posse !== undefined) {
+          item.dirigente_data_posse = row.dirigente_data_posse
+            ? (typeof row.dirigente_data_posse === 'string'
+                ? row.dirigente_data_posse.split('T')[0]
+                : new Date(row.dirigente_data_posse).toISOString().split('T')[0])
+            : null;
+        }
+        if (row.qtd_membros !== undefined) item.qtd_membros = row.qtd_membros;
+        if (row.qtd_jovens !== undefined) item.qtd_jovens = row.qtd_jovens;
         return item as Igreja;
       });
     } catch (err) {
@@ -759,9 +774,9 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
         INSERT INTO igrejas (
           codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep,
           link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte,
-          dirigente_nome, dirigente_telefone, dirigente_email,
-          financeira_nome, financeira_telefone, financeira_email
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          dirigente_nome, dirigente_telefone, dirigente_email, dirigente_data_posse,
+          financeira_nome, financeira_telefone, financeira_email, qtd_membros, qtd_jovens
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
       `;
       await pool.query(query, [
         igreja.codigo_totvs,
@@ -781,9 +796,12 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
         igreja.dirigente_nome || null,
         igreja.dirigente_telefone || null,
         igreja.dirigente_email || null,
+        igreja.dirigente_data_posse || null,
         igreja.financeira_nome || null,
         igreja.financeira_telefone || null,
         igreja.financeira_email || null,
+        igreja.qtd_membros !== undefined ? igreja.qtd_membros : null,
+        igreja.qtd_jovens !== undefined ? igreja.qtd_jovens : null,
       ]);
       return;
     } catch (err) {

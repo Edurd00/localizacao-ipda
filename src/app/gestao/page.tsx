@@ -71,13 +71,65 @@ export default function GestaoPage() {
   const [formParentTotvs, setFormParentTotvs] = useState('');
   const [formTipoImovel, setFormTipoImovel] = useState('ALUGADO');
 
-  // Form State: Responsibles
+  // Form State: Responsibles & Membership
   const [formDirigenteNome, setFormDirigenteNome] = useState('');
   const [formDirigenteTelefone, setFormDirigenteTelefone] = useState('');
   const [formDirigenteEmail, setFormDirigenteEmail] = useState('');
+  const [formDirigenteDataPosse, setFormDirigenteDataPosse] = useState('');
   const [formFinanceiraNome, setFormFinanceiraNome] = useState('');
   const [formFinanceiraTelefone, setFormFinanceiraTelefone] = useState('');
   const [formFinanceiraEmail, setFormFinanceiraEmail] = useState('');
+  const [formQtdMembros, setFormQtdMembros] = useState('');
+  const [formQtdJovens, setFormQtdJovens] = useState('');
+
+  // ViaCEP Fetcher with Auto-fill
+  const handleCepBlurOrChange = async (val: string) => {
+    const uppercaseVal = val.toUpperCase();
+    setFormCep(uppercaseVal);
+    const cleanCep = uppercaseVal.replace(/\D/g, '');
+    if (cleanCep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && !data.erro) {
+            if (data.logradouro) setFormEndereco(data.logradouro.toUpperCase());
+            if (data.bairro) setFormBairro(data.bairro.toUpperCase());
+            if (data.localidade) setFormMunicipio(data.localidade.toUpperCase());
+            if (data.uf) setFormEstado(data.uf.toUpperCase());
+            toast.success(`ViaCEP: Endereço autopreenchido para ${data.localidade}-${data.uf}!`);
+          }
+        }
+      } catch (err) {
+        console.error('ViaCEP Fetch Error:', err);
+      }
+    }
+  };
+
+  // Helper to generate standardized church name: {PORTE} - {UF}-{MUNICIPIO}-{BAIRRO}
+  const generateStandardName = () => {
+    const porteStr = (formPorte || 'LOCAL').trim().toUpperCase();
+    const ufStr = (formEstado || '').trim().toUpperCase();
+    const munStr = (formMunicipio || '').trim().toUpperCase();
+    const bairroStr = (formBairro || '').trim().toUpperCase();
+
+    let result = porteStr;
+    if (ufStr || munStr) {
+      result += ` - ${ufStr}${munStr ? '-' + munStr : ''}`;
+    }
+    if (bairroStr) {
+      result += `-${bairroStr}`;
+    }
+    setFormNome(result);
+    toast.info(`Nome da Igreja padronizado: ${result}`);
+  };
+
+  // Match TOTVS Parent Church for Autocomplete Confirmation
+  const parentChurchMatch = useMemo(() => {
+    const target = formParentTotvs.trim().replace(/^0+/, '');
+    if (!target) return null;
+    return igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === target);
+  }, [igrejas, formParentTotvs]);
 
   const [saving, setSaving] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -219,9 +271,12 @@ export default function GestaoPage() {
     setFormDirigenteNome('');
     setFormDirigenteTelefone('');
     setFormDirigenteEmail('');
+    setFormDirigenteDataPosse('');
     setFormFinanceiraNome('');
     setFormFinanceiraTelefone('');
     setFormFinanceiraEmail('');
+    setFormQtdMembros('');
+    setFormQtdJovens('');
 
     setIsCreateModalOpen(true);
   };
@@ -248,9 +303,12 @@ export default function GestaoPage() {
     setFormDirigenteNome(ig.dirigente_nome || '');
     setFormDirigenteTelefone(ig.dirigente_telefone || '');
     setFormDirigenteEmail(ig.dirigente_email || '');
+    setFormDirigenteDataPosse(ig.dirigente_data_posse || '');
     setFormFinanceiraNome(ig.financeira_nome || '');
     setFormFinanceiraTelefone(ig.financeira_telefone || '');
     setFormFinanceiraEmail(ig.financeira_email || '');
+    setFormQtdMembros(ig.qtd_membros !== null && ig.qtd_membros !== undefined ? String(ig.qtd_membros) : '');
+    setFormQtdJovens(ig.qtd_jovens !== null && ig.qtd_jovens !== undefined ? String(ig.qtd_jovens) : '');
 
     setIsContactsModalOpen(true);
   };
@@ -279,12 +337,15 @@ export default function GestaoPage() {
           link_google_maps: formLinkMaps.trim(),
           porte: formPorte,
           codigo_totvs_pai: formParentTotvs.trim() || null,
-          dirigente_nome: formDirigenteNome.trim(),
+          dirigente_nome: formDirigenteNome.trim().toUpperCase(),
           dirigente_telefone: formDirigenteTelefone.trim(),
           dirigente_email: formDirigenteEmail.trim(),
-          financeira_nome: formFinanceiraNome.trim(),
+          dirigente_data_posse: formDirigenteDataPosse || null,
+          financeira_nome: formFinanceiraNome.trim().toUpperCase(),
           financeira_telefone: formFinanceiraTelefone.trim(),
           financeira_email: formFinanceiraEmail.trim(),
+          qtd_membros: formQtdMembros ? Number(formQtdMembros) : null,
+          qtd_jovens: formQtdJovens ? Number(formQtdJovens) : null,
           status: 'PENDENTE',
         }),
       });
@@ -390,12 +451,15 @@ export default function GestaoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           codigo_totvs: selectedChurch.codigo_totvs,
-          dirigente_nome: formDirigenteNome.trim(),
+          dirigente_nome: formDirigenteNome.trim().toUpperCase(),
           dirigente_telefone: formDirigenteTelefone.trim(),
           dirigente_email: formDirigenteEmail.trim(),
-          financeira_nome: formFinanceiraNome.trim(),
+          dirigente_data_posse: formDirigenteDataPosse || null,
+          financeira_nome: formFinanceiraNome.trim().toUpperCase(),
           financeira_telefone: formFinanceiraTelefone.trim(),
           financeira_email: formFinanceiraEmail.trim(),
+          qtd_membros: formQtdMembros ? Number(formQtdMembros) : null,
+          qtd_jovens: formQtdJovens ? Number(formQtdJovens) : null,
         }),
       });
 
@@ -705,20 +769,30 @@ export default function GestaoPage() {
                     type="text"
                     required
                     value={formTotvs}
-                    onChange={(e) => setFormTotvs(e.target.value)}
+                    onChange={(e) => setFormTotvs(e.target.value.toUpperCase())}
                     placeholder="Ex: 10045"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">Descrição / Nome da Igreja *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Descrição / Nome da Igreja *</label>
+                    <button
+                      type="button"
+                      onClick={generateStandardName}
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                      title="Gerar Nome Padronizado no formato {PORTE} - {UF}-{MUNICIPIO}-{BAIRRO}"
+                    >
+                      ✨ Padronizar Nome
+                    </button>
+                  </div>
                   <input
                     type="text"
                     required
                     value={formNome}
-                    onChange={(e) => setFormNome(e.target.value)}
-                    placeholder="Ex: Central Santo André"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormNome(e.target.value.toUpperCase())}
+                    placeholder="Ex: CENTRAL - SP-SANTO ANDRE-CENTRO"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -728,9 +802,9 @@ export default function GestaoPage() {
                 <input
                   type="text"
                   value={formEndereco}
-                  onChange={(e) => setFormEndereco(e.target.value)}
-                  placeholder="Ex: Rua Basílio Fazzi, 120"
-                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                  onChange={(e) => setFormEndereco(e.target.value.toUpperCase())}
+                  placeholder="Ex: RUA BASÍLIO FAZZI, 120"
+                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -740,9 +814,9 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formBairro}
-                    onChange={(e) => setFormBairro(e.target.value)}
-                    placeholder="Ex: Centro"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormBairro(e.target.value.toUpperCase())}
+                    placeholder="Ex: CENTRO"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -750,9 +824,9 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formMunicipio}
-                    onChange={(e) => setFormMunicipio(e.target.value)}
-                    placeholder="Ex: Santo André"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormMunicipio(e.target.value.toUpperCase())}
+                    placeholder="Ex: SANTO ANDRÉ"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -761,20 +835,23 @@ export default function GestaoPage() {
                     type="text"
                     maxLength={2}
                     value={formEstado}
-                    onChange={(e) => setFormEstado(e.target.value)}
+                    onChange={(e) => setFormEstado(e.target.value.toUpperCase())}
                     placeholder="Ex: SP"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">CEP</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">CEP (Busca ViaCEP)</label>
+                    <span className="text-[9px] text-zinc-400 font-medium">Auto-preenche endereço</span>
+                  </div>
                   <input
                     type="text"
                     value={formCep}
-                    onChange={(e) => setFormCep(e.target.value)}
+                    onChange={(e) => handleCepBlurOrChange(e.target.value)}
                     placeholder="Ex: 09015-000"
                     className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
                   />
@@ -822,10 +899,23 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formParentTotvs}
-                    onChange={(e) => setFormParentTotvs(e.target.value)}
+                    onChange={(e) => setFormParentTotvs(e.target.value.toUpperCase())}
                     placeholder="Ex: 10001"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  {formParentTotvs.trim() && (
+                    <div className="mt-1 text-[10px] font-bold">
+                      {parentChurchMatch ? (
+                        <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 inline-block">
+                          ✓ Sede Pai Encontrada: {parentChurchMatch.porte || 'LOCAL'} - {parentChurchMatch.estado}-{parentChurchMatch.municipio}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 inline-block">
+                          ⚠️ Sede Pai TOTVS "{formParentTotvs}" não encontrada na base.
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -841,9 +931,9 @@ export default function GestaoPage() {
                     <input
                       type="text"
                       value={formDirigenteNome}
-                      onChange={(e) => setFormDirigenteNome(e.target.value)}
-                      placeholder="Ex: Pr. Carlos"
-                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                      onChange={(e) => setFormDirigenteNome(e.target.value.toUpperCase())}
+                      placeholder="Ex: PR. CARLOS"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase"
                     />
                     <label className="text-[10px] font-bold text-zinc-500 block">Telefone do Dirigente</label>
                     <input
@@ -851,6 +941,13 @@ export default function GestaoPage() {
                       value={formDirigenteTelefone}
                       onChange={(e) => setFormDirigenteTelefone(e.target.value)}
                       placeholder="Ex: (11) 98765-4321"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    />
+                    <label className="text-[10px] font-bold text-zinc-500 block">Data de Posse/Início do Dirigente</label>
+                    <input
+                      type="date"
+                      value={formDirigenteDataPosse}
+                      onChange={(e) => setFormDirigenteDataPosse(e.target.value)}
                       className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
                     />
                   </div>
@@ -922,13 +1019,23 @@ export default function GestaoPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">Descrição / Nome da Igreja *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Descrição / Nome da Igreja *</label>
+                  <button
+                    type="button"
+                    onClick={generateStandardName}
+                    className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                    title="Gerar Nome Padronizado no formato {PORTE} - {UF}-{MUNICIPIO}-{BAIRRO}"
+                  >
+                    ✨ Padronizar Nome
+                  </button>
+                </div>
                 <input
                   type="text"
                   required
                   value={formNome}
-                  onChange={(e) => setFormNome(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                  onChange={(e) => setFormNome(e.target.value.toUpperCase())}
+                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -937,8 +1044,8 @@ export default function GestaoPage() {
                 <input
                   type="text"
                   value={formEndereco}
-                  onChange={(e) => setFormEndereco(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                  onChange={(e) => setFormEndereco(e.target.value.toUpperCase())}
+                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -948,8 +1055,8 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formBairro}
-                    onChange={(e) => setFormBairro(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormBairro(e.target.value.toUpperCase())}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -957,8 +1064,8 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formMunicipio}
-                    onChange={(e) => setFormMunicipio(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none"
+                    onChange={(e) => setFormMunicipio(e.target.value.toUpperCase())}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none"
                   />
                 </div>
                 <div>
@@ -967,19 +1074,22 @@ export default function GestaoPage() {
                     type="text"
                     maxLength={2}
                     value={formEstado}
-                    onChange={(e) => setFormEstado(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none"
+                    onChange={(e) => setFormEstado(e.target.value.toUpperCase())}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">CEP</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">CEP (Busca ViaCEP)</label>
+                    <span className="text-[9px] text-zinc-400 font-medium">Auto-preenche endereço</span>
+                  </div>
                   <input
                     type="text"
                     value={formCep}
-                    onChange={(e) => setFormCep(e.target.value)}
+                    onChange={(e) => handleCepBlurOrChange(e.target.value)}
                     className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none"
                   />
                 </div>
@@ -1025,10 +1135,23 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formParentTotvs}
-                    onChange={(e) => setFormParentTotvs(e.target.value)}
+                    onChange={(e) => setFormParentTotvs(e.target.value.toUpperCase())}
                     placeholder="Sem igreja pai vinculada"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  {formParentTotvs.trim() && (
+                    <div className="mt-1 text-[10px] font-bold">
+                      {parentChurchMatch ? (
+                        <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 inline-block">
+                          ✓ Sede Pai Encontrada: {parentChurchMatch.porte || 'LOCAL'} - {parentChurchMatch.estado}-{parentChurchMatch.municipio}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 inline-block">
+                          ⚠️ Sede Pai TOTVS "{formParentTotvs}" não encontrada na base.
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1156,9 +1279,9 @@ export default function GestaoPage() {
                     <input
                       type="text"
                       value={formDirigenteNome}
-                      onChange={(e) => setFormDirigenteNome(e.target.value)}
-                      placeholder="Ex: Pr. Carlos Alberto"
-                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                      onChange={(e) => setFormDirigenteNome(e.target.value.toUpperCase())}
+                      placeholder="Ex: PR. CARLOS ALBERTO"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase"
                     />
                   </div>
                   <div>
@@ -1172,15 +1295,57 @@ export default function GestaoPage() {
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 block mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formDirigenteEmail}
-                    onChange={(e) => setFormDirigenteEmail(e.target.value)}
-                    placeholder="Ex: dirigente@ipda.com.br"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={formDirigenteEmail}
+                      onChange={(e) => setFormDirigenteEmail(e.target.value)}
+                      placeholder="Ex: dirigente@ipda.com.br"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Data de Posse/Início do Dirigente</label>
+                    <input
+                      type="date"
+                      value={formDirigenteDataPosse}
+                      onChange={(e) => setFormDirigenteDataPosse(e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Membresia & Estatísticas Block */}
+              <div className="space-y-3 bg-zinc-50/30 p-4 rounded-xl border border-zinc-150">
+                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+                  👥 Membresia & Estatísticas
+                </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Quantidade de Membros</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formQtdMembros}
+                      onChange={(e) => setFormQtdMembros(e.target.value)}
+                      placeholder="Ex: 120"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Quantidade de Jovens</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formQtdJovens}
+                      onChange={(e) => setFormQtdJovens(e.target.value)}
+                      placeholder="Ex: 35"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    />
+                  </div>
                 </div>
               </div>
 
