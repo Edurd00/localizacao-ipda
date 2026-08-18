@@ -306,7 +306,25 @@ export default function GestaoPage() {
     setFormDirigenteNome(ig.dirigente_nome || '');
     setFormDirigenteTelefone(ig.dirigente_telefone || '');
     setFormDirigenteEmail(ig.dirigente_email || '');
-    setFormDirigenteDataPosse(ig.dirigente_data_posse || '');
+
+    let formattedPosse = '';
+    if (ig.dirigente_data_posse) {
+      const str = String(ig.dirigente_data_posse).trim();
+      if (str.includes('T')) {
+        formattedPosse = str.split('T')[0];
+      } else if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts.length === 3) {
+          formattedPosse = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        } else {
+          formattedPosse = str;
+        }
+      } else {
+        formattedPosse = str;
+      }
+    }
+    setFormDirigenteDataPosse(formattedPosse);
+
     setFormFinanceiraNome(ig.financeira_nome || '');
     setFormFinanceiraTelefone(ig.financeira_telefone || '');
     setFormFinanceiraEmail(ig.financeira_email || '');
