@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     revalidatePath('/api/mapa-geral');
     revalidatePath('/api/igrejas/validadas');
     revalidatePath('/api/organizacao');
+    revalidatePath('/api/igrejas/dashboard');
 
     return NextResponse.json({
       revalidated: true,
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
     revalidatePath('/api/mapa-geral');
     revalidatePath('/api/igrejas/validadas');
     revalidatePath('/api/organizacao');
+    revalidatePath('/api/igrejas/dashboard');
 
     return NextResponse.json({
       revalidated: true,

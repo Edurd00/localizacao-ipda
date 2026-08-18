@@ -23,9 +23,13 @@ export async function POST(request: Request) {
       dirigente_nome,
       dirigente_telefone,
       dirigente_email,
+      dirigente_data_posse,
       financeira_nome,
       financeira_telefone,
-      financeira_email
+      financeira_email,
+      qtd_membros,
+      qtd_jovens,
+      tipo_prebenda
     } = body;
 
     if (!codigo_totvs || !desc_igreja) {
@@ -66,15 +70,20 @@ export async function POST(request: Request) {
       dirigente_nome: dirigente_nome || '',
       dirigente_telefone: dirigente_telefone || '',
       dirigente_email: dirigente_email || '',
+      dirigente_data_posse: dirigente_data_posse || null,
       financeira_nome: financeira_nome || '',
       financeira_telefone: financeira_telefone || '',
-      financeira_email: financeira_email || ''
+      financeira_email: financeira_email || '',
+      qtd_membros: qtd_membros !== undefined && qtd_membros !== '' ? Number(qtd_membros) : null,
+      qtd_jovens: qtd_jovens !== undefined && qtd_jovens !== '' ? Number(qtd_jovens) : null,
+      tipo_prebenda: tipo_prebenda || 'NAO_PREBENDADA'
     });
 
     // On-demand revalidation to ensure changes appear instantly on Map and Tree
     try {
       revalidatePath('/api/igrejas/validadas');
       revalidatePath('/api/organizacao');
+      revalidatePath('/api/igrejas/dashboard');
       revalidatePath('/gestao');
       revalidatePath('/');
       revalidatePath('/organizacao');

@@ -21,13 +21,21 @@ export interface Igreja {
   created_at?: string;
   validado_por?: string | null;
   validado_em?: string | null;
+  data_validacao?: string | null;
   observacoes?: string | null;
+  observacao?: string | null;
+  observacao_duvida?: string | null;
+  duvida?: string | null;
   dirigente_nome?: string | null;
   dirigente_telefone?: string | null;
   dirigente_email?: string | null;
   financeira_nome?: string | null;
   financeira_telefone?: string | null;
   financeira_email?: string | null;
+  dirigente_data_posse?: string | null;
+  qtd_membros?: number | null;
+  qtd_jovens?: number | null;
+  tipo_prebenda?: string | null;
 }
 
 // Check database URL in env
@@ -139,6 +147,10 @@ async function ensurePostgresTable() {
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_nome VARCHAR(255);`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_telefone VARCHAR(100);`);
         await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_email VARCHAR(255);`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_data_posse DATE;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS qtd_membros INTEGER;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS qtd_jovens INTEGER;`);
+        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS tipo_prebenda VARCHAR(50) DEFAULT 'NAO_PREBENDADA';`);
       } catch (alterErr) {
         console.warn('Alter table columns check failed (might be expected):', alterErr);
       }
@@ -258,13 +270,27 @@ export async function getIgrejas(
         if (row.created_at !== undefined) item.created_at = row.created_at;
         if (row.validado_por !== undefined) item.validado_por = row.validado_por;
         if (row.validado_em !== undefined) item.validado_em = row.validado_em;
+        if (row.data_validacao !== undefined) item.data_validacao = row.data_validacao;
         if (row.observacoes !== undefined) item.observacoes = row.observacoes;
+        if (row.observacao !== undefined) item.observacao = row.observacao;
+        if (row.observacao_duvida !== undefined) item.observacao_duvida = row.observacao_duvida;
+        if (row.duvida !== undefined) item.duvida = row.duvida;
         if (row.dirigente_nome !== undefined) item.dirigente_nome = row.dirigente_nome;
         if (row.dirigente_telefone !== undefined) item.dirigente_telefone = row.dirigente_telefone;
         if (row.dirigente_email !== undefined) item.dirigente_email = row.dirigente_email;
         if (row.financeira_nome !== undefined) item.financeira_nome = row.financeira_nome;
         if (row.financeira_telefone !== undefined) item.financeira_telefone = row.financeira_telefone;
         if (row.financeira_email !== undefined) item.financeira_email = row.financeira_email;
+        if (row.dirigente_data_posse !== undefined) {
+          item.dirigente_data_posse = row.dirigente_data_posse
+            ? (typeof row.dirigente_data_posse === 'string'
+                ? row.dirigente_data_posse.split('T')[0]
+                : new Date(row.dirigente_data_posse).toISOString().split('T')[0])
+            : null;
+        }
+        if (row.qtd_membros !== undefined) item.qtd_membros = row.qtd_membros;
+        if (row.qtd_jovens !== undefined) item.qtd_jovens = row.qtd_jovens;
+        if (row.tipo_prebenda !== undefined) item.tipo_prebenda = row.tipo_prebenda;
         return item as Igreja;
       });
     } catch (err) {
@@ -751,9 +777,9 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
         INSERT INTO igrejas (
           codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep,
           link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte,
-          dirigente_nome, dirigente_telefone, dirigente_email,
-          financeira_nome, financeira_telefone, financeira_email
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          dirigente_nome, dirigente_telefone, dirigente_email, dirigente_data_posse,
+          financeira_nome, financeira_telefone, financeira_email, qtd_membros, qtd_jovens, tipo_prebenda
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       `;
       await pool.query(query, [
         igreja.codigo_totvs,
@@ -773,9 +799,13 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
         igreja.dirigente_nome || null,
         igreja.dirigente_telefone || null,
         igreja.dirigente_email || null,
+        igreja.dirigente_data_posse || null,
         igreja.financeira_nome || null,
         igreja.financeira_telefone || null,
         igreja.financeira_email || null,
+        igreja.qtd_membros !== undefined ? igreja.qtd_membros : null,
+        igreja.qtd_jovens !== undefined ? igreja.qtd_jovens : null,
+        igreja.tipo_prebenda || 'NAO_PREBENDADA',
       ]);
       return;
     } catch (err) {

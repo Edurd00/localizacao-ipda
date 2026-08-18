@@ -38,6 +38,43 @@ export function normalizeTotvs(code: string | number | null | undefined): string
   return code.toString().trim().replace(/^0+/, '');
 }
 
+export function formatLeadershipTenure(datePosseStr: string | null | undefined): string | null {
+  if (!datePosseStr) return null;
+  try {
+    const posseDate = new Date(datePosseStr.split('T')[0] + 'T00:00:00');
+    if (isNaN(posseDate.getTime())) return null;
+
+    const formattedDate = posseDate.toLocaleDateString('pt-BR');
+    const now = new Date();
+
+    let years = now.getFullYear() - posseDate.getFullYear();
+    let months = now.getMonth() - posseDate.getMonth();
+
+    if (now.getDate() < posseDate.getDate()) {
+      months--;
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    let tenureText = '';
+    if (years > 0 && months > 0) {
+      tenureText = `${years} ${years === 1 ? 'ano' : 'anos'} e ${months} ${months === 1 ? 'mês' : 'meses'}`;
+    } else if (years > 0) {
+      tenureText = `${years} ${years === 1 ? 'ano' : 'anos'}`;
+    } else if (months > 0) {
+      tenureText = `${months} ${months === 1 ? 'mês' : 'meses'}`;
+    } else {
+      tenureText = 'menos de 1 mês';
+    }
+
+    return `Assumiu em ${formattedDate} • Na direção há ${tenureText}`;
+  } catch {
+    return null;
+  }
+}
+
 // Strict Church classification by porte based on 'desc_igreja'
 export function getPorte(desc: string, porteField?: string | null): string {
   if (porteField && porteField.trim() !== '') {
@@ -850,6 +887,40 @@ function ChurchPopupContent({
 }: ChurchPopupContentProps) {
   const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'hierarquia'>('geral');
 
+  const [currentPrebenda, setCurrentPrebenda] = useState(ig.tipo_prebenda || '');
+  const [updatingPrebenda, setUpdatingPrebenda] = useState(false);
+
+  useEffect(() => {
+    setCurrentPrebenda(ig.tipo_prebenda || '');
+  }, [ig.tipo_prebenda, ig.codigo_totvs]);
+
+  const handleQuickUpdatePrebenda = async (newValue: string) => {
+    setUpdatingPrebenda(true);
+    try {
+      const res = await fetch('/api/igrejas/atualizar-completo', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigo_totvs: ig.codigo_totvs,
+          tipo_prebenda: newValue,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCurrentPrebenda(newValue);
+        ig.tipo_prebenda = newValue;
+        toast.success('Condição de prebenda atualizada!');
+      } else {
+        toast.error(data.error || 'Erro ao atualizar prebenda.');
+      }
+    } catch (err) {
+      console.error('Error updating prebenda:', err);
+      toast.error('Erro de conexão ao atualizar prebenda.');
+    } finally {
+      setUpdatingPrebenda(false);
+    }
+  };
+
   const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
   const parentChurch = ig.codigo_totvs_pai
     ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
@@ -946,6 +1017,14 @@ function ChurchPopupContent({
                 </span>
               </span>
             </p>
+
+            {(ig.qtd_membros !== null && ig.qtd_membros !== undefined && ig.qtd_membros > 0 || ig.qtd_jovens !== null && ig.qtd_jovens !== undefined && ig.qtd_jovens > 0) && (
+              <div className="flex items-center gap-2 font-bold text-slate-800 bg-slate-100 p-2 rounded-lg border border-slate-200 text-[11px] mt-2">
+                <span>👥 {ig.qtd_membros || 0} Membros</span>
+                <span className="text-slate-300">|</span>
+                <span>⚡ {ig.qtd_jovens || 0} Jovens</span>
+              </div>
+            )}
 
             <div className="pt-2 border-t border-slate-100 space-y-2">
               <div className="grid grid-cols-2 gap-2">
@@ -1138,9 +1217,29 @@ function ChurchPopupContent({
                     <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
                       <span>👔</span> {ig.dirigente_nome}
                     </p>
-                    <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
+                    <div className="flex items-center gap-1.5 my-1 flex-wrap">
+                      <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
+                      <span className="text-slate-300">•</span>
+                      <select
+                        value={currentPrebenda}
+                        disabled={updatingPrebenda}
+                        onChange={(e) => handleQuickUpdatePrebenda(e.target.value)}
+                        className="bg-white text-slate-800 border border-slate-200 text-[10px] font-bold rounded-lg px-1.5 py-0.5 outline-none cursor-pointer hover:border-indigo-400 transition-colors"
+                        title="Clique para alterar a condição pastoral/prebenda"
+                      >
+                        <option value="">Definir Prebenda...</option>
+                        <option value="PREBENDADA">💼 Prebendado (Salariado)</option>
+                        <option value="NAO_PREBENDADA">🤝 Voluntário (Sem Prebenda)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
+
+                {ig.dirigente_data_posse && (
+                  <p className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-150 font-bold mt-1.5">
+                    📅 {formatLeadershipTenure(ig.dirigente_data_posse)}
+                  </p>
+                )}
 
                 {ig.dirigente_telefone && (
                   <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
