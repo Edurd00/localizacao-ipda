@@ -21,7 +21,11 @@ export interface Igreja {
   created_at?: string;
   validado_por?: string | null;
   validado_em?: string | null;
+  data_validacao?: string | null;
   observacoes?: string | null;
+  observacao?: string | null;
+  observacao_duvida?: string | null;
+  duvida?: string | null;
   dirigente_nome?: string | null;
   dirigente_telefone?: string | null;
   dirigente_email?: string | null;
@@ -258,7 +262,11 @@ export async function getIgrejas(
         if (row.created_at !== undefined) item.created_at = row.created_at;
         if (row.validado_por !== undefined) item.validado_por = row.validado_por;
         if (row.validado_em !== undefined) item.validado_em = row.validado_em;
+        if (row.data_validacao !== undefined) item.data_validacao = row.data_validacao;
         if (row.observacoes !== undefined) item.observacoes = row.observacoes;
+        if (row.observacao !== undefined) item.observacao = row.observacao;
+        if (row.observacao_duvida !== undefined) item.observacao_duvida = row.observacao_duvida;
+        if (row.duvida !== undefined) item.duvida = row.duvida;
         if (row.dirigente_nome !== undefined) item.dirigente_nome = row.dirigente_nome;
         if (row.dirigente_telefone !== undefined) item.dirigente_telefone = row.dirigente_telefone;
         if (row.dirigente_email !== undefined) item.dirigente_email = row.dirigente_email;

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { saveIgrejaSingle } from '@/lib/db';
 
 export async function POST(request: Request) {
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
     }
 
     await saveIgrejaSingle(codigo_totvs, updates);
+
+    // Trigger revalidation for dashboard route so pending numbers recalculate immediately
+    revalidatePath('/api/igrejas/dashboard');
 
     return NextResponse.json({
       success: true,

@@ -74,6 +74,7 @@ export async function PUT(request: Request) {
     try {
       revalidatePath('/api/igrejas/validadas');
       revalidatePath('/api/organizacao');
+      revalidatePath('/api/igrejas/dashboard');
       revalidatePath('/gestao');
       revalidatePath('/');
       revalidatePath('/organizacao');
