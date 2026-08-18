@@ -861,6 +861,13 @@ export default function ColigacoesPage() {
                 </a>
 
                 <a
+                  href="/relatorios"
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
+                >
+                  <span>📊 Relatórios</span>
+                </a>
+
+                <a
                   href="/validacao?tab=upload"
                   className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
                 >

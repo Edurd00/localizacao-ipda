@@ -558,6 +558,13 @@ export default function GestaoPage() {
             </a>
 
             <a
+              href="/relatorios"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+            >
+              <span>📊 Relatórios</span>
+            </a>
+
+            <a
               href="/validacao?tab=upload"
               className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
             >

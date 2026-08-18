@@ -681,6 +681,12 @@ export default function OrganizacaoPage() {
 
             <div className="flex items-center gap-3">
               <a
+                href="/relatorios"
+                className="bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-200 font-semibold px-3 py-2 rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 transition-all flex items-center gap-1.5 text-xs"
+              >
+                <span>📊 Relatórios</span>
+              </a>
+              <a
                 href="/"
                 className="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2 text-xs"
               >
