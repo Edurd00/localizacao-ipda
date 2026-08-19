@@ -14,6 +14,16 @@ const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
   'Centro-Oeste': ['MT', 'DF', 'GO', 'MS'],
 };
 
+const PORTE_PRIORITY: Record<string, number> = {
+  'ESTADUAL': 1,
+  'SETORIAL': 2,
+  'CENTRAL': 3,
+  'REGIONAL': 4,
+  'LOCAL': 5,
+  'CASA DE ORAÇÃO': 6,
+  'ALDEIA INDIGENA': 7,
+};
+
 function getPorte(desc: string, porteField?: string | null): string {
   if (porteField && porteField.trim() !== '') {
     return porteField;
@@ -60,6 +70,72 @@ function getDescendants(estadualTotvs: string, allChurches: Igreja[]): Igreja[] 
   return descendants;
 }
 
+export interface HierarchyNode {
+  codigo_totvs: string;
+  desc_igreja: string;
+  porte: string;
+  estado: string;
+  municipio: string;
+  tipo_prebenda?: string | null;
+  dirigente_nome?: string | null;
+  qtd_membros: number;
+  qtd_jovens: number;
+  campo_membros: number;
+  campo_jovens: number;
+  campo_congregacoes: number;
+  children: HierarchyNode[];
+}
+
+function buildHierarchyTree(
+  parentCode: string,
+  allChurchesMap: Map<string, Igreja>,
+  childrenMap: Map<string, string[]>,
+  visited = new Set<string>()
+): HierarchyNode[] {
+  const childCodes = childrenMap.get(parentCode) || [];
+  const nodes: HierarchyNode[] = [];
+
+  for (const code of childCodes) {
+    if (visited.has(code)) continue;
+    visited.add(code);
+
+    const ig = allChurchesMap.get(code);
+    if (!ig || ig.status === 'DESATIVADO') continue;
+
+    const childrenNodes = buildHierarchyTree(code, allChurchesMap, childrenMap, visited);
+
+    const selfMembros = Number(ig.qtd_membros || 0);
+    const selfJovens = Number(ig.qtd_jovens || 0);
+
+    const subMembros = childrenNodes.reduce((acc, c) => acc + c.campo_membros, 0);
+    const subJovens = childrenNodes.reduce((acc, c) => acc + c.campo_jovens, 0);
+    const subCongregacoes = childrenNodes.reduce((acc, c) => acc + 1 + c.campo_congregacoes, 0);
+
+    nodes.push({
+      codigo_totvs: ig.codigo_totvs,
+      desc_igreja: ig.desc_igreja,
+      porte: getPorte(ig.desc_igreja, ig.porte),
+      estado: ig.estado,
+      municipio: ig.municipio,
+      tipo_prebenda: ig.tipo_prebenda,
+      dirigente_nome: ig.dirigente_nome,
+      qtd_membros: selfMembros,
+      qtd_jovens: selfJovens,
+      campo_membros: selfMembros + subMembros,
+      campo_jovens: selfJovens + subJovens,
+      campo_congregacoes: childrenNodes.length > 0 ? subCongregacoes : 0,
+      children: childrenNodes,
+    });
+  }
+
+  return nodes.sort((a, b) => {
+    const pA = PORTE_PRIORITY[a.porte] || 99;
+    const pB = PORTE_PRIORITY[b.porte] || 99;
+    if (pA !== pB) return pA - pB;
+    return a.desc_igreja.localeCompare(b.desc_igreja);
+  });
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -71,12 +147,24 @@ export async function GET(request: Request) {
     const allChurches = await getIgrejas({ status: 'ALL', estado: 'ALL' });
     const activeChurches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
 
+    // Populate lookup maps
+    const allChurchesMap = new Map<string, Igreja>();
+    const childrenMap = new Map<string, string[]>();
+
+    activeChurches.forEach((ig) => {
+      allChurchesMap.set(ig.codigo_totvs, ig);
+      if (ig.codigo_totvs_pai) {
+        const list = childrenMap.get(ig.codigo_totvs_pai) || [];
+        list.push(ig.codigo_totvs);
+        childrenMap.set(ig.codigo_totvs_pai, list);
+      }
+    });
+
     // 1. Identify UFs allowed by region
     let allowedUFs: string[] | null = null;
     if (filterRegiao !== 'ALL') {
       allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || null;
       if (!allowedUFs) {
-        // Fallback for partial region names like 'Norte'
         const matchedKey = Object.keys(REGIAO_GEOGRAFICA_MAPPING).find(
           (k) => k.toLowerCase() === filterRegiao.toLowerCase()
         );
@@ -86,52 +174,54 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. Identify all Estaduais matching region & estado filters
-    let estaduais = activeChurches.filter((ig) => {
-      const porte = getPorte(ig.desc_igreja, ig.porte);
-      if (porte !== 'ESTADUAL') return false;
+    // 2. Options for Estadual selector (all active Estaduais in active scope)
+    const estaduaisOptions = activeChurches
+      .filter((ig) => {
+        const porte = getPorte(ig.desc_igreja, ig.porte);
+        if (porte !== 'ESTADUAL') return false;
+        if (allowedUFs && !allowedUFs.includes(ig.estado)) return false;
+        if (filterEstado !== 'ALL' && ig.estado !== filterEstado) return false;
+        return true;
+      })
+      .map((e) => ({
+        codigo_totvs: e.codigo_totvs,
+        desc_igreja: e.desc_igreja,
+        estado: e.estado,
+        municipio: e.municipio,
+      }))
+      .sort((a, b) => a.desc_igreja.localeCompare(b.desc_igreja));
 
-      if (allowedUFs && !allowedUFs.includes(ig.estado)) {
-        return false;
-      }
+    // 3. Identify target Estaduais for reporting
+    let targetEstaduais: Igreja[] = [];
 
-      if (filterEstado !== 'ALL' && ig.estado !== filterEstado) {
-        return false;
-      }
-
-      return true;
-    });
-
-    const estaduaisOptions = estaduais.map((e) => ({
-      codigo_totvs: e.codigo_totvs,
-      desc_igreja: e.desc_igreja,
-      estado: e.estado,
-      municipio: e.municipio,
-    })).sort((a, b) => a.desc_igreja.localeCompare(b.desc_igreja));
-
-    // If a specific Estadual TOTVS filter is passed
     if (filterEstadual !== 'ALL' && filterEstadual.trim() !== '') {
-      estaduais = estaduais.filter((e) => e.codigo_totvs === filterEstadual.trim());
-      if (estaduais.length === 0) {
-        // Fallback if estadual wasn't in filtered list
-        const found = activeChurches.find((ig) => ig.codigo_totvs === filterEstadual.trim());
-        if (found) {
-          estaduais = [found];
-        }
+      // STRICT FILTER BY ESTADUAL: isolate this specific Estadual and all its subordinate tree
+      const found = activeChurches.find((ig) => ig.codigo_totvs === filterEstadual.trim());
+      if (found) {
+        targetEstaduais = [found];
       }
+    } else {
+      // Find all Estaduais matching region and state filters
+      targetEstaduais = activeChurches.filter((ig) => {
+        const porte = getPorte(ig.desc_igreja, ig.porte);
+        if (porte !== 'ESTADUAL') return false;
+        if (allowedUFs && !allowedUFs.includes(ig.estado)) return false;
+        if (filterEstado !== 'ALL' && ig.estado !== filterEstado) return false;
+        return true;
+      });
     }
 
-    // 3. For the selected Estaduais, gather all churches in their hierarchy
+    // 4. Gather church list from target Estaduais or overall scope
     const selectedChurchSet = new Map<string, Igreja>();
 
-    if (estaduais.length > 0) {
-      estaduais.forEach((e) => {
+    if (targetEstaduais.length > 0) {
+      targetEstaduais.forEach((e) => {
         selectedChurchSet.set(e.codigo_totvs, e);
         const descendants = getDescendants(e.codigo_totvs, activeChurches);
         descendants.forEach((d) => selectedChurchSet.set(d.codigo_totvs, d));
       });
     } else {
-      // If no Estaduais found, fall back to active churches matching region/UF filters
+      // Fallback if no Estaduais match: gather all active churches matching region/state filters
       activeChurches.forEach((ig) => {
         if (allowedUFs && !allowedUFs.includes(ig.estado)) return;
         if (filterEstado !== 'ALL' && ig.estado !== filterEstado) return;
@@ -141,14 +231,14 @@ export async function GET(request: Request) {
 
     let churchList = Array.from(selectedChurchSet.values());
 
-    // 4. Apply pastoral condition filter if requested
+    // 5. Apply pastoral condition filter if requested
     if (filterCondicao === 'PREBENDADA') {
       churchList = churchList.filter((ig) => ig.tipo_prebenda === 'PREBENDADA');
     } else if (filterCondicao === 'NAO_PREBENDADA' || filterCondicao === 'VOLUNTARIA') {
       churchList = churchList.filter((ig) => ig.tipo_prebenda !== 'PREBENDADA');
     }
 
-    // 5. Aggregate KPIs
+    // 6. Aggregate KPIs
     const totalIgrejas = churchList.length;
     let totalMembros = 0;
     let totalJovens = 0;
@@ -196,11 +286,11 @@ export async function GET(request: Request) {
     });
 
     const pctJovens = totalMembros > 0 ? parseFloat(((totalJovens / totalMembros) * 100).toFixed(1)) : 0;
+    const pctPrebendados = totalIgrejas > 0 ? parseFloat(((totalPrebendados / totalIgrejas) * 100).toFixed(1)) : 0;
+    const pctVoluntarios = totalIgrejas > 0 ? parseFloat(((totalVoluntarios / totalIgrejas) * 100).toFixed(1)) : 0;
 
-    // Format UF breakdown for BarChart (sorted by UF or membros)
     const ufBreakdown = Object.values(ufMap).sort((a, b) => b.membros - a.membros);
 
-    // Format Porte breakdown for PieChart
     const porteBreakdown = [
       { name: 'Setoriais', porte: 'SETORIAL', value: porteBreakdownMap['SETORIAL'], color: '#EAB308' },
       { name: 'Centrais', porte: 'CENTRAL', value: porteBreakdownMap['CENTRAL'], color: '#F97316' },
@@ -211,8 +301,36 @@ export async function GET(request: Request) {
       { name: 'Estaduais', porte: 'ESTADUAL', value: porteBreakdownMap['ESTADUAL'], color: '#3B82F6' },
     ].filter((item) => item.value > 0);
 
-    // 6. Detailed Synthetic Table per Estadual
-    const estaduaisSummary = estaduais.map((est) => {
+    // 7. Construct Drill-down Tree Nodes
+    const treeRoots: HierarchyNode[] = targetEstaduais.map((est) => {
+      const childrenNodes = buildHierarchyTree(est.codigo_totvs, allChurchesMap, childrenMap);
+
+      const selfMembros = Number(est.qtd_membros || 0);
+      const selfJovens = Number(est.qtd_jovens || 0);
+
+      const subMembros = childrenNodes.reduce((acc, c) => acc + c.campo_membros, 0);
+      const subJovens = childrenNodes.reduce((acc, c) => acc + c.campo_jovens, 0);
+      const subCongregacoes = childrenNodes.reduce((acc, c) => acc + 1 + c.campo_congregacoes, 0);
+
+      return {
+        codigo_totvs: est.codigo_totvs,
+        desc_igreja: est.desc_igreja,
+        porte: getPorte(est.desc_igreja, est.porte),
+        estado: est.estado,
+        municipio: est.municipio,
+        tipo_prebenda: est.tipo_prebenda,
+        dirigente_nome: est.dirigente_nome,
+        qtd_membros: selfMembros,
+        qtd_jovens: selfJovens,
+        campo_membros: selfMembros + subMembros,
+        campo_jovens: selfJovens + subJovens,
+        campo_congregacoes: childrenNodes.length > 0 ? subCongregacoes : 0,
+        children: childrenNodes,
+      };
+    }).sort((a, b) => b.campo_membros - a.campo_membros);
+
+    // 8. Detailed Synthetic Summary per Estadual
+    const estaduaisSummary = targetEstaduais.map((est) => {
       const descendants = getDescendants(est.codigo_totvs, activeChurches);
 
       let fieldChurches = [est, ...descendants];
@@ -250,9 +368,12 @@ export async function GET(request: Request) {
         pct_jovens: pctJovens,
         total_prebendados: totalPrebendados,
         total_voluntarios: totalVoluntarios,
+        pct_prebendados: pctPrebendados,
+        pct_voluntarios: pctVoluntarios,
       },
       porte_breakdown: porteBreakdown,
       uf_breakdown: ufBreakdown,
+      tree_nodes: treeRoots,
       estaduais_summary: estaduaisSummary,
       estaduais_options: estaduaisOptions,
     });

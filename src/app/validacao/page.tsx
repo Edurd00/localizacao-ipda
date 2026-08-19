@@ -18,6 +18,7 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   MapPin,
   ExternalLink,
   User,
@@ -959,57 +960,82 @@ export default function ValidacaoPage() {
               </div>
             </div>
 
-            {/* Continuous Pill Segmented Control Navigation Tab Bar */}
-            <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-0.5 items-center">
+            {/* Grouped Administrative Navigation Dropdowns */}
+            <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
               <a
                 href="/"
-                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+                className="px-3 py-1.5 rounded-lg text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50 transition-all"
               >
-                <span>🗺️ Mapa Geral</span>
+                🗺️ Mapa Geral
               </a>
 
-              <button
-                onClick={() => setActiveTab('validation')}
-                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
-                  activeTab === 'validation'
-                    ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
-                    : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <span>📍 Validação</span>
-              </button>
+              {/* Item 2: Validação & Gestão Dropdown */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all ${
+                    activeTab === 'validation'
+                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  <span>📍 Validação & Gestão</span>
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
 
-              <a
-                href="/coligacoes"
-                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-              >
-                <span>🌳 Coligações</span>
-              </a>
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('validation')}
+                    className="w-full text-left px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg block"
+                  >
+                    📍 Validação de Igrejas
+                  </button>
+                  <a
+                    href="/gestao"
+                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                  >
+                    👥 Gestão de Contatos
+                  </a>
+                  <a
+                    href="/coligacoes"
+                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                  >
+                    🌳 Coligações
+                  </a>
+                </div>
+              </div>
 
-              <a
-                href="/gestao"
-                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-              >
-                <span>👥 Gestão</span>
-              </a>
+              {/* Item 3: Inteligência & BI Dropdown */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all ${
+                    activeTab === 'dashboard'
+                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  <span>📊 Inteligência & BI</span>
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
 
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
-                  activeTab === 'dashboard'
-                    ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
-                    : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <span>📊 Dashboard</span>
-              </button>
-
-              <a
-                href="/relatorios"
-                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-              >
-                <span>📊 Relatórios</span>
-              </a>
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('dashboard')}
+                    className="w-full text-left px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg block"
+                  >
+                    📊 Dashboard de Status
+                  </button>
+                  <a
+                    href="/relatorios"
+                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                  >
+                    📊 Relatórios Hierárquicos
+                  </a>
+                </div>
+              </div>
 
               <button
                 onClick={() => setActiveTab('upload')}

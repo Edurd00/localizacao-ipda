@@ -21,6 +21,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Upload,
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
@@ -521,55 +522,72 @@ export default function GestaoPage() {
             </div>
           </div>
 
-          {/* Nav Pills including Gestao */}
-          <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-0.5 items-center">
+          {/* Grouped Administrative Navigation Dropdowns */}
+          <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
             <a
               href="/"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+              className="px-3 py-1.5 rounded-lg text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50 transition-all"
             >
-              <span>🗺️ Mapa Geral</span>
+              🗺️ Mapa Geral
             </a>
 
-            <a
-              href="/validacao?tab=validation"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>📍 Validação</span>
-            </a>
+            {/* Item 2: Validação & Gestão Dropdown */}
+            <div className="relative group">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
+              >
+                <span>📍 Validação & Gestão</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
 
-            <a
-              href="/coligacoes"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>🌳 Coligações</span>
-            </a>
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <a
+                  href="/validacao?tab=validation"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  📍 Validação de Igrejas
+                </a>
+                <a
+                  href="/gestao"
+                  className="block px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg"
+                >
+                  👥 Gestão de Contatos
+                </a>
+                <a
+                  href="/coligacoes"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  🌳 Coligações
+                </a>
+              </div>
+            </div>
 
-            <button
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 bg-white dark:bg-slate-750 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
-            >
-              <span>👥 Gestão</span>
-            </button>
+            {/* Item 3: Inteligência & BI Dropdown */}
+            <div className="relative group">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+              >
+                <span>📊 Inteligência & BI</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
 
-            <a
-              href="/validacao?tab=dashboard"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>📊 Dashboard</span>
-            </a>
-
-            <a
-              href="/relatorios"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>📊 Relatórios</span>
-            </a>
-
-            <a
-              href="/validacao?tab=upload"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>📥 Importar</span>
-            </a>
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <a
+                  href="/validacao?tab=dashboard"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  📊 Dashboard de Status
+                </a>
+                <a
+                  href="/relatorios"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  📊 Relatórios Hierárquicos
+                </a>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
