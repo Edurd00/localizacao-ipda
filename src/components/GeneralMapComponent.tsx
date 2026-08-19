@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useTransition, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useTransition, useDeferredValue, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -539,6 +539,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
   const [inputValue, setInputValue] = useState('');
   const [suggestionsClosed, setSuggestionsClosed] = useState(true);
   const [, startTransition] = useTransition();
+  const deferredInputValue = useDeferredValue(inputValue);
 
   useEffect(() => {
     setInputValue('');
@@ -546,7 +547,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
   }, [resetKey]);
 
   const suggestions = useMemo(() => {
-    const term = inputValue.trim().toLowerCase();
+    const term = deferredInputValue.trim().toLowerCase();
     if (term.length < 2) return [];
 
     const termNorm = normalizeTotvs(term);
@@ -573,7 +574,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
     });
 
     return matches.slice(0, 8);
-  }, [igrejas, inputValue]);
+  }, [igrejas, deferredInputValue]);
 
   return (
     <div className="relative w-full md:max-w-md flex-1">
@@ -1409,6 +1410,7 @@ const MemoizedMapView = memo(function MapView({
   setPorteLegendMobileOpen,
 }: MapViewProps) {
   const markerRefs = useRef<Record<string, L.Marker | null>>({});
+  const [activePopupTotvs, setActivePopupTotvs] = useState<string | null>(null);
 
   const [comparisonTransportMode, setComparisonTransportMode] = useState<'car' | 'bus'>('car');
 
@@ -1558,28 +1560,33 @@ const MemoizedMapView = memo(function MapView({
   };
 
   const renderChurchPopup = (ig: Igreja) => {
+    const isOpened = activePopupTotvs === ig.codigo_totvs;
     return (
       <Popup className="custom-leaflet-popup" maxWidth={380} minWidth={300}>
-        <div className="w-full max-h-[420px] overflow-y-auto p-1 text-slate-800">
-          <ChurchPopupContent
-            ig={ig}
-            igrejas={igrejas}
-            comparisonMode={comparisonMode}
-            fixedDest={fixedDest}
-            sedeCandidataA={sedeCandidataA}
-            sedeCandidataB={sedeCandidataB}
-            connectionPathSource={connectionPathSource}
-            customRouteOrigin={customRouteOrigin}
-            isAuthenticated={isAuthenticated}
-            setComparisonMode={setComparisonMode}
-            setFixedDest={setFixedDest}
-            setSedeCandidataA={setSedeCandidataA}
-            setSedeCandidataB={setSedeCandidataB}
-            setCustomRouteOrigin={setCustomRouteOrigin}
-            handleTraceConnectionMesh={handleTraceConnectionMesh}
-            fetchTerrestrialRoute={fetchTerrestrialRoute}
-          />
-        </div>
+        {isOpened ? (
+          <div className="w-full max-h-[420px] overflow-y-auto p-1 text-slate-800">
+            <ChurchPopupContent
+              ig={ig}
+              igrejas={igrejas}
+              comparisonMode={comparisonMode}
+              fixedDest={fixedDest}
+              sedeCandidataA={sedeCandidataA}
+              sedeCandidataB={sedeCandidataB}
+              connectionPathSource={connectionPathSource}
+              customRouteOrigin={customRouteOrigin}
+              isAuthenticated={isAuthenticated}
+              setComparisonMode={setComparisonMode}
+              setFixedDest={setFixedDest}
+              setSedeCandidataA={setSedeCandidataA}
+              setSedeCandidataB={setSedeCandidataB}
+              setCustomRouteOrigin={setCustomRouteOrigin}
+              handleTraceConnectionMesh={handleTraceConnectionMesh}
+              fetchTerrestrialRoute={fetchTerrestrialRoute}
+            />
+          </div>
+        ) : (
+          <div className="p-2 text-xs font-semibold text-slate-400">Carregando detalhes...</div>
+        )}
       </Popup>
     );
   };
@@ -1605,6 +1612,7 @@ const MemoizedMapView = memo(function MapView({
           onFlyToComplete={() => {
             if (flyToTarget) {
               const targetTotvs = flyToTarget.totvs;
+              setActivePopupTotvs(targetTotvs);
               const markerInstance = markerRefs.current[targetTotvs];
               if (markerInstance) {
                 markerInstance.openPopup();
@@ -1731,6 +1739,10 @@ const MemoizedMapView = memo(function MapView({
                   icon={icon}
                   alt={isSedeMundial ? 'Sede Mundial' : undefined}
                   zIndexOffset={1000}
+                  eventHandlers={{
+                    popupopen: () => setActivePopupTotvs(ig.codigo_totvs),
+                    popupclose: () => setActivePopupTotvs((curr) => (curr === ig.codigo_totvs ? null : curr)),
+                  }}
                   ref={(el) => {
                     if (el) {
                       markerRefs.current[ig.codigo_totvs] = el;
@@ -1747,7 +1759,10 @@ const MemoizedMapView = memo(function MapView({
             })}
 
         <MarkerClusterGroup
-          chunkedLoading
+          chunkedLoading={true}
+          chunkInterval={100}
+          removeOutsideVisibleBounds={true}
+          disableClusteringAtZoom={16}
           iconCreateFunction={(cluster: any) => {
             const count = cluster.getChildCount();
             let size = 35;
@@ -1818,6 +1833,10 @@ const MemoizedMapView = memo(function MapView({
                   position={[ig.latitude!, ig.longitude!]}
                   icon={icon}
                   alt={isSedeMundial ? 'Sede Mundial' : undefined}
+                  eventHandlers={{
+                    popupopen: () => setActivePopupTotvs(ig.codigo_totvs),
+                    popupclose: () => setActivePopupTotvs((curr) => (curr === ig.codigo_totvs ? null : curr)),
+                  }}
                   ref={(el) => {
                     if (el) {
                       markerRefs.current[ig.codigo_totvs] = el;
@@ -2398,6 +2417,7 @@ export default function GeneralMapComponent() {
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
   // Camera lock flag to prevent boomerang reset when user searches or focuses a target
   const [preventAutoFit, setPreventAutoFit] = useState(false);
@@ -2632,6 +2652,11 @@ export default function GeneralMapComponent() {
   const [selectedPortes, setSelectedPortes] = useState<string[]>([]);
   const [selectedEstadual, setSelectedEstadual] = useState<string>('');
 
+  const deferredRegionGeo = useDeferredValue(selectedRegionGeo);
+  const deferredUF = useDeferredValue(selectedUF);
+  const deferredTipoImovel = useDeferredValue(selectedTipoImovel);
+  const deferredPortes = useDeferredValue(selectedPortes);
+
   const handleRegionGeoChange = (val: string) => {
     setSelectedRegionGeo(val);
     setSelectedEstadual('');
@@ -2731,12 +2756,12 @@ export default function GeneralMapComponent() {
 
   const distinctUFs = useMemo(() => {
     let ufs = Array.from(new Set(igrejas.map((ig) => ig.estado).filter(Boolean)));
-    if (selectedRegionGeo !== 'ALL') {
-      const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[selectedRegionGeo] || [];
+    if (deferredRegionGeo !== 'ALL') {
+      const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[deferredRegionGeo] || [];
       ufs = ufs.filter((uf) => allowedUFs.includes(uf));
     }
     return ufs.sort();
-  }, [igrejas, selectedRegionGeo]);
+  }, [igrejas, deferredRegionGeo]);
 
   const filteredIgrejas = useMemo(() => {
     return igrejas.filter((ig) => {
@@ -2744,28 +2769,28 @@ export default function GeneralMapComponent() {
         return false;
       }
 
-      if (selectedRegionGeo !== 'ALL') {
-        const ufs = REGIAO_GEOGRAFICA_MAPPING[selectedRegionGeo];
+      if (deferredRegionGeo !== 'ALL') {
+        const ufs = REGIAO_GEOGRAFICA_MAPPING[deferredRegionGeo];
         if (ufs && !ufs.includes(ig.estado)) {
           return false;
         }
       }
 
-      if (selectedUF !== 'ALL' && ig.estado !== selectedUF) {
+      if (deferredUF !== 'ALL' && ig.estado !== deferredUF) {
         return false;
       }
 
-      if (selectedTipoImovel !== 'ALL') {
+      if (deferredTipoImovel !== 'ALL') {
         const typeNormalized = normalizeText(ig.tipo_imovel || '');
-        if (selectedTipoImovel === 'PROPRIO') {
+        if (deferredTipoImovel === 'PROPRIO') {
           if (!typeNormalized.includes('PROP')) {
             return false;
           }
-        } else if (selectedTipoImovel === 'ALUGADO') {
+        } else if (deferredTipoImovel === 'ALUGADO') {
           if (!typeNormalized.includes('ALUG')) {
             return false;
           }
-        } else if (selectedTipoImovel === 'CEDIDO') {
+        } else if (deferredTipoImovel === 'CEDIDO') {
           if (typeNormalized.includes('PROP') || typeNormalized.includes('ALUG')) {
             return false;
           }
@@ -2773,13 +2798,13 @@ export default function GeneralMapComponent() {
       }
 
       const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
-      if (selectedPortes.length > 0 && !selectedPortes.includes(porte)) {
+      if (deferredPortes.length > 0 && !deferredPortes.includes(porte)) {
         return false;
       }
 
       return true;
     });
-  }, [igrejas, selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes]);
+  }, [igrejas, deferredRegionGeo, deferredUF, deferredTipoImovel, deferredPortes]);
 
   const handleSelectSuggestion = (ig: Igreja) => {
     if (ig.latitude && ig.longitude) {
@@ -3039,7 +3064,9 @@ export default function GeneralMapComponent() {
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
           <button
             onClick={() => {
-              setShowFilters(!showFilters);
+              startTransition(() => {
+                setShowFilters((prev) => !prev);
+              });
               toast.dismiss();
             }}
             className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
