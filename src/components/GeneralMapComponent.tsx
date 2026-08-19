@@ -1747,7 +1747,10 @@ const MemoizedMapView = memo(function MapView({
             })}
 
         <MarkerClusterGroup
-          chunkedLoading
+          chunkedLoading={true}
+          chunkInterval={100}
+          removeOutsideVisibleBounds={true}
+          disableClusteringAtZoom={16}
           iconCreateFunction={(cluster: any) => {
             const count = cluster.getChildCount();
             let size = 35;
@@ -2395,6 +2398,7 @@ const MemoizedMapView = memo(function MapView({
 });
 
 export default function GeneralMapComponent() {
+  const [, startTransition] = useTransition();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -3039,8 +3043,12 @@ export default function GeneralMapComponent() {
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
           <button
             onClick={() => {
-              setShowFilters(!showFilters);
-              toast.dismiss();
+              requestAnimationFrame(() => {
+                startTransition(() => {
+                  setShowFilters((prev) => !prev);
+                  toast.dismiss();
+                });
+              });
             }}
             className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
               showFilters
@@ -3060,15 +3068,6 @@ export default function GeneralMapComponent() {
             <Lock className="h-3.5 w-3.5 text-white" />
             <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
           </a>
-
-          <button
-            onClick={() => fetchValidatedChurches(false, true)}
-            disabled={loading}
-            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50 min-h-[44px]"
-            title="Atualizar dados do banco"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </header>
 
