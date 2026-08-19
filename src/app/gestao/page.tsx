@@ -46,6 +46,11 @@ export default function GestaoPage() {
   // Search input typing speed optimization
   const [searchInput, setSearchInput] = useState('');
 
+  // Filters & Priority Sorting states
+  const [filterContactStatus, setFilterContactStatus] = useState<string>('ALL');
+  const [filterPorteGroup, setFilterPorteGroup] = useState<string>('ALL');
+  const [prioritizeMajorPortes, setPrioritizeMajorPortes] = useState<boolean>(false);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -216,38 +221,142 @@ export default function GestaoPage() {
     });
   }, [searchInput]);
 
-  // Exact Match First search filter alg
-  const filteredIgrejas = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return igrejas;
+  // Coverage KPI metrics calculation
+  const kpiMetrics = useMemo(() => {
+    const total = igrejas.length;
+    if (total === 0) {
+      return { dirigenteCount: 0, dirigentePct: 0, financeiraCount: 0, financeiraPct: 0, majorPendingCount: 0 };
+    }
 
-    const numericTerm = term.replace(/^0+/, '');
-    const isPureNumeric = /^\d+$/.test(numericTerm);
+    let dirCount = 0;
+    let finCount = 0;
+    let majorPending = 0;
 
-    if (isPureNumeric) {
-      // Look for exact TOTVS match first
-      const exact = igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === numericTerm);
-      if (exact) {
-        return [exact];
+    const majorPortes = new Set(['ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL']);
+
+    for (const ig of igrejas) {
+      const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
+      const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
+      if (hasDir) dirCount++;
+      if (hasFin) finCount++;
+
+      const porte = (ig.porte || 'LOCAL').toUpperCase();
+      if (majorPortes.has(porte) && (!hasDir || !hasFin)) {
+        majorPending++;
       }
     }
 
-    return igrejas.filter((ig) => {
-      const totvsNorm = ig.codigo_totvs.toLowerCase();
-      const nomeNorm = ig.desc_igreja.toLowerCase();
-      const municipioNorm = (ig.municipio || '').toLowerCase();
-      const estadoNorm = (ig.estado || '').toLowerCase();
-      const bairroNorm = (ig.bairro || '').toLowerCase();
+    return {
+      dirigenteCount: dirCount,
+      dirigentePct: Math.round((dirCount / total) * 100),
+      financeiraCount: finCount,
+      financeiraPct: Math.round((finCount / total) * 100),
+      majorPendingCount: majorPending,
+    };
+  }, [igrejas]);
 
-      return (
-        totvsNorm.includes(term) ||
-        nomeNorm.includes(term) ||
-        municipioNorm.includes(term) ||
-        estadoNorm.includes(term) ||
-        bairroNorm.includes(term)
-      );
-    });
-  }, [igrejas, searchTerm]);
+  // Enhanced filtering & priority sorting logic
+  const filteredIgrejas = useMemo(() => {
+    let result = igrejas;
+
+    // 1. Search term filter
+    const term = searchTerm.trim().toLowerCase();
+    if (term) {
+      const numericTerm = term.replace(/^0+/, '');
+      const isPureNumeric = /^\d+$/.test(numericTerm);
+
+      if (isPureNumeric) {
+        const exact = igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === numericTerm);
+        if (exact) {
+          result = [exact];
+        } else {
+          result = igrejas.filter((ig) => {
+            const totvsNorm = ig.codigo_totvs.toLowerCase();
+            const nomeNorm = ig.desc_igreja.toLowerCase();
+            const municipioNorm = (ig.municipio || '').toLowerCase();
+            const estadoNorm = (ig.estado || '').toLowerCase();
+            const bairroNorm = (ig.bairro || '').toLowerCase();
+
+            return (
+              totvsNorm.includes(term) ||
+              nomeNorm.includes(term) ||
+              municipioNorm.includes(term) ||
+              estadoNorm.includes(term) ||
+              bairroNorm.includes(term)
+            );
+          });
+        }
+      } else {
+        result = igrejas.filter((ig) => {
+          const totvsNorm = ig.codigo_totvs.toLowerCase();
+          const nomeNorm = ig.desc_igreja.toLowerCase();
+          const municipioNorm = (ig.municipio || '').toLowerCase();
+          const estadoNorm = (ig.estado || '').toLowerCase();
+          const bairroNorm = (ig.bairro || '').toLowerCase();
+
+          return (
+            totvsNorm.includes(term) ||
+            nomeNorm.includes(term) ||
+            municipioNorm.includes(term) ||
+            estadoNorm.includes(term) ||
+            bairroNorm.includes(term)
+          );
+        });
+      }
+    }
+
+    // 2. Filter by Contact Status
+    if (filterContactStatus !== 'ALL') {
+      result = result.filter((ig) => {
+        const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
+        const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
+
+        if (filterContactStatus === 'NO_DIRIGENTE') return !hasDir;
+        if (filterContactStatus === 'NO_FINANCEIRA') return !hasFin;
+        if (filterContactStatus === 'NO_BOTH') return !hasDir && !hasFin;
+        if (filterContactStatus === 'COMPLETE') return hasDir && hasFin;
+        return true;
+      });
+    }
+
+    // 3. Filter by Porte Group
+    if (filterPorteGroup !== 'ALL') {
+      result = result.filter((ig) => {
+        const porte = (ig.porte || 'LOCAL').toUpperCase();
+        if (filterPorteGroup === 'ESTADUAL_SETORIAL') {
+          return porte === 'ESTADUAL' || porte === 'SETORIAL';
+        }
+        if (filterPorteGroup === 'CENTRAL_REGIONAL') {
+          return porte === 'CENTRAL' || porte === 'REGIONAL';
+        }
+        if (filterPorteGroup === 'LOCAL_OUTROS') {
+          return porte !== 'ESTADUAL' && porte !== 'SETORIAL' && porte !== 'CENTRAL' && porte !== 'REGIONAL';
+        }
+        return true;
+      });
+    }
+
+    // 4. Priority Sorting by Major Portes
+    if (prioritizeMajorPortes) {
+      const PORTE_WEIGHTS: Record<string, number> = {
+        ESTADUAL: 1,
+        SETORIAL: 2,
+        CENTRAL: 3,
+        REGIONAL: 4,
+        LOCAL: 5,
+        'CASA DE ORAÇÃO': 6,
+        'ALDEIA INDIGENA': 7,
+      };
+
+      result = [...result].sort((a, b) => {
+        const weightA = PORTE_WEIGHTS[(a.porte || 'LOCAL').toUpperCase()] || 99;
+        const weightB = PORTE_WEIGHTS[(b.porte || 'LOCAL').toUpperCase()] || 99;
+        return weightA - weightB;
+      });
+    }
+
+    return result;
+  }, [igrejas, searchTerm, filterContactStatus, filterPorteGroup, prioritizeMajorPortes]);
 
   // Pagination slice
   const paginatedIgrejas = useMemo(() => {
@@ -611,6 +720,45 @@ export default function GestaoPage() {
       </header>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+        {/* Indicadores Rápidos de Cobertura (KPI Cards Topo) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🎴 Cobertura de Dirigentes</p>
+              <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
+                {kpiMetrics.dirigenteCount} <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">({kpiMetrics.dirigentePct}%)</span>
+              </h3>
+            </div>
+            <div className="p-2.5 bg-indigo-50 dark:bg-slate-800 text-indigo-600 rounded-xl border border-indigo-100 dark:border-slate-700">
+              <User className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">💼 Cobertura Financeira</p>
+              <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
+                {kpiMetrics.financeiraCount} <span className="text-xs text-violet-600 dark:text-violet-400 font-bold">({kpiMetrics.financeiraPct}%)</span>
+              </h3>
+            </div>
+            <div className="p-2.5 bg-violet-50 dark:bg-slate-800 text-violet-600 rounded-xl border border-violet-100 dark:border-slate-700">
+              <Users className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🚨 Sedes Maiores Pendentes</p>
+              <h3 className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 font-mono">
+                {kpiMetrics.majorPendingCount} <span className="text-xs text-amber-500 font-normal">igrejas</span>
+              </h3>
+            </div>
+            <div className="p-2.5 bg-amber-50 dark:bg-slate-800 text-amber-600 rounded-xl border border-amber-100 dark:border-slate-700">
+              <Building2 className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
         {/* Workspace controls panel */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           {/* Quick search input */}
@@ -647,6 +795,56 @@ export default function GestaoPage() {
               <span>Nova Igreja</span>
             </button>
           </div>
+        </div>
+
+        {/* Painel de Filtros e Priorização de Portes */}
+        <div className="flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+          {/* Filter 1: Status do Contato */}
+          <select
+            value={filterContactStatus}
+            onChange={(e) => {
+              setFilterContactStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="ALL">Status de Contato: Todos</option>
+            <option value="NO_DIRIGENTE">⚠️ Sem Dirigente Cadastrado</option>
+            <option value="NO_FINANCEIRA">⚠️ Sem Voluntária Financeira</option>
+            <option value="NO_BOTH">🚨 Sem Nenhum Contato</option>
+            <option value="COMPLETE">✅ Com Contatos Completos</option>
+          </select>
+
+          {/* Filter 2: Porte Group */}
+          <select
+            value={filterPorteGroup}
+            onChange={(e) => {
+              setFilterPorteGroup(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="ALL">Porte: Todos os Portes</option>
+            <option value="ESTADUAL_SETORIAL">🔵 Estaduais & 🟡 Setoriais</option>
+            <option value="CENTRAL_REGIONAL">🟠 Centrais & 🟢 Regionais</option>
+            <option value="LOCAL_OUTROS">⚪ Locais & Outros</option>
+          </select>
+
+          {/* Toggle: Priorizar Portes Maiores */}
+          <button
+            type="button"
+            onClick={() => {
+              setPrioritizeMajorPortes(!prioritizeMajorPortes);
+              setCurrentPage(1);
+            }}
+            className={`h-10 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs border ${
+              prioritizeMajorPortes
+                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-sm'
+                : 'bg-zinc-50 dark:bg-slate-800 text-zinc-650 dark:text-slate-350 border-zinc-200 dark:border-slate-700 hover:bg-zinc-100'
+            }`}
+          >
+            <span>⚡ Priorizar Portes Maiores</span>
+          </button>
         </div>
 
         {/* Loading Indicator */}
@@ -720,7 +918,13 @@ export default function GestaoPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-zinc-400 italic text-[11px]">Não registrado</span>
+                            <button
+                              type="button"
+                              onClick={() => openContactsModal(ig)}
+                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 inline-flex cursor-pointer transition-all"
+                            >
+                              <span>⚠️ Cadastrar Contato</span>
+                            </button>
                           )}
                         </td>
                         <td className="p-4">
@@ -738,7 +942,13 @@ export default function GestaoPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-zinc-400 italic text-[11px]">Não registrado</span>
+                            <button
+                              type="button"
+                              onClick={() => openContactsModal(ig)}
+                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 inline-flex cursor-pointer transition-all"
+                            >
+                              <span>⚠️ Cadastrar Contato</span>
+                            </button>
                           )}
                         </td>
                         <td className="p-4 text-center">
