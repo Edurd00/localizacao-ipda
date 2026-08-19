@@ -36,14 +36,15 @@ export async function GET() {
       'qtd_jovens',
       'tipo_prebenda',
     ]);
-    return NextResponse.json(
-      {
+    return new NextResponse(
+      JSON.stringify({
         success: true,
         igrejas,
-      },
+      }),
       {
         status: 200,
         headers: {
+          'Content-Type': 'application/json',
           'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600',
           'CDN-Cache-Control': 'public, s-maxage=86400',
           'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
