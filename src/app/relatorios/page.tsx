@@ -469,14 +469,14 @@ export default function RelatoriosPage() {
             <button
               onClick={handleSyncPublicMap}
               disabled={syncLoading}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-full transition-all flex items-center justify-center min-w-[36px]"
+              className="h-10 px-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all flex items-center justify-center shadow-sm border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800"
               title="Sincronizar dados e recarregar cache"
             >
               <RefreshCw className={`h-4 w-4 ${syncLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={handleLogout}
-              className="px-3 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+              className="h-10 px-3.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-red-200/50 dark:border-red-900/40 bg-white dark:bg-slate-800"
             >
               <Power className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Sair</span>
@@ -493,10 +493,10 @@ export default function RelatoriosPage() {
             <div>
               <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
                 <Filter className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                Painel de Filtros Avançados
+                <span>PAINEL DE FILTROS AVANÇADOS</span>
               </h2>
               <p className="text-xs text-zinc-500 dark:text-slate-400 font-medium">
-                Combine região, estado, sede estadual e condição pastoral para cruzar dados de membresia.
+                Combine região, estado, sede e condição pastoral para cruzar dados de membresia.
               </p>
             </div>
 
@@ -506,20 +506,20 @@ export default function RelatoriosPage() {
                 type="button"
                 onClick={handleExportXLSX}
                 disabled={loading || !data}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                className="h-9 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5"
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                <span>📥 Exportar XLSX</span>
+                <span>📊 Exportar XLSX</span>
               </button>
 
               <button
                 type="button"
                 onClick={handlePrintPDF}
                 disabled={loading || !data}
-                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5"
               >
                 <Printer className="h-4 w-4" />
-                <span>📄 Exportar Relatório PDF / Imprimir</span>
+                <span>📄 Imprimir / PDF</span>
               </button>
             </div>
           </div>
