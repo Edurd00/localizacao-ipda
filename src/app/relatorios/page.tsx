@@ -181,14 +181,14 @@ function DrillDownRow({ node, level }: { node: HierarchyNode; level: number }) {
         <td className="p-3 text-right font-black font-mono text-cyan-600 dark:text-cyan-400">
           {node.campo_jovens.toLocaleString('pt-BR')}
         </td>
-        <td className="p-3 text-center">
+        <td className="px-3 py-2.5 text-center whitespace-nowrap">
           {node.tipo_prebenda === 'PREBENDADA' ? (
-            <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-md font-bold text-[10px] border border-emerald-200 dark:border-emerald-800">
-              💼 Prebendado
+            <span className="inline-flex items-center justify-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/90 dark:border-emerald-800 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-xs whitespace-nowrap">
+              <span>💼</span> Prebendado
             </span>
           ) : (
-            <span className="bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 px-2 py-0.5 rounded-md font-bold text-[10px] border border-zinc-200 dark:border-slate-700">
-              🤝 Voluntário
+            <span className="inline-flex items-center justify-center gap-1.5 bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 text-[11px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
+              <span>🤝</span> Voluntário
             </span>
           )}
         </td>
