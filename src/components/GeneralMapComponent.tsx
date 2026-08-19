@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useTransition, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -319,23 +319,25 @@ function MapController({
   preventAutoFit: boolean;
 }) {
   const map = useMap();
+  const prevFlyToRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (flyToTarget) {
-      map.flyTo(flyToTarget.center, flyToTarget.zoom, {
-        animate: true,
-        duration: 1.5,
-      });
-      const timer = setTimeout(() => {
-        onFlyToComplete();
-      }, 1600);
-      return () => clearTimeout(timer);
-    } else if (region === 'ALL' && !hasActiveRouteOrMesh && !preventAutoFit) {
-      map.setView(center, zoom, {
-        animate: true,
-        duration: 1.2,
-      });
+      const targetKey = `${flyToTarget.totvs}-${flyToTarget.center.join(',')}-${flyToTarget.zoom}`;
+      if (prevFlyToRef.current !== targetKey) {
+        prevFlyToRef.current = targetKey;
+        map.flyTo(flyToTarget.center, flyToTarget.zoom, {
+          animate: true,
+          duration: 1.5,
+        });
+        const timer = setTimeout(() => {
+          onFlyToComplete();
+        }, 1600);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRouteOrMesh, preventAutoFit]);
+  }, [flyToTarget, map, onFlyToComplete]);
+
   return null;
 }
 
@@ -352,7 +354,12 @@ function RegionBoundsController({
   preventAutoFit: boolean;
 }) {
   const map = useMap();
+  const prevRegionRef = useRef<string>(region);
+
   useEffect(() => {
+    if (prevRegionRef.current === region) return;
+    prevRegionRef.current = region;
+
     if (!region || region === 'ALL' || hasActiveRouteOrMesh || preventAutoFit) return;
 
     const staticBounds = REGIAO_BOUNDS[region];
@@ -414,7 +421,19 @@ function MapBoundsController({
   activeChainCodes: string[];
 }) {
   const map = useMap();
+  const prevTriggerKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
+    const triggerKey = [
+      routeMeta ? `${routeMeta.originCoords?.join(',')}-${routeMeta.destinationCoords?.join(',')}` : '',
+      comparisonMode ? `${fixedDest?.codigo_totvs}-${sedeCandidataA?.codigo_totvs}-${sedeCandidataB?.codigo_totvs}` : '',
+      connectionPathSource ? `${connectionPathSource}-${activeChainCodes.join(',')}` : '',
+      bounds ? bounds.length : 0,
+    ].join('|');
+
+    if (prevTriggerKeyRef.current === triggerKey) return;
+    prevTriggerKeyRef.current = triggerKey;
+
     // 1. If we have standard route active (routeMeta)
     if (routeMeta && routeMeta.originCoords && routeMeta.destinationCoords) {
       const routeBounds: [number, number][] = [
@@ -675,7 +694,7 @@ interface FiltersModalProps {
   onResetFilters: () => void;
 }
 
-function FiltersModal({
+const FiltersModal = memo(function FiltersModal({
   isOpen,
   onClose,
   selectedRegionGeo,
@@ -848,7 +867,7 @@ function FiltersModal({
     </>,
     document.body
   );
-}
+});
 
 interface ChurchPopupContentProps {
   ig: Igreja;
@@ -1680,27 +1699,32 @@ const MemoizedMapView = memo(function MapView({
           </>
         )}
 
-        {mapType === 'satellite' ? (
-          <>
+        {useMemo(() => {
+          if (mapType === 'satellite') {
+            return (
+              <>
+                <TileLayer
+                  attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                />
+                <TileLayer
+                  attribution="Tiles &copy; Esri"
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+                />
+                <TileLayer
+                  attribution="Tiles &copy; Esri"
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                />
+              </>
+            );
+          }
+          return (
             <TileLayer
-              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <TileLayer
-              attribution="Tiles &copy; Esri"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
-            />
-            <TileLayer
-              attribution="Tiles &copy; Esri"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-            />
-          </>
-        ) : (
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-        )}
+          );
+        }, [mapType])}
 
         {selectedConnectionPath && (
           <>
@@ -1746,96 +1770,101 @@ const MemoizedMapView = memo(function MapView({
               );
             })}
 
-        <MarkerClusterGroup
-          chunkedLoading={true}
-          chunkInterval={100}
-          removeOutsideVisibleBounds={true}
-          disableClusteringAtZoom={16}
-          iconCreateFunction={(cluster: any) => {
-            const count = cluster.getChildCount();
-            let size = 35;
-            if (count > 100) {
-              size = 55;
-            } else if (count > 10) {
-              size = 45;
-            }
+        {useMemo(
+          () => (
+            <MarkerClusterGroup
+              chunkedLoading={true}
+              chunkInterval={100}
+              removeOutsideVisibleBounds={true}
+              disableClusteringAtZoom={16}
+              iconCreateFunction={(cluster: any) => {
+                const count = cluster.getChildCount();
+                let size = 35;
+                if (count > 100) {
+                  size = 55;
+                } else if (count > 10) {
+                  size = 45;
+                }
 
-            const childMarkers = cluster.getAllChildMarkers();
-            const stateCounts: Record<string, number> = {};
+                const childMarkers = cluster.getAllChildMarkers();
+                const stateCounts: Record<string, number> = {};
 
-            childMarkers.forEach((m: any) => {
-              const uf = m.estado || '';
-              if (uf) {
-                stateCounts[uf] = (stateCounts[uf] || 0) + 1;
-              }
-            });
+                childMarkers.forEach((m: any) => {
+                  const uf = m.estado || '';
+                  if (uf) {
+                    stateCounts[uf] = (stateCounts[uf] || 0) + 1;
+                  }
+                });
 
-            let majorityUF = '';
-            let maxCount = 0;
-            Object.keys(stateCounts).forEach((uf) => {
-              if (stateCounts[uf] > maxCount) {
-                maxCount = stateCounts[uf];
-                majorityUF = uf;
-              }
-            });
+                let majorityUF = '';
+                let maxCount = 0;
+                Object.keys(stateCounts).forEach((uf) => {
+                  if (stateCounts[uf] > maxCount) {
+                    maxCount = stateCounts[uf];
+                    majorityUF = uf;
+                  }
+                });
 
-            const bg = getClusterColorByState(majorityUF);
+                const bg = getClusterColorByState(majorityUF);
 
-            return L.divIcon({
-              html: `
-                <div style="
-                  background-color: ${bg};
-                  color: #ffffff;
-                  font-weight: bold;
-                  border-radius: 50%;
-                  border: 3px solid #ffffff;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-                  font-size: 14px;
-                  width: ${size}px;
-                  height: ${size}px;
-                  cursor: pointer;
-                  user-select: none;
-                ">
-                  ${count}
-                </div>
-              `,
-              className: 'custom-cluster-icon-parent',
-              iconSize: L.point(size, size),
-              iconAnchor: [size / 2, size / 2],
-            });
-          }}
-        >
-          {(!connectionPathSource ? filteredIgrejas : [])
-            .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
-            .map((ig) => {
-              const isSedeMundial = ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL');
-              const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
-              const icon = getMarkerIcon(porte);
+                return L.divIcon({
+                  html: `
+                    <div style="
+                      background-color: ${bg};
+                      color: #ffffff;
+                      font-weight: bold;
+                      border-radius: 50%;
+                      border: 3px solid #ffffff;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+                      font-size: 14px;
+                      width: ${size}px;
+                      height: ${size}px;
+                      cursor: pointer;
+                      user-select: none;
+                    ">
+                      ${count}
+                    </div>
+                  `,
+                  className: 'custom-cluster-icon-parent',
+                  iconSize: L.point(size, size),
+                  iconAnchor: [size / 2, size / 2],
+                });
+              }}
+            >
+              {(!connectionPathSource ? filteredIgrejas : [])
+                .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
+                .map((ig) => {
+                  const isSedeMundial = ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL');
+                  const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+                  const icon = getMarkerIcon(porte);
 
-              return (
-                <Marker
-                  key={ig.codigo_totvs}
-                  position={[ig.latitude!, ig.longitude!]}
-                  icon={icon}
-                  alt={isSedeMundial ? 'Sede Mundial' : undefined}
-                  ref={(el) => {
-                    if (el) {
-                      markerRefs.current[ig.codigo_totvs] = el;
-                      (el as any).estado = ig.estado;
-                    } else {
-                      delete markerRefs.current[ig.codigo_totvs];
-                    }
-                  }}
-                >
-                  {renderChurchTooltip(ig)}
-                  {renderChurchPopup(ig)}
-                </Marker>
-              );
-            })}
-        </MarkerClusterGroup>
+                  return (
+                    <Marker
+                      key={ig.codigo_totvs}
+                      position={[ig.latitude!, ig.longitude!]}
+                      icon={icon}
+                      alt={isSedeMundial ? 'Sede Mundial' : undefined}
+                      ref={(el) => {
+                        if (el) {
+                          markerRefs.current[ig.codigo_totvs] = el;
+                          (el as any).estado = ig.estado;
+                        } else {
+                          delete markerRefs.current[ig.codigo_totvs];
+                        }
+                      }}
+                    >
+                      {renderChurchTooltip(ig)}
+                      {renderChurchPopup(ig)}
+                    </Marker>
+                  );
+                })}
+            </MarkerClusterGroup>
+          ),
+          [filteredIgrejas, connectionPathSource, activeChainCodes]
+        )}
       </MapContainer>
 
       {/* Floating Controls Container (Top Spacing Safe for Navigation Bar: top-36 md:top-24, z-[1025]) */}
@@ -2929,6 +2958,10 @@ export default function GeneralMapComponent() {
     }, 50);
   };
 
+  const handleCloseFilters = useCallback(() => {
+    setShowFilters(false);
+  }, []);
+
   const mapCenter = useMemo<[number, number]>(() => {
     if (filteredIgrejas.length === 1) {
       return [filteredIgrejas[0].latitude!, filteredIgrejas[0].longitude!];
@@ -3074,7 +3107,7 @@ export default function GeneralMapComponent() {
       {/* Floating Collapsible Filters Modal Portal */}
       <FiltersModal
         isOpen={showFilters}
-        onClose={() => setShowFilters(false)}
+        onClose={handleCloseFilters}
         selectedRegionGeo={selectedRegionGeo}
         onRegionGeoChange={handleRegionGeoChange}
         selectedUF={selectedUF}
