@@ -606,45 +606,42 @@ export default function RelatoriosPage() {
           </div>
         </section>
 
-        {/* 3 Main View Tabs (Pills) */}
-        <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 max-w-xl shadow-2xs print:hidden">
+        {/* Seletor de Abas - Segmented Control Moderno */}
+        <div className="bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-xl inline-flex items-center gap-1.5 my-3 border border-slate-200/60 dark:border-slate-700 shadow-inner print:hidden">
           <button
             type="button"
             onClick={() => setActiveReportTab('tree')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeReportTab === 'tree'
-                ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-xs border border-zinc-200/50 dark:border-slate-600'
-                : 'text-zinc-600 dark:text-slate-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
             }`}
           >
-            <GitBranch className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            <span>🌳 Árvore Hierárquica (Drill-down)</span>
+            <span>🌳</span> Árvore Hierárquica
           </button>
 
           <button
             type="button"
             onClick={() => setActiveReportTab('membresia')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeReportTab === 'membresia'
-                ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-xs border border-zinc-200/50 dark:border-slate-600'
-                : 'text-zinc-600 dark:text-slate-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
             }`}
           >
-            <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            <span>👥 Membresia & Mocidade</span>
+            <span>👥</span> Membresia & Mocidade
           </button>
 
           <button
             type="button"
             onClick={() => setActiveReportTab('pastoral')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeReportTab === 'pastoral'
-                ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-xs border border-zinc-200/50 dark:border-slate-600'
-                : 'text-zinc-600 dark:text-slate-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
             }`}
           >
-            <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            <span>💼 Condição Pastoral</span>
+            <span>💼</span> Condição Pastoral
           </button>
         </div>
 
