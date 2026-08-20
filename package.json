@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "npx tsx scripts/build-static-igrejas.ts",
     "start": "next start",
     "lint": "eslint"
   },

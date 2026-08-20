@@ -20,7 +20,9 @@ export async function GET(request: Request) {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=59',
+            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=86400',
+            'CDN-Cache-Control': 'public, s-maxage=86400',
+            'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
           },
         }
       );
@@ -41,7 +43,9 @@ export async function GET(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=59',
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=86400',
+          'CDN-Cache-Control': 'public, s-maxage=86400',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
         },
       }
     );

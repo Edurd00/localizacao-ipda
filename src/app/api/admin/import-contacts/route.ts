@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
+import { revalidatePath } from 'next/cache';
 import { verifySessionToken } from '@/lib/auth';
 import { processContactsCsvContent } from '../../../../../scripts/import-contacts';
 
@@ -33,6 +34,7 @@ export async function GET() {
     const fileContent = fs.readFileSync(csvPath, 'utf-8');
     const result = await processContactsCsvContent(fileContent);
 
+    revalidatePath('/api/igrejas/validadas');
     return NextResponse.json(result, { status: 200 });
   } catch (err: unknown) {
     console.error('Error in GET /api/admin/import-contacts:', err);
@@ -75,6 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await processContactsCsvContent(csvContent);
+    revalidatePath('/api/igrejas/validadas');
     return NextResponse.json(result, { status: 200 });
   } catch (err: unknown) {
     console.error('Error in POST /api/admin/import-contacts:', err);
