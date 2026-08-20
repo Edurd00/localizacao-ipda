@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
 
-export const revalidate = 86400; // Cache 24 hours
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
