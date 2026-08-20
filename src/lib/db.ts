@@ -38,8 +38,9 @@ export interface Igreja {
   tipo_prebenda?: string | null;
 }
 
-// Check database URL in env
-const databaseUrl = process.env.DATABASE_URL;
+// Check and sanitize database URL in env
+const rawDbUrl = process.env.DATABASE_URL;
+const databaseUrl = rawDbUrl ? rawDbUrl.trim().replace(/^["']|["']$/g, '') : undefined;
 let pool: Pool | null = null;
 
 if (databaseUrl) {
