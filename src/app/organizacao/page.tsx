@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue, Suspense } from 'react';
 import {
   ChevronRight,
   ChevronDown,
@@ -298,7 +298,7 @@ export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
   'Centro-Oeste': ['MT', 'DF', 'GO', 'MS'],
 };
 
-export default function OrganizacaoPage() {
+function OrganizacaoContent() {
   const [states, setStates] = useState<string[]>([]);
 
   // New Double Selectors:
@@ -341,20 +341,21 @@ export default function OrganizacaoPage() {
     }
   }, [searchInput, churches]);
 
-  // Load available distinct states on mount
+  // Load available distinct states on mount with defensive fallbacks
   useEffect(() => {
     async function loadStates() {
       try {
         const res = await fetch('/api/organizacao');
+        if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         if (data.success) {
           setStates(data.states || []);
         } else {
-          toast.error('Erro ao carregar estados disponíveis.');
+          setStates([]);
         }
       } catch (err) {
-        console.error('Error fetching states:', err);
-        toast.error('Erro de conexão com o servidor.');
+        console.error('Erro na organização (estados), usando fallback:', err);
+        setStates([]);
       } finally {
         setLoadingStates(false);
       }
@@ -362,21 +363,22 @@ export default function OrganizacaoPage() {
     loadStates();
   }, []);
 
-  // Fetch ALL churches on mount to construct a complete cross-divisa tree dynamically
+  // Fetch ALL churches on mount with defensive fallbacks
   useEffect(() => {
     async function loadAllChurches() {
       setLoadingChurches(true);
       try {
         const res = await fetch(`/api/organizacao?estado=ALL`);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         if (data.success) {
           setChurches(data.churches || []);
         } else {
-          toast.error('Erro ao carregar base de dados de igrejas.');
+          setChurches([]);
         }
       } catch (err) {
-        console.error('Error fetching churches:', err);
-        toast.error('Erro de conexão ao carregar as igrejas.');
+        console.error('Erro na organização (igrejas), usando fallback:', err);
+        setChurches([]);
       } finally {
         setLoadingChurches(false);
       }
@@ -1014,5 +1016,19 @@ export default function OrganizacaoPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+export default function OrganizacaoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-white">
+          <p className="animate-pulse text-sm font-medium">Carregando estrutura de organização...</p>
+        </div>
+      }
+    >
+      <OrganizacaoContent />
+    </Suspense>
   );
 }

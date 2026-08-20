@@ -1,5 +1,6 @@
 'use client';
 
+import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 const GeneralMapComponent = dynamic(() => import('@/components/GeneralMapComponent'), {
@@ -18,5 +19,15 @@ const GeneralMapComponent = dynamic(() => import('@/components/GeneralMapCompone
 });
 
 export default function LandingPage() {
-  return <GeneralMapComponent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-white">
+          <p className="animate-pulse text-sm font-medium">Carregando mapa geral...</p>
+        </div>
+      }
+    >
+      <GeneralMapComponent />
+    </Suspense>
+  );
 }
