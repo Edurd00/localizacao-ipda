@@ -3,15 +3,18 @@ import { getIgrejas } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET(request?: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const isRefresh = searchParams.get('refresh');
+    let isRefresh = false;
+    if (request?.url) {
+      const { searchParams } = new URL(request.url);
+      isRefresh = searchParams.get('refresh') === 'true';
+    }
 
     // Busca TODAS as igrejas validadas sem limite de quantidade
     const data = await getIgrejas({ status: 'VALIDADO' });
 
-    return NextResponse.json(data, {
+    return NextResponse.json(data ?? [], {
       headers: {
         'Cache-Control': isRefresh
           ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -19,7 +22,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Erro ao buscar igrejas validadas:', error);
-    return NextResponse.json({ error: 'Erro no servidor' }, { status: 500 });
+    console.error('Erro na conexao com o banco:', error);
+    return NextResponse.json([], { status: 200 });
   }
 }

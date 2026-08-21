@@ -39,7 +39,8 @@ export interface Igreja {
 }
 
 // Check database URL in env
-const databaseUrl = process.env.DATABASE_URL;
+const rawDatabaseUrl = process.env.DATABASE_URL;
+const databaseUrl = rawDatabaseUrl ? rawDatabaseUrl.trim().replace(/^["']|["']$/g, '') : undefined;
 let pool: Pool | null = null;
 
 if (databaseUrl) {
@@ -49,6 +50,9 @@ if (databaseUrl) {
       ssl: {
         rejectUnauthorized: false,
       },
+      max: 10,
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 10000,
     });
   } catch (error) {
     console.error('Failed to initialize Postgres Pool:', error);
