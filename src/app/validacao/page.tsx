@@ -362,10 +362,10 @@ export default function ValidacaoPage() {
     }
   };
 
-  // Reset currentIndex when filterPorte changes
+  // Reset currentIndex whenever search query or filters change
   useEffect(() => {
     setCurrentIndex(0);
-  }, [filterPorte]);
+  }, [searchQuery, filterRegiao, filterEstado, filterStatus, filterPorte]);
 
   // Load operator name from localStorage on mount
   useEffect(() => {
@@ -538,9 +538,23 @@ export default function ValidacaoPage() {
       }
       const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
       if (filterPorte !== 'ALL' && porte !== filterPorte) return false;
+
+      // Real-time search query filtering
+      const term = searchQuery.trim().toLowerCase();
+      if (term !== '') {
+        const matchesSearch =
+          String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
+          String(ig.desc_igreja || '').toLowerCase().includes(term) ||
+          String(ig.municipio || '').toLowerCase().includes(term) ||
+          String(ig.bairro || '').toLowerCase().includes(term) ||
+          String(ig.endereco || '').toLowerCase().includes(term);
+
+        if (!matchesSearch) return false;
+      }
+
       return true;
     });
-  }, [igrejas, filterRegiao, filterEstado, filterPorte]);
+  }, [igrejas, filterRegiao, filterEstado, filterPorte, searchQuery]);
 
   // Current church being validated
   const currentIgreja = filteredIgrejasList[currentIndex];
