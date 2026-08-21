@@ -42,9 +42,9 @@ export async function GET() {
     };
     return NextResponse.json(data, {
       headers: {
-        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600',
-        'CDN-Cache-Control': 'public, s-maxage=86400',
-        'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, s-maxage=3600',
+        'Vercel-CDN-Cache-Control': 'public, s-maxage=3600',
       },
     });
   } catch (err: unknown) {
