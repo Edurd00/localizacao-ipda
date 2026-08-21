@@ -362,10 +362,10 @@ export default function ValidacaoPage() {
     }
   };
 
-  // Reset currentIndex when filterPorte changes
+  // Reset currentIndex whenever search query or filters change
   useEffect(() => {
     setCurrentIndex(0);
-  }, [filterPorte]);
+  }, [searchQuery, filterRegiao, filterEstado, filterStatus, filterPorte]);
 
   // Load operator name from localStorage on mount
   useEffect(() => {
@@ -538,9 +538,23 @@ export default function ValidacaoPage() {
       }
       const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
       if (filterPorte !== 'ALL' && porte !== filterPorte) return false;
+
+      // Real-time search query filtering
+      const term = searchQuery.trim().toLowerCase();
+      if (term !== '') {
+        const matchesSearch =
+          String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
+          String(ig.desc_igreja || '').toLowerCase().includes(term) ||
+          String(ig.municipio || '').toLowerCase().includes(term) ||
+          String(ig.bairro || '').toLowerCase().includes(term) ||
+          String(ig.endereco || '').toLowerCase().includes(term);
+
+        if (!matchesSearch) return false;
+      }
+
       return true;
     });
-  }, [igrejas, filterRegiao, filterEstado, filterPorte]);
+  }, [igrejas, filterRegiao, filterEstado, filterPorte, searchQuery]);
 
   // Current church being validated
   const currentIgreja = filteredIgrejasList[currentIndex];
@@ -958,7 +972,7 @@ export default function ValidacaoPage() {
       )}
 
       {/* Top Banner Navigation */}
-      <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 z-[1001] shadow-xs transition-colors duration-200 flex items-center">
+      <header className="relative z-[9999] h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 shadow-xs transition-colors duration-200 flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex justify-between items-center h-full w-full">
             {/* Logo & Branding */}
@@ -999,7 +1013,7 @@ export default function ValidacaoPage() {
                   <ChevronDown className="h-3 w-3 opacity-60" />
                 </button>
 
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                   <button
                     type="button"
                     onClick={() => setActiveTab('validation')}
@@ -1036,7 +1050,7 @@ export default function ValidacaoPage() {
                   <ChevronDown className="h-3 w-3 opacity-60" />
                 </button>
 
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                   <button
                     type="button"
                     onClick={() => setActiveTab('dashboard')}
