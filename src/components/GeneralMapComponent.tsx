@@ -3114,21 +3114,15 @@ export default function GeneralMapComponent() {
               <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 border border-indigo-150 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full">
-              {filteredIgrejas.length} no mapa
-            </span>
-
-            <button
-              onClick={handleSyncDatabase}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
-              title="Recarregar Igrejas Validadas em Tempo Real"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{isSyncing ? 'Atualizando...' : 'Recarregar Banco'}</span>
-            </button>
-          </div>
+          <button
+            onClick={handleSyncDatabase}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-60 shadow-xs shrink-0"
+            title="Clique para recarregar dados do banco em tempo real"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Sincronizando...' : `${igrejas.length} no mapa`}</span>
+          </button>
         </div>
 
         {/* Center Section: Isolated Instant Search Component */}
