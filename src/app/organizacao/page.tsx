@@ -302,6 +302,19 @@ export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
 
 export default function OrganizacaoPage() {
   const [states, setStates] = useState<string[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check auth session for protected action buttons
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+        }
+      })
+      .catch((err) => console.error('Error checking auth session:', err));
+  }, []);
 
   // New Double Selectors:
   const [selectedRegion, setSelectedRegion] = useState<string>('Sudeste - SP'); // Default to SP
@@ -682,12 +695,14 @@ export default function OrganizacaoPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <a
-                href="/relatorios"
-                className="bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-200 font-semibold px-3 py-2 rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 transition-all flex items-center gap-1.5 text-xs"
-              >
-                <span>📊 Relatórios</span>
-              </a>
+              {isAuthenticated && (
+                <a
+                  href="/relatorios"
+                  className="bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-200 font-semibold px-3 py-2 rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 transition-all flex items-center gap-1.5 text-xs"
+                >
+                  <span>📊 Relatórios</span>
+                </a>
+              )}
               <a
                 href="/"
                 className="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2 text-xs"
