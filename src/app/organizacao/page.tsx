@@ -660,7 +660,7 @@ export default function OrganizacaoPage() {
       <Toaster position="top-right" richColors closeButton />
 
       {/* Elegant Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 sticky top-0 z-[1001] shadow-sm transition-colors duration-200">
+      <header className="relative z-[9999] bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 sticky top-0 shadow-sm transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center space-x-3">
