@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useTransition, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -319,25 +319,23 @@ function MapController({
   preventAutoFit: boolean;
 }) {
   const map = useMap();
-  const prevFlyToRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (flyToTarget) {
-      const targetKey = `${flyToTarget.totvs}-${flyToTarget.center.join(',')}-${flyToTarget.zoom}`;
-      if (prevFlyToRef.current !== targetKey) {
-        prevFlyToRef.current = targetKey;
-        map.flyTo(flyToTarget.center, flyToTarget.zoom, {
-          animate: true,
-          duration: 1.5,
-        });
-        const timer = setTimeout(() => {
-          onFlyToComplete();
-        }, 1600);
-        return () => clearTimeout(timer);
-      }
+      map.flyTo(flyToTarget.center, flyToTarget.zoom, {
+        animate: true,
+        duration: 1.5,
+      });
+      const timer = setTimeout(() => {
+        onFlyToComplete();
+      }, 1600);
+      return () => clearTimeout(timer);
+    } else if (region === 'ALL' && !hasActiveRouteOrMesh && !preventAutoFit) {
+      map.setView(center, zoom, {
+        animate: true,
+        duration: 1.2,
+      });
     }
-  }, [flyToTarget, map, onFlyToComplete]);
-
+  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRouteOrMesh, preventAutoFit]);
   return null;
 }
 
@@ -354,12 +352,7 @@ function RegionBoundsController({
   preventAutoFit: boolean;
 }) {
   const map = useMap();
-  const prevRegionRef = useRef<string>(region);
-
   useEffect(() => {
-    if (prevRegionRef.current === region) return;
-    prevRegionRef.current = region;
-
     if (!region || region === 'ALL' || hasActiveRouteOrMesh || preventAutoFit) return;
 
     const staticBounds = REGIAO_BOUNDS[region];
@@ -421,19 +414,7 @@ function MapBoundsController({
   activeChainCodes: string[];
 }) {
   const map = useMap();
-  const prevTriggerKeyRef = useRef<string | null>(null);
-
   useEffect(() => {
-    const triggerKey = [
-      routeMeta ? `${routeMeta.originCoords?.join(',')}-${routeMeta.destinationCoords?.join(',')}` : '',
-      comparisonMode ? `${fixedDest?.codigo_totvs}-${sedeCandidataA?.codigo_totvs}-${sedeCandidataB?.codigo_totvs}` : '',
-      connectionPathSource ? `${connectionPathSource}-${activeChainCodes.join(',')}` : '',
-      bounds ? bounds.length : 0,
-    ].join('|');
-
-    if (prevTriggerKeyRef.current === triggerKey) return;
-    prevTriggerKeyRef.current = triggerKey;
-
     // 1. If we have standard route active (routeMeta)
     if (routeMeta && routeMeta.originCoords && routeMeta.destinationCoords) {
       const routeBounds: [number, number][] = [
@@ -694,7 +675,7 @@ interface FiltersModalProps {
   onResetFilters: () => void;
 }
 
-const FiltersModal = memo(function FiltersModal({
+function FiltersModal({
   isOpen,
   onClose,
   selectedRegionGeo,
@@ -867,7 +848,7 @@ const FiltersModal = memo(function FiltersModal({
     </>,
     document.body
   );
-});
+}
 
 interface ChurchPopupContentProps {
   ig: Igreja;
@@ -1699,32 +1680,27 @@ const MemoizedMapView = memo(function MapView({
           </>
         )}
 
-        {useMemo(() => {
-          if (mapType === 'satellite') {
-            return (
-              <>
-                <TileLayer
-                  attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                />
-                <TileLayer
-                  attribution="Tiles &copy; Esri"
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
-                />
-                <TileLayer
-                  attribution="Tiles &copy; Esri"
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-                />
-              </>
-            );
-          }
-          return (
+        {mapType === 'satellite' ? (
+          <>
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             />
-          );
-        }, [mapType])}
+            <TileLayer
+              attribution="Tiles &copy; Esri"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+            />
+            <TileLayer
+              attribution="Tiles &copy; Esri"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            />
+          </>
+        ) : (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        )}
 
         {selectedConnectionPath && (
           <>
@@ -1770,101 +1746,93 @@ const MemoizedMapView = memo(function MapView({
               );
             })}
 
-        {useMemo(
-          () => (
-            <MarkerClusterGroup
-              chunkedLoading={true}
-              chunkInterval={100}
-              removeOutsideVisibleBounds={true}
-              disableClusteringAtZoom={16}
-              iconCreateFunction={(cluster: any) => {
-                const count = cluster.getChildCount();
-                let size = 35;
-                if (count > 100) {
-                  size = 55;
-                } else if (count > 10) {
-                  size = 45;
-                }
+        <MarkerClusterGroup
+          chunkedLoading
+          iconCreateFunction={(cluster: any) => {
+            const count = cluster.getChildCount();
+            let size = 35;
+            if (count > 100) {
+              size = 55;
+            } else if (count > 10) {
+              size = 45;
+            }
 
-                const childMarkers = cluster.getAllChildMarkers();
-                const stateCounts: Record<string, number> = {};
+            const childMarkers = cluster.getAllChildMarkers();
+            const stateCounts: Record<string, number> = {};
 
-                childMarkers.forEach((m: any) => {
-                  const uf = m.estado || '';
-                  if (uf) {
-                    stateCounts[uf] = (stateCounts[uf] || 0) + 1;
-                  }
-                });
+            childMarkers.forEach((m: any) => {
+              const uf = m.estado || '';
+              if (uf) {
+                stateCounts[uf] = (stateCounts[uf] || 0) + 1;
+              }
+            });
 
-                let majorityUF = '';
-                let maxCount = 0;
-                Object.keys(stateCounts).forEach((uf) => {
-                  if (stateCounts[uf] > maxCount) {
-                    maxCount = stateCounts[uf];
-                    majorityUF = uf;
-                  }
-                });
+            let majorityUF = '';
+            let maxCount = 0;
+            Object.keys(stateCounts).forEach((uf) => {
+              if (stateCounts[uf] > maxCount) {
+                maxCount = stateCounts[uf];
+                majorityUF = uf;
+              }
+            });
 
-                const bg = getClusterColorByState(majorityUF);
+            const bg = getClusterColorByState(majorityUF);
 
-                return L.divIcon({
-                  html: `
-                    <div style="
-                      background-color: ${bg};
-                      color: #ffffff;
-                      font-weight: bold;
-                      border-radius: 50%;
-                      border: 3px solid #ffffff;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-                      font-size: 14px;
-                      width: ${size}px;
-                      height: ${size}px;
-                      cursor: pointer;
-                      user-select: none;
-                    ">
-                      ${count}
-                    </div>
-                  `,
-                  className: 'custom-cluster-icon-parent',
-                  iconSize: L.point(size, size),
-                  iconAnchor: [size / 2, size / 2],
-                });
-              }}
-            >
-              {(!connectionPathSource ? filteredIgrejas : [])
-                .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
-                .map((ig) => {
-                  const isSedeMundial = ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL');
-                  const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
-                  const icon = getMarkerIcon(porte);
+            return L.divIcon({
+              html: `
+                <div style="
+                  background-color: ${bg};
+                  color: #ffffff;
+                  font-weight: bold;
+                  border-radius: 50%;
+                  border: 3px solid #ffffff;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+                  font-size: 14px;
+                  width: ${size}px;
+                  height: ${size}px;
+                  cursor: pointer;
+                  user-select: none;
+                ">
+                  ${count}
+                </div>
+              `,
+              className: 'custom-cluster-icon-parent',
+              iconSize: L.point(size, size),
+              iconAnchor: [size / 2, size / 2],
+            });
+          }}
+        >
+          {(!connectionPathSource ? filteredIgrejas : [])
+            .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
+            .map((ig) => {
+              const isSedeMundial = ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL');
+              const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+              const icon = getMarkerIcon(porte);
 
-                  return (
-                    <Marker
-                      key={ig.codigo_totvs}
-                      position={[ig.latitude!, ig.longitude!]}
-                      icon={icon}
-                      alt={isSedeMundial ? 'Sede Mundial' : undefined}
-                      ref={(el) => {
-                        if (el) {
-                          markerRefs.current[ig.codigo_totvs] = el;
-                          (el as any).estado = ig.estado;
-                        } else {
-                          delete markerRefs.current[ig.codigo_totvs];
-                        }
-                      }}
-                    >
-                      {renderChurchTooltip(ig)}
-                      {renderChurchPopup(ig)}
-                    </Marker>
-                  );
-                })}
-            </MarkerClusterGroup>
-          ),
-          [filteredIgrejas, connectionPathSource, activeChainCodes]
-        )}
+              return (
+                <Marker
+                  key={ig.codigo_totvs}
+                  position={[ig.latitude!, ig.longitude!]}
+                  icon={icon}
+                  alt={isSedeMundial ? 'Sede Mundial' : undefined}
+                  ref={(el) => {
+                    if (el) {
+                      markerRefs.current[ig.codigo_totvs] = el;
+                      (el as any).estado = ig.estado;
+                    } else {
+                      delete markerRefs.current[ig.codigo_totvs];
+                    }
+                  }}
+                >
+                  {renderChurchTooltip(ig)}
+                  {renderChurchPopup(ig)}
+                </Marker>
+              );
+            })}
+        </MarkerClusterGroup>
       </MapContainer>
 
       {/* Floating Controls Container (Top Spacing Safe for Navigation Bar: top-36 md:top-24, z-[1025]) */}
@@ -2427,7 +2395,6 @@ const MemoizedMapView = memo(function MapView({
 });
 
 export default function GeneralMapComponent() {
-  const [, startTransition] = useTransition();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -2958,10 +2925,6 @@ export default function GeneralMapComponent() {
     }, 50);
   };
 
-  const handleCloseFilters = useCallback(() => {
-    setShowFilters(false);
-  }, []);
-
   const mapCenter = useMemo<[number, number]>(() => {
     if (filteredIgrejas.length === 1) {
       return [filteredIgrejas[0].latitude!, filteredIgrejas[0].longitude!];
@@ -3074,21 +3037,10 @@ export default function GeneralMapComponent() {
 
         {/* Right Section: Actions & Access Buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          <a
-            href="/organizacao"
-            className="flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 dark:text-slate-200 dark:bg-slate-800 font-medium text-xs px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all whitespace-nowrap min-h-[44px]"
-          >
-            <span>🏛️</span> <span className="hidden sm:inline">Organização</span>
-          </a>
-
           <button
             onClick={() => {
-              requestAnimationFrame(() => {
-                startTransition(() => {
-                  setShowFilters((prev) => !prev);
-                  toast.dismiss();
-                });
-              });
+              setShowFilters(!showFilters);
+              toast.dismiss();
             }}
             className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
               showFilters
@@ -3108,13 +3060,22 @@ export default function GeneralMapComponent() {
             <Lock className="h-3.5 w-3.5 text-white" />
             <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
           </a>
+
+          <button
+            onClick={() => fetchValidatedChurches(false, true)}
+            disabled={loading}
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50 min-h-[44px]"
+            title="Atualizar dados do banco"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </header>
 
       {/* Floating Collapsible Filters Modal Portal */}
       <FiltersModal
         isOpen={showFilters}
-        onClose={handleCloseFilters}
+        onClose={() => setShowFilters(false)}
         selectedRegionGeo={selectedRegionGeo}
         onRegionGeoChange={handleRegionGeoChange}
         selectedUF={selectedUF}

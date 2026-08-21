@@ -32,9 +32,8 @@ export async function POST(request: Request) {
 
     await saveIgrejaSingle(codigo_totvs, updates);
 
-    // Trigger revalidation for dashboard route and public map cache
+    // Trigger revalidation for dashboard route so pending numbers recalculate immediately
     revalidatePath('/api/igrejas/dashboard');
-    revalidatePath('/api/igrejas/validadas');
 
     return NextResponse.json({
       success: true,
