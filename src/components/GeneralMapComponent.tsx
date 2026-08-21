@@ -2706,8 +2706,10 @@ export default function GeneralMapComponent() {
         : `/api/igrejas/validadas`;
 
       const res = await fetch(url, {
-        cache: isManualRefresh ? 'no-store' : 'force-cache',
-        headers: isManualRefresh ? { 'Cache-Control': 'no-cache' } : {},
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
       });
 
       if (!res.ok) throw new Error('Erro na busca');
@@ -3073,7 +3075,7 @@ export default function GeneralMapComponent() {
             title="Clique para recarregar dados do banco em tempo real"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Sincronizando...' : `${igrejas.length} no mapa`}</span>
+            <span>{isSyncing ? 'Sincronizando...' : `${filteredIgrejas.length} no mapa`}</span>
           </button>
         </div>
 
