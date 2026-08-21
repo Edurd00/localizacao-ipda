@@ -2431,6 +2431,7 @@ export default function GeneralMapComponent() {
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Camera lock flag to prevent boomerang reset when user searches or focuses a target
   const [preventAutoFit, setPreventAutoFit] = useState(false);
@@ -2751,6 +2752,33 @@ export default function GeneralMapComponent() {
   };
 
   const fetchValidatedChurches = (silent = false, force = false) => handleRecarregarMapaComValidadas(silent, force);
+
+  const handleSyncDatabase = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      });
+
+      if (!response.ok) throw new Error('Falha ao sincronizar com o banco');
+
+      const data = await response.json();
+      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
+      if (Array.isArray(lista)) {
+        setIgrejas(lista);
+        toast.success(`Banco sincronizado: ${lista.length} igrejas no mapa.`);
+        console.log(`Banco sincronizado: ${lista.length} igrejas no mapa.`);
+      }
+    } catch (error) {
+      console.error('Erro na sincronização do mapa:', error);
+      toast.error('Erro ao sincronizar com o banco de dados.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     fetchValidatedChurches();
@@ -3086,9 +3114,21 @@ export default function GeneralMapComponent() {
               <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
             </div>
           </div>
-          <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 border border-indigo-150 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full">
-            {filteredIgrejas.length} no mapa
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 border border-indigo-150 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full">
+              {filteredIgrejas.length} no mapa
+            </span>
+
+            <button
+              onClick={handleSyncDatabase}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
+              title="Recarregar Igrejas Validadas em Tempo Real"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isSyncing ? 'Atualizando...' : 'Recarregar Banco'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Center Section: Isolated Instant Search Component */}

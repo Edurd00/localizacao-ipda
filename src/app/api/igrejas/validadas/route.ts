@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       headers: {
         'Cache-Control': isRefresh
           ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
-          : 'public, s-maxage=60, stale-while-revalidate=300',
+          : 'public, s-maxage=3600, stale-while-revalidate=86400',
       },
     });
   } catch (error) {
