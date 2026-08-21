@@ -205,27 +205,41 @@ export default function ValidacaoPage() {
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
   const [syncLoading, setSyncLoading] = useState<boolean>(false);
 
-  const handleSyncPublicMap = async () => {
+  const handleForceReloadDatabase = async () => {
     setSyncLoading(true);
     try {
-      const res = await fetch('/api/revalidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
+
+      const res = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
       });
+
+      if (!res.ok) throw new Error('Erro ao buscar validadas');
+
       const data = await res.json();
-      if (data.revalidated) {
-        toast.success("Mapa público sincronizado com sucesso! As validações e coligações mais recentes já estão visíveis para todos.");
-        router.refresh();
-      } else {
-        toast.error("Erro ao sincronizar mapa público: Resposta inválida.");
+      const churchList = Array.isArray(data)
+        ? data
+        : (data.igrejas || data.data || []);
+
+      if (Array.isArray(churchList)) {
+        setIgrejas(churchList);
+        setFilterStatus('ALL');
+        setFilterEstado('ALL');
+        setFilterRegiao('ALL');
+        toast.success(`Banco atualizado com sucesso! Total de ${churchList.length} igrejas validadas carregadas.`);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao sincronizar mapa público. Verifique a conexão.");
+    } catch (error) {
+      console.error('Erro ao recarregar banco completo:', error);
+      toast.error('Erro ao conectar ao banco de dados.');
     } finally {
       setSyncLoading(false);
     }
   };
+
+  const handleSyncPublicMap = handleForceReloadDatabase;
 
   // Load tab and status from query params if present
   useEffect(() => {

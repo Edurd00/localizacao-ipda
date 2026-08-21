@@ -181,28 +181,40 @@ export default function GestaoPage() {
     fetchIgrejasList();
   }, []);
 
-  // Sync public map / cache clear trigger
-  const handleSyncPublicMap = async () => {
+  const handleForceReloadDatabase = async () => {
     setSyncLoading(true);
     try {
-      const res = await fetch('/api/revalidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
+
+      const res = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
       });
+
+      if (!res.ok) throw new Error('Erro ao buscar validadas');
+
       const data = await res.json();
-      if (data.revalidated) {
-        toast.success("Mapa público sincronizado com sucesso! As atualizações de contatos e endereços já estão propagadas.");
-        router.refresh();
-      } else {
-        toast.error("Erro ao sincronizar mapa público.");
+      const churchList = Array.isArray(data)
+        ? data
+        : (data.igrejas || data.data || []);
+
+      if (Array.isArray(churchList)) {
+        setIgrejas(churchList);
+        setFilterStatus('ALL');
+        setFilterEstado('ALL');
+        toast.success(`Banco atualizado com sucesso! Total de ${churchList.length} igrejas validadas carregadas.`);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao sincronizar mapa público. Verifique a conexão.");
+    } catch (error) {
+      console.error('Erro ao recarregar banco completo:', error);
+      toast.error('Erro ao conectar ao banco de dados.');
     } finally {
       setSyncLoading(false);
     }
   };
+
+  const handleSyncPublicMap = handleForceReloadDatabase;
 
   const handleLogout = async () => {
     try {
