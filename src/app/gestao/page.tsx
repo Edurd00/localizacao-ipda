@@ -21,7 +21,6 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   Upload,
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
@@ -45,11 +44,6 @@ export default function GestaoPage() {
 
   // Search input typing speed optimization
   const [searchInput, setSearchInput] = useState('');
-
-  // Filters & Priority Sorting states
-  const [filterContactStatus, setFilterContactStatus] = useState<string>('ALL');
-  const [filterPorteGroup, setFilterPorteGroup] = useState<string>('ALL');
-  const [prioritizeMajorPortes, setPrioritizeMajorPortes] = useState<boolean>(false);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -221,142 +215,38 @@ export default function GestaoPage() {
     });
   }, [searchInput]);
 
-  // Coverage KPI metrics calculation
-  const kpiMetrics = useMemo(() => {
-    const total = igrejas.length;
-    if (total === 0) {
-      return { dirigenteCount: 0, dirigentePct: 0, financeiraCount: 0, financeiraPct: 0, majorPendingCount: 0 };
-    }
-
-    let dirCount = 0;
-    let finCount = 0;
-    let majorPending = 0;
-
-    const majorPortes = new Set(['ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL']);
-
-    for (const ig of igrejas) {
-      const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
-      const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
-      if (hasDir) dirCount++;
-      if (hasFin) finCount++;
-
-      const porte = (ig.porte || 'LOCAL').toUpperCase();
-      if (majorPortes.has(porte) && (!hasDir || !hasFin)) {
-        majorPending++;
-      }
-    }
-
-    return {
-      dirigenteCount: dirCount,
-      dirigentePct: Math.round((dirCount / total) * 100),
-      financeiraCount: finCount,
-      financeiraPct: Math.round((finCount / total) * 100),
-      majorPendingCount: majorPending,
-    };
-  }, [igrejas]);
-
-  // Enhanced filtering & priority sorting logic
+  // Exact Match First search filter alg
   const filteredIgrejas = useMemo(() => {
-    let result = igrejas;
-
-    // 1. Search term filter
     const term = searchTerm.trim().toLowerCase();
-    if (term) {
-      const numericTerm = term.replace(/^0+/, '');
-      const isPureNumeric = /^\d+$/.test(numericTerm);
+    if (!term) return igrejas;
 
-      if (isPureNumeric) {
-        const exact = igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === numericTerm);
-        if (exact) {
-          result = [exact];
-        } else {
-          result = igrejas.filter((ig) => {
-            const totvsNorm = ig.codigo_totvs.toLowerCase();
-            const nomeNorm = ig.desc_igreja.toLowerCase();
-            const municipioNorm = (ig.municipio || '').toLowerCase();
-            const estadoNorm = (ig.estado || '').toLowerCase();
-            const bairroNorm = (ig.bairro || '').toLowerCase();
+    const numericTerm = term.replace(/^0+/, '');
+    const isPureNumeric = /^\d+$/.test(numericTerm);
 
-            return (
-              totvsNorm.includes(term) ||
-              nomeNorm.includes(term) ||
-              municipioNorm.includes(term) ||
-              estadoNorm.includes(term) ||
-              bairroNorm.includes(term)
-            );
-          });
-        }
-      } else {
-        result = igrejas.filter((ig) => {
-          const totvsNorm = ig.codigo_totvs.toLowerCase();
-          const nomeNorm = ig.desc_igreja.toLowerCase();
-          const municipioNorm = (ig.municipio || '').toLowerCase();
-          const estadoNorm = (ig.estado || '').toLowerCase();
-          const bairroNorm = (ig.bairro || '').toLowerCase();
-
-          return (
-            totvsNorm.includes(term) ||
-            nomeNorm.includes(term) ||
-            municipioNorm.includes(term) ||
-            estadoNorm.includes(term) ||
-            bairroNorm.includes(term)
-          );
-        });
+    if (isPureNumeric) {
+      // Look for exact TOTVS match first
+      const exact = igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === numericTerm);
+      if (exact) {
+        return [exact];
       }
     }
 
-    // 2. Filter by Contact Status
-    if (filterContactStatus !== 'ALL') {
-      result = result.filter((ig) => {
-        const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
-        const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
+    return igrejas.filter((ig) => {
+      const totvsNorm = ig.codigo_totvs.toLowerCase();
+      const nomeNorm = ig.desc_igreja.toLowerCase();
+      const municipioNorm = (ig.municipio || '').toLowerCase();
+      const estadoNorm = (ig.estado || '').toLowerCase();
+      const bairroNorm = (ig.bairro || '').toLowerCase();
 
-        if (filterContactStatus === 'NO_DIRIGENTE') return !hasDir;
-        if (filterContactStatus === 'NO_FINANCEIRA') return !hasFin;
-        if (filterContactStatus === 'NO_BOTH') return !hasDir && !hasFin;
-        if (filterContactStatus === 'COMPLETE') return hasDir && hasFin;
-        return true;
-      });
-    }
-
-    // 3. Filter by Porte Group
-    if (filterPorteGroup !== 'ALL') {
-      result = result.filter((ig) => {
-        const porte = (ig.porte || 'LOCAL').toUpperCase();
-        if (filterPorteGroup === 'ESTADUAL_SETORIAL') {
-          return porte === 'ESTADUAL' || porte === 'SETORIAL';
-        }
-        if (filterPorteGroup === 'CENTRAL_REGIONAL') {
-          return porte === 'CENTRAL' || porte === 'REGIONAL';
-        }
-        if (filterPorteGroup === 'LOCAL_OUTROS') {
-          return porte !== 'ESTADUAL' && porte !== 'SETORIAL' && porte !== 'CENTRAL' && porte !== 'REGIONAL';
-        }
-        return true;
-      });
-    }
-
-    // 4. Priority Sorting by Major Portes
-    if (prioritizeMajorPortes) {
-      const PORTE_WEIGHTS: Record<string, number> = {
-        ESTADUAL: 1,
-        SETORIAL: 2,
-        CENTRAL: 3,
-        REGIONAL: 4,
-        LOCAL: 5,
-        'CASA DE ORAÇÃO': 6,
-        'ALDEIA INDIGENA': 7,
-      };
-
-      result = [...result].sort((a, b) => {
-        const weightA = PORTE_WEIGHTS[(a.porte || 'LOCAL').toUpperCase()] || 99;
-        const weightB = PORTE_WEIGHTS[(b.porte || 'LOCAL').toUpperCase()] || 99;
-        return weightA - weightB;
-      });
-    }
-
-    return result;
-  }, [igrejas, searchTerm, filterContactStatus, filterPorteGroup, prioritizeMajorPortes]);
+      return (
+        totvsNorm.includes(term) ||
+        nomeNorm.includes(term) ||
+        municipioNorm.includes(term) ||
+        estadoNorm.includes(term) ||
+        bairroNorm.includes(term)
+      );
+    });
+  }, [igrejas, searchTerm]);
 
   // Pagination slice
   const paginatedIgrejas = useMemo(() => {
@@ -416,25 +306,7 @@ export default function GestaoPage() {
     setFormDirigenteNome(ig.dirigente_nome || '');
     setFormDirigenteTelefone(ig.dirigente_telefone || '');
     setFormDirigenteEmail(ig.dirigente_email || '');
-
-    let formattedPosse = '';
-    if (ig.dirigente_data_posse) {
-      const str = String(ig.dirigente_data_posse).trim();
-      if (str.includes('T')) {
-        formattedPosse = str.split('T')[0];
-      } else if (str.includes('/')) {
-        const parts = str.split('/');
-        if (parts.length === 3) {
-          formattedPosse = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        } else {
-          formattedPosse = str;
-        }
-      } else {
-        formattedPosse = str;
-      }
-    }
-    setFormDirigenteDataPosse(formattedPosse);
-
+    setFormDirigenteDataPosse(ig.dirigente_data_posse || '');
     setFormFinanceiraNome(ig.financeira_nome || '');
     setFormFinanceiraTelefone(ig.financeira_telefone || '');
     setFormFinanceiraEmail(ig.financeira_email || '');
@@ -631,72 +503,48 @@ export default function GestaoPage() {
             </div>
           </div>
 
-          {/* Grouped Administrative Navigation Dropdowns */}
-          <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
+          {/* Nav Pills including Gestao */}
+          <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-0.5 items-center">
             <a
               href="/"
-              className="px-3 py-1.5 rounded-lg text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50 transition-all"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
             >
-              🗺️ Mapa Geral
+              <span>🗺️ Mapa Geral</span>
             </a>
 
-            {/* Item 2: Validação & Gestão Dropdown */}
-            <div className="relative group">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
-              >
-                <span>📍 Validação & Gestão</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
-              </button>
+            <a
+              href="/validacao?tab=validation"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+            >
+              <span>📍 Validação</span>
+            </a>
 
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
-                <a
-                  href="/validacao?tab=validation"
-                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                >
-                  📍 Validação de Igrejas
-                </a>
-                <a
-                  href="/gestao"
-                  className="block px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg"
-                >
-                  👥 Gestão de Contatos
-                </a>
-                <a
-                  href="/coligacoes"
-                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                >
-                  🌳 Coligações
-                </a>
-              </div>
-            </div>
+            <a
+              href="/coligacoes"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+            >
+              <span>🌳 Coligações</span>
+            </a>
 
-            {/* Item 3: Inteligência & BI Dropdown */}
-            <div className="relative group">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-              >
-                <span>📊 Inteligência & BI</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
-              </button>
+            <button
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 bg-white dark:bg-slate-750 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
+            >
+              <span>👥 Gestão</span>
+            </button>
 
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
-                <a
-                  href="/validacao?tab=dashboard"
-                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                >
-                  📊 Dashboard de Status
-                </a>
-                <a
-                  href="/relatorios"
-                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                >
-                  📊 Relatórios Hierárquicos
-                </a>
-              </div>
-            </div>
+            <a
+              href="/validacao?tab=dashboard"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+            >
+              <span>📊 Dashboard</span>
+            </a>
+
+            <a
+              href="/validacao?tab=upload"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+            >
+              <span>📥 Importar</span>
+            </a>
           </div>
 
           <div className="flex items-center gap-2">
@@ -720,45 +568,6 @@ export default function GestaoPage() {
       </header>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-        {/* Indicadores Rápidos de Cobertura (KPI Cards Topo) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🎴 Cobertura de Dirigentes</p>
-              <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
-                {kpiMetrics.dirigenteCount} <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">({kpiMetrics.dirigentePct}%)</span>
-              </h3>
-            </div>
-            <div className="p-2.5 bg-indigo-50 dark:bg-slate-800 text-indigo-600 rounded-xl border border-indigo-100 dark:border-slate-700">
-              <User className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">💼 Cobertura Financeira</p>
-              <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
-                {kpiMetrics.financeiraCount} <span className="text-xs text-violet-600 dark:text-violet-400 font-bold">({kpiMetrics.financeiraPct}%)</span>
-              </h3>
-            </div>
-            <div className="p-2.5 bg-violet-50 dark:bg-slate-800 text-violet-600 rounded-xl border border-violet-100 dark:border-slate-700">
-              <Users className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🚨 Sedes Maiores Pendentes</p>
-              <h3 className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 font-mono">
-                {kpiMetrics.majorPendingCount} <span className="text-xs text-amber-500 font-normal">igrejas</span>
-              </h3>
-            </div>
-            <div className="p-2.5 bg-amber-50 dark:bg-slate-800 text-amber-600 rounded-xl border border-amber-100 dark:border-slate-700">
-              <Building2 className="h-5 w-5" />
-            </div>
-          </div>
-        </div>
-
         {/* Workspace controls panel */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           {/* Quick search input */}
@@ -795,56 +604,6 @@ export default function GestaoPage() {
               <span>Nova Igreja</span>
             </button>
           </div>
-        </div>
-
-        {/* Painel de Filtros e Priorização de Portes */}
-        <div className="flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-          {/* Filter 1: Status do Contato */}
-          <select
-            value={filterContactStatus}
-            onChange={(e) => {
-              setFilterContactStatus(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="ALL">Status de Contato: Todos</option>
-            <option value="NO_DIRIGENTE">⚠️ Sem Dirigente Cadastrado</option>
-            <option value="NO_FINANCEIRA">⚠️ Sem Voluntária Financeira</option>
-            <option value="NO_BOTH">🚨 Sem Nenhum Contato</option>
-            <option value="COMPLETE">✅ Com Contatos Completos</option>
-          </select>
-
-          {/* Filter 2: Porte Group */}
-          <select
-            value={filterPorteGroup}
-            onChange={(e) => {
-              setFilterPorteGroup(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="ALL">Porte: Todos os Portes</option>
-            <option value="ESTADUAL_SETORIAL">🔵 Estaduais & 🟡 Setoriais</option>
-            <option value="CENTRAL_REGIONAL">🟠 Centrais & 🟢 Regionais</option>
-            <option value="LOCAL_OUTROS">⚪ Locais & Outros</option>
-          </select>
-
-          {/* Toggle: Priorizar Portes Maiores */}
-          <button
-            type="button"
-            onClick={() => {
-              setPrioritizeMajorPortes(!prioritizeMajorPortes);
-              setCurrentPage(1);
-            }}
-            className={`h-10 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs border ${
-              prioritizeMajorPortes
-                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-sm'
-                : 'bg-zinc-50 dark:bg-slate-800 text-zinc-650 dark:text-slate-350 border-zinc-200 dark:border-slate-700 hover:bg-zinc-100'
-            }`}
-          >
-            <span>⚡ Priorizar Portes Maiores</span>
-          </button>
         </div>
 
         {/* Loading Indicator */}
@@ -918,13 +677,7 @@ export default function GestaoPage() {
                               )}
                             </div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => openContactsModal(ig)}
-                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 inline-flex cursor-pointer transition-all"
-                            >
-                              <span>⚠️ Cadastrar Contato</span>
-                            </button>
+                            <span className="text-zinc-400 italic text-[11px]">Não registrado</span>
                           )}
                         </td>
                         <td className="p-4">
@@ -942,13 +695,7 @@ export default function GestaoPage() {
                               )}
                             </div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => openContactsModal(ig)}
-                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 inline-flex cursor-pointer transition-all"
-                            >
-                              <span>⚠️ Cadastrar Contato</span>
-                            </button>
+                            <span className="text-zinc-400 italic text-[11px]">Não registrado</span>
                           )}
                         </td>
                         <td className="p-4 text-center">

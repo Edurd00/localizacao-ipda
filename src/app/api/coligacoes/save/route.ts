@@ -50,7 +50,6 @@ export async function POST(request: Request) {
 
     try {
       revalidatePath('/api/igrejas/dashboard');
-      revalidatePath('/api/igrejas/validadas');
     } catch (revalErr) {
       console.warn('Dashboard revalidation failed:', revalErr);
     }
