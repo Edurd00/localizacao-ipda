@@ -2698,14 +2698,15 @@ export default function GeneralMapComponent() {
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
-  const handleRecarregarBanco = async (silent = false, force = true) => {
+  const handleRecarregarMapaComValidadas = async (silent = false, force = true) => {
     if (!silent) {
       setLoading(true);
       setError(null);
     }
     try {
+      const timestamp = Date.now();
       const url = force
-        ? `/api/igrejas/validadas?refresh=${Date.now()}`
+        ? `/api/igrejas/validadas?refresh=${timestamp}`
         : '/api/igrejas/validadas';
       const response = await fetch(
         url,
@@ -2720,22 +2721,26 @@ export default function GeneralMapComponent() {
           : undefined
       );
 
-      if (!response.ok) throw new Error('Erro na resposta da API');
+      if (!response.ok) throw new Error('Erro ao buscar dados atualizados');
 
       const data = await response.json();
-      const novasIgrejas = Array.isArray(data)
+      const igrejasAtualizadas = Array.isArray(data)
         ? data
         : (data.igrejas || data.data || []);
 
-      if (Array.isArray(novasIgrejas)) {
-        setIgrejas(novasIgrejas);
-        console.log(`Banco recarregado com sucesso: ${novasIgrejas.length} igrejas validadas.`);
+      if (Array.isArray(igrejasAtualizadas)) {
+        setIgrejas(igrejasAtualizadas);
+        if (!silent) {
+          toast.success(`Mapa sincronizado! ${igrejasAtualizadas.length} igrejas validadas e atualizadas.`);
+        }
+        console.log(`Banco recarregado com sucesso: ${igrejasAtualizadas.length} igrejas validadas.`);
       } else if (!silent) {
         setError(data.error || 'Erro ao carregar igrejas.');
       }
     } catch (error) {
-      console.error('Erro ao recarregar banco de dados:', error);
+      console.error('Falha ao sincronizar mapa:', error);
       if (!silent) {
+        toast.error('Erro ao atualizar o mapa com o banco de dados.');
         setError('Erro ao se conectar com o servidor.');
       }
     } finally {
@@ -2745,7 +2750,7 @@ export default function GeneralMapComponent() {
     }
   };
 
-  const fetchValidatedChurches = (silent = false, force = false) => handleRecarregarBanco(silent, force);
+  const fetchValidatedChurches = (silent = false, force = false) => handleRecarregarMapaComValidadas(silent, force);
 
   useEffect(() => {
     fetchValidatedChurches();
