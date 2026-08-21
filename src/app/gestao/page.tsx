@@ -202,8 +202,8 @@ export default function GestaoPage() {
 
       if (Array.isArray(churchList)) {
         setIgrejas(churchList);
-        setFilterStatus('ALL');
-        setFilterEstado('ALL');
+        setFilterContactStatus('ALL');
+        setFilterPorteGroup('ALL');
         toast.success(`Banco atualizado com sucesso! Total de ${churchList.length} igrejas validadas carregadas.`);
       }
     } catch (error) {
