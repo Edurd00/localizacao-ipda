@@ -2706,8 +2706,10 @@ export default function GeneralMapComponent() {
         : `/api/igrejas/validadas`;
 
       const res = await fetch(url, {
-        cache: isManualRefresh ? 'no-store' : 'force-cache',
-        headers: isManualRefresh ? { 'Cache-Control': 'no-cache' } : {},
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
       });
 
       if (!res.ok) throw new Error('Erro na busca');
