@@ -34,7 +34,11 @@ export async function GET(request: Request) {
         'dirigente_email',
         'financeira_nome',
         'financeira_telefone',
-        'financeira_email'
+        'financeira_email',
+        'dirigente_data_posse',
+        'qtd_membros',
+        'qtd_jovens',
+        'tipo_prebenda'
       ]),
       getDistinctStates(),
     ]);
