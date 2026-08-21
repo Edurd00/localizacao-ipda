@@ -2704,15 +2704,28 @@ export default function GeneralMapComponent() {
       setError(null);
     }
     try {
-      const url = force ? `/api/igrejas/validadas?t=${Date.now()}` : '/api/igrejas/validadas';
-      const res = await fetch(url);
+      const url = force
+        ? `/api/igrejas/validadas?refresh=${Date.now()}`
+        : '/api/igrejas/validadas';
+      const res = await fetch(
+        url,
+        force
+          ? {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            }
+          : undefined
+      );
       const data = await res.json();
-      if (data.success) {
-        setIgrejas(data.igrejas || []);
-      } else {
-        if (!silent) {
-          setError(data.error || 'Erro ao carregar igrejas.');
-        }
+      const updatedData = Array.isArray(data)
+        ? data
+        : (data.igrejas || data.data || []);
+      if (Array.isArray(updatedData)) {
+        setIgrejas(updatedData);
+      } else if (!silent) {
+        setError(data.error || 'Erro ao carregar igrejas.');
       }
     } catch (err) {
       console.error('Error fetching validated churches:', err);
