@@ -2698,7 +2698,7 @@ export default function GeneralMapComponent() {
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
-  const fetchValidatedChurches = async (silent = false, force = false) => {
+  const handleRecarregarBanco = async (silent = false, force = true) => {
     if (!silent) {
       setLoading(true);
       setError(null);
@@ -2707,28 +2707,34 @@ export default function GeneralMapComponent() {
       const url = force
         ? `/api/igrejas/validadas?refresh=${Date.now()}`
         : '/api/igrejas/validadas';
-      const res = await fetch(
+      const response = await fetch(
         url,
         force
           ? {
               cache: 'no-store',
               headers: {
-                'Cache-Control': 'no-cache',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
               },
             }
           : undefined
       );
-      const data = await res.json();
-      const updatedData = Array.isArray(data)
+
+      if (!response.ok) throw new Error('Erro na resposta da API');
+
+      const data = await response.json();
+      const novasIgrejas = Array.isArray(data)
         ? data
         : (data.igrejas || data.data || []);
-      if (Array.isArray(updatedData)) {
-        setIgrejas(updatedData);
+
+      if (Array.isArray(novasIgrejas)) {
+        setIgrejas(novasIgrejas);
+        console.log(`Banco recarregado com sucesso: ${novasIgrejas.length} igrejas validadas.`);
       } else if (!silent) {
         setError(data.error || 'Erro ao carregar igrejas.');
       }
-    } catch (err) {
-      console.error('Error fetching validated churches:', err);
+    } catch (error) {
+      console.error('Erro ao recarregar banco de dados:', error);
       if (!silent) {
         setError('Erro ao se conectar com o servidor.');
       }
@@ -2738,6 +2744,8 @@ export default function GeneralMapComponent() {
       }
     }
   };
+
+  const fetchValidatedChurches = (silent = false, force = false) => handleRecarregarBanco(silent, force);
 
   useEffect(() => {
     fetchValidatedChurches();
