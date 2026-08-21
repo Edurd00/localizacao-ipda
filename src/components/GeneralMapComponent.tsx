@@ -2699,90 +2699,42 @@ export default function GeneralMapComponent() {
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
-  const handleRecarregarMapaComValidadas = async (silent = false, force = true) => {
-    if (!silent) {
-      setLoading(true);
-      setError(null);
-    }
+  const fetchIgrejas = async (isManualRefresh = false) => {
     try {
-      const timestamp = Date.now();
-      const url = force
-        ? `/api/igrejas/validadas?refresh=${timestamp}`
-        : '/api/igrejas/validadas';
-      const response = await fetch(
-        url,
-        force
-          ? {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-              },
-            }
-          : undefined
-      );
+      const url = isManualRefresh
+        ? `/api/igrejas/validadas?refresh=${Date.now()}`
+        : `/api/igrejas/validadas`;
 
-      if (!response.ok) throw new Error('Erro ao buscar dados atualizados');
-
-      const data = await response.json();
-      const igrejasAtualizadas = Array.isArray(data)
-        ? data
-        : (data.igrejas || data.data || []);
-
-      if (Array.isArray(igrejasAtualizadas)) {
-        setIgrejas(igrejasAtualizadas);
-        if (!silent) {
-          toast.success(`Mapa sincronizado! ${igrejasAtualizadas.length} igrejas validadas e atualizadas.`);
-        }
-        console.log(`Banco recarregado com sucesso: ${igrejasAtualizadas.length} igrejas validadas.`);
-      } else if (!silent) {
-        setError(data.error || 'Erro ao carregar igrejas.');
-      }
-    } catch (error) {
-      console.error('Falha ao sincronizar mapa:', error);
-      if (!silent) {
-        toast.error('Erro ao atualizar o mapa com o banco de dados.');
-        setError('Erro ao se conectar com o servidor.');
-      }
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
-  };
-
-  const fetchValidatedChurches = (silent = false, force = false) => handleRecarregarMapaComValidadas(silent, force);
-
-  const handleSyncDatabase = async () => {
-    setIsSyncing(true);
-    try {
-      const response = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-        },
+      const res = await fetch(url, {
+        cache: isManualRefresh ? 'no-store' : 'force-cache',
+        headers: isManualRefresh ? { 'Cache-Control': 'no-cache' } : {},
       });
 
-      if (!response.ok) throw new Error('Falha ao sincronizar com o banco');
+      if (!res.ok) throw new Error('Erro na busca');
+      const data = await res.json();
 
-      const data = await response.json();
       const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
       if (Array.isArray(lista)) {
         setIgrejas(lista);
-        toast.success(`Banco sincronizado: ${lista.length} igrejas no mapa.`);
-        console.log(`Banco sincronizado: ${lista.length} igrejas no mapa.`);
+        setError(null);
       }
-    } catch (error) {
-      console.error('Erro na sincronização do mapa:', error);
-      toast.error('Erro ao sincronizar com o banco de dados.');
+    } catch (err) {
+      console.error('Erro ao carregar igrejas:', err);
+      setError('Erro ao se conectar com o servidor.');
     } finally {
-      setIsSyncing(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchValidatedChurches();
+    fetchIgrejas(false);
   }, []);
+
+  const handleSyncDatabase = async () => {
+    setIsSyncing(true);
+    await fetchIgrejas(true);
+    setIsSyncing(false);
+  };
 
   // Handle ?totvs=CODE query parameter on load
   useEffect(() => {
@@ -2807,7 +2759,7 @@ export default function GeneralMapComponent() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchValidatedChurches(true);
+        fetchIgrejas(false);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -3213,7 +3165,7 @@ export default function GeneralMapComponent() {
             <h3 className="text-base font-bold text-zinc-900">Falha ao buscar dados</h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">{error}</p>
             <button
-              onClick={() => fetchValidatedChurches(false, true)}
+              onClick={() => fetchIgrejas(true)}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-md hover:bg-indigo-700 transition-all"
             >
               Tentar Novamente
