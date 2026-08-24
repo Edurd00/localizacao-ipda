@@ -1,36 +1,25 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
-// Força a revalidação no servidor do Next.js
-export const revalidate = 86400; // 24 horas
+// DESATIVA QUALQUER CACHE ESTÁTICO DE BUILD DA VERCEL
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const isRefresh = searchParams.get('refresh') === 'true';
-
     const result = await getIgrejas({ status: 'VALIDADO' });
 
-    // Se for refresh manual, envia cabeçalhos que FORÇAM a Vercel CDN a substituir o cache da borda
-    const headers: Record<string, string> = isRefresh
-      ? {
-          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-          'CDN-Cache-Control': 'no-cache',
-          'Vercel-CDN-Cache-Control': 'no-cache',
-          'x-middleware-skip': '1',
-        }
-      : {
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
-          'CDN-Cache-Control': 'public, s-maxage=86400',
-          'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
-        };
+    console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
 
-    return NextResponse.json(result, { headers });
-  } catch (error: any) {
-    if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('DYNAMIC_SERVER_USAGE')) {
-      throw error;
-    }
-    console.error('Erro ao buscar igrejas validadas:', error);
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'CDN-Cache-Control': 'no-store',
+        'Vercel-CDN-Cache-Control': 'no-store',
+      },
+    });
+  } catch (error) {
+    console.error('Erro na API:', error);
     return NextResponse.json([], { status: 500 });
   }
 }
