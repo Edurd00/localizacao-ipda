@@ -218,8 +218,8 @@ export default function ColigacoesPage() {
       if (ig.status === 'DESATIVADO') return false;
 
       const normIg = normalizeTotvs(ig.codigo_totvs);
-      const codeMatch = normIg === queryNorm || ig.codigo_totvs.toLowerCase().includes(term);
-      const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
+      const codeMatch = normIg === queryNorm || String(ig.codigo_totvs || '').toLowerCase().includes(term);
+      const nameMatch = String(ig.desc_igreja || '').toLowerCase().includes(term);
       return codeMatch || nameMatch;
     });
 
@@ -260,8 +260,8 @@ export default function ColigacoesPage() {
       if (ig.status === 'DESATIVADO') return false;
 
       const normIg = normalizeTotvs(ig.codigo_totvs);
-      const codeMatch = normIg === queryNorm || ig.codigo_totvs.toLowerCase().includes(term);
-      const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
+      const codeMatch = normIg === queryNorm || String(ig.codigo_totvs || '').toLowerCase().includes(term);
+      const nameMatch = String(ig.desc_igreja || '').toLowerCase().includes(term);
       return codeMatch || nameMatch;
     });
 
@@ -497,9 +497,9 @@ export default function ColigacoesPage() {
       (ig) => {
         const normIg = normalizeTotvs(ig.codigo_totvs);
         return normIg === queryNorm ||
-          ig.codigo_totvs.toLowerCase().includes(term) ||
-          ig.desc_igreja.toLowerCase().includes(term) ||
-          (ig.municipio || '').toLowerCase().includes(term);
+          String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
+          String(ig.desc_igreja || '').toLowerCase().includes(term) ||
+          String(ig.municipio || '').toLowerCase().includes(term);
       }
     );
 

@@ -346,10 +346,10 @@ export default function RelatoriosPage() {
 
     return data.estaduais_summary.filter(
       (est) =>
-        est.desc_igreja.toLowerCase().includes(term) ||
-        est.codigo_totvs.toLowerCase().includes(term) ||
-        est.municipio.toLowerCase().includes(term) ||
-        est.estado.toLowerCase().includes(term)
+        String(est.desc_igreja || '').toLowerCase().includes(term) ||
+        String(est.codigo_totvs || '').toLowerCase().includes(term) ||
+        String(est.municipio || '').toLowerCase().includes(term) ||
+        String(est.estado || '').toLowerCase().includes(term)
     );
   }, [data, tableSearch]);
 
@@ -361,10 +361,10 @@ export default function RelatoriosPage() {
 
     return data.tree_nodes.filter(
       (node) =>
-        node.desc_igreja.toLowerCase().includes(term) ||
-        node.codigo_totvs.toLowerCase().includes(term) ||
-        node.municipio.toLowerCase().includes(term) ||
-        node.estado.toLowerCase().includes(term)
+        String(node.desc_igreja || '').toLowerCase().includes(term) ||
+        String(node.codigo_totvs || '').toLowerCase().includes(term) ||
+        String(node.municipio || '').toLowerCase().includes(term) ||
+        String(node.estado || '').toLowerCase().includes(term)
     );
   }, [data, tableSearch]);
 

@@ -330,9 +330,9 @@ export default function OrganizacaoContent() {
     if (query.length >= 2) {
       const matched = churches.filter(
         (ig) =>
-          ig.codigo_totvs.toLowerCase().includes(query) ||
-          ig.desc_igreja.toLowerCase().includes(query) ||
-          (ig.municipio || '').toLowerCase().includes(query)
+          String(ig.codigo_totvs || '').toLowerCase().includes(query) ||
+          String(ig.desc_igreja || '').toLowerCase().includes(query) ||
+          String(ig.municipio || '').toLowerCase().includes(query)
       );
       const newSet = new Set(expandedNodes);
       matched.forEach((m) => {
@@ -529,9 +529,9 @@ export default function OrganizacaoContent() {
     const matches = churches.filter(
       (ig) =>
         (allowedUFsInRegion.includes(ig.estado) || ig.codigo_totvs_pai) && // inside region or part of the tree
-        (ig.codigo_totvs.toLowerCase().includes(term) ||
-         ig.desc_igreja.toLowerCase().includes(term) ||
-         (ig.municipio || '').toLowerCase().includes(term))
+        (String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
+         String(ig.desc_igreja || '').toLowerCase().includes(term) ||
+         String(ig.municipio || '').toLowerCase().includes(term))
     );
     return matches.slice(0, 8);
   }, [churches, searchInput, allowedUFsInRegion]);

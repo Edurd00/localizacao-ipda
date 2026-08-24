@@ -29,9 +29,9 @@ function SearchableChurchSelect({
     return igrejas
       .filter(
         (ig) =>
-          String(ig.codigo_totvs).toLowerCase().includes(q) ||
-          ig.desc_igreja.toLowerCase().includes(q) ||
-          (ig.municipio && ig.municipio.toLowerCase().includes(q))
+          String(ig.codigo_totvs || '').toLowerCase().includes(q) ||
+          String(ig.desc_igreja || '').toLowerCase().includes(q) ||
+          String(ig.municipio || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
   }, [igrejas, query]);

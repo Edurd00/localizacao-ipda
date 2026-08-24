@@ -568,11 +568,11 @@ export default function ValidacaoPage() {
 
     const idx = filteredIgrejasList.findIndex(
       (ig) =>
-        ig.codigo_totvs.toLowerCase() === term ||
-        ig.codigo_totvs.toLowerCase().includes(term) ||
-        ig.desc_igreja.toLowerCase().includes(term) ||
-        ig.endereco.toLowerCase().includes(term) ||
-        ig.municipio.toLowerCase().includes(term)
+        String(ig.codigo_totvs || '').toLowerCase() === term ||
+        String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
+        String(ig.desc_igreja || '').toLowerCase().includes(term) ||
+        String(ig.endereco || '').toLowerCase().includes(term) ||
+        String(ig.municipio || '').toLowerCase().includes(term)
     );
 
     if (idx !== -1) {

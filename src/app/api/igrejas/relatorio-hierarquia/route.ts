@@ -53,18 +53,19 @@ function getPorte(desc: string, porteField?: string | null): string {
 
 function getDescendants(estadualTotvs: string, allChurches: Igreja[]): Igreja[] {
   const descendants: Igreja[] = [];
-  const queue: string[] = [estadualTotvs];
-  const visited = new Set<string>([estadualTotvs]);
+  const pTotvs = String(estadualTotvs || '');
+  const queue: string[] = [pTotvs];
+  const visited = new Set<string>([pTotvs]);
 
   while (queue.length > 0) {
     const parentTotvs = queue.shift()!;
     const directChildren = allChurches.filter(
-      (ig) => ig.codigo_totvs_pai === parentTotvs && ig.status !== 'DESATIVADO' && !visited.has(ig.codigo_totvs)
+      (ig) => String(ig.codigo_totvs_pai || '') === parentTotvs && ig.status !== 'DESATIVADO' && !visited.has(String(ig.codigo_totvs || ''))
     );
     for (const child of directChildren) {
-      visited.add(child.codigo_totvs);
+      visited.add(String(child.codigo_totvs || ''));
       descendants.push(child);
-      queue.push(child.codigo_totvs);
+      queue.push(String(child.codigo_totvs || ''));
     }
   }
   return descendants;
@@ -166,7 +167,7 @@ export async function GET(request: Request) {
       allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || null;
       if (!allowedUFs) {
         const matchedKey = Object.keys(REGIAO_GEOGRAFICA_MAPPING).find(
-          (k) => k.toLowerCase() === filterRegiao.toLowerCase()
+          (k) => String(k || '').toLowerCase() === String(filterRegiao || '').toLowerCase()
         );
         if (matchedKey) {
           allowedUFs = REGIAO_GEOGRAFICA_MAPPING[matchedKey];
