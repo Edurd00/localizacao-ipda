@@ -59,7 +59,7 @@ function SearchableChurchSelect({
       {isOpen && filtered.length > 0 && (
         <>
           <div className="fixed inset-0 z-[1040]" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl z-[1050] max-h-48 overflow-y-auto divide-y divide-zinc-100 dark:divide-slate-800">
+          <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-lg shadow-lg z-[1050] divide-y divide-zinc-100 dark:divide-slate-800">
             {filtered.map((ig) => (
               <button
                 key={ig.codigo_totvs}
@@ -71,7 +71,7 @@ function SearchableChurchSelect({
                 }}
                 className={`w-full text-left p-2 hover:bg-zinc-50 dark:hover:bg-slate-800 text-xs font-medium transition-colors ${
                   selectedChurch && String(selectedChurch.codigo_totvs) === String(ig.codigo_totvs)
-                    ? 'bg-indigo-50 text-indigo-900 font-bold'
+                    ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-900 dark:text-indigo-300 font-bold'
                     : 'text-zinc-800 dark:text-slate-200'
                 }`}
               >
@@ -125,6 +125,14 @@ export default function RouteCompareModal({
 
   if (!comparisonMode || !fixedDest) return null;
 
+  const handleCloseCompareModal = () => {
+    setComparisonMode(false);
+    setFixedDest(null);
+    setSedeCandidataA(null);
+    setSedeCandidataB(null);
+    toast.info('Modo comparativo encerrado.');
+  };
+
   const parentChurch = fixedDest.codigo_totvs_pai
     ? igrejas.find((p) => String(p.codigo_totvs) === String(fixedDest.codigo_totvs_pai))
     : null;
@@ -155,37 +163,36 @@ export default function RouteCompareModal({
 
   return (
     <>
+      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
-        onClick={() => {
-          setComparisonMode(false);
-          setFixedDest(null);
-        }}
+        onClick={handleCloseCompareModal}
       />
-      <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:top-24 md:right-6 md:bottom-auto md:left-auto w-full md:w-96 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white shadow-2xl p-5 space-y-4 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 flex flex-col">
-        <div className="flex items-center justify-between border-b border-zinc-150 pb-2.5 gap-4 shrink-0">
-          <div className="flex items-center gap-1.5 text-zinc-900">
+
+      {/* Main Floating Comparison Panel */}
+      <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:top-24 md:right-6 md:bottom-auto md:left-auto w-full md:w-96 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white dark:bg-slate-900 shadow-2xl p-4 md:p-5 space-y-3 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 flex flex-col">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-zinc-150 dark:border-slate-800 pb-2.5 gap-4 shrink-0">
+          <div className="flex items-center gap-1.5 text-zinc-900 dark:text-white">
             <span className="text-base">📐</span>
             <h3 className="text-xs font-black uppercase tracking-wider">
               Comparativo de Rotas e Proximidade
             </h3>
           </div>
           <button
-            onClick={() => {
-              setComparisonMode(false);
-              setFixedDest(null);
-              toast.info('Modo comparativo desativado.');
-            }}
-            className="text-zinc-400 hover:text-zinc-650 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-100 rounded-full transition-all"
+            type="button"
+            onClick={handleCloseCompareModal}
+            className="text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-200 p-2 min-h-[40px] min-w-[40px] flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-slate-800 rounded-full transition-all"
             title="Fechar Comparador"
           >
-            <X className="h-5 w-5" />
+            <X className="w-4 h-4 text-slate-500" />
           </button>
         </div>
 
-        <div className="space-y-1.5 text-xs shrink-0">
-          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Igreja Alvo (Destino)</span>
-          <span className="font-bold text-zinc-900 block truncate" title={fixedDest.desc_igreja}>{fixedDest.desc_igreja}</span>
+        {/* Target Church */}
+        <div className="space-y-1 text-xs shrink-0">
+          <span className="text-[9px] font-bold text-zinc-400 dark:text-slate-500 uppercase tracking-wider block">Igreja Alvo (Destino)</span>
+          <span className="font-bold text-zinc-900 dark:text-white block truncate" title={fixedDest.desc_igreja}>{fixedDest.desc_igreja}</span>
         </div>
 
         {/* Transport Mode Toggle */}
@@ -196,7 +203,7 @@ export default function RouteCompareModal({
             className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               comparisonTransportMode === 'car'
                 ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
+                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200'
             }`}
           >
             <span>🚗 Carro / Moto</span>
@@ -207,16 +214,17 @@ export default function RouteCompareModal({
             className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               comparisonTransportMode === 'bus'
                 ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
+                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200'
             }`}
           >
             <span>🚌 Ônibus / Trem</span>
           </button>
         </div>
 
-        <div className="space-y-3 pt-1 border-t border-zinc-100 overflow-y-auto">
+        {/* Cards Container */}
+        <div className="space-y-3 pt-1 border-t border-zinc-100 dark:border-slate-800">
           {/* Sede Atual Card */}
-          <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-orange-500">
+          <div className="p-3 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-orange-500">
             <div className="flex items-center justify-between flex-wrap gap-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
@@ -243,7 +251,7 @@ export default function RouteCompareModal({
                   href={`https://www.google.com/maps/dir/?api=1&origin=${parentChurch.latitude},${parentChurch.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-all border ${
                     comparisonTransportMode === 'bus'
                       ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
                       : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
@@ -256,8 +264,8 @@ export default function RouteCompareModal({
             </div>
           </div>
 
-          {/* Sede Candidata A Card (Select / Combobox) */}
-          <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-emerald-500">
+          {/* Sede Candidata A Card */}
+          <div className="p-3 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-emerald-500">
             <div className="flex items-center justify-between flex-wrap gap-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
@@ -284,11 +292,11 @@ export default function RouteCompareModal({
                 setSedeCandidataA(church);
                 toast.success(`Candidata A: ${church.desc_igreja}`);
               }}
-              accentColorClass="text-emerald-700"
+              accentColorClass="text-emerald-700 dark:text-emerald-400"
             />
 
             {sedeCandidataA && (
-              <div className="space-y-2 pt-1">
+              <div className="space-y-2 pt-1 flex flex-col">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
                     {sedeCandidataA.desc_igreja}
@@ -298,11 +306,7 @@ export default function RouteCompareModal({
                       href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
-                        comparisonTransportMode === 'bus'
-                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
-                          : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
-                      }`}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-all border bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700"
                       title="Ver trajeto e custos no Google Maps"
                     >
                       <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
@@ -311,13 +315,13 @@ export default function RouteCompareModal({
                 </div>
 
                 {metaAtual && metaCandidataA && (
-                  <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
+                  <div className="flex flex-col items-center justify-center gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
                     {metaAtual.distance - metaCandidataA.distance > 0 ? (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-250 text-center w-full max-w-[260px]">
                         🟢 {(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais perto
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-300 px-3 py-1 rounded-full border border-rose-250 text-center w-full max-w-[260px]">
                         🔴 {Math.abs(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais longe
                       </span>
                     )}
@@ -326,13 +330,13 @@ export default function RouteCompareModal({
                       <button
                         type="button"
                         onClick={() => handleTransferColigacao(sedeCandidataA)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs"
                         title="Gravar nova vinculação hierárquica"
                       >
                         <span>🔄 Transferir Coligação para Candidata A</span>
                       </button>
                     ) : (
-                      <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center">
+                      <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-center w-full">
                         🔒 Transferência bloqueada (Login requerido)
                       </span>
                     )}
@@ -342,8 +346,8 @@ export default function RouteCompareModal({
             )}
           </div>
 
-          {/* Sede Candidata B Card (Select / Combobox) */}
-          <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-cyan-500">
+          {/* Sede Candidata B Card */}
+          <div className="p-3 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-cyan-500">
             <div className="flex items-center justify-between flex-wrap gap-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
@@ -370,11 +374,11 @@ export default function RouteCompareModal({
                 setSedeCandidataB(church);
                 toast.success(`Candidata B: ${church.desc_igreja}`);
               }}
-              accentColorClass="text-cyan-700"
+              accentColorClass="text-cyan-700 dark:text-cyan-400"
             />
 
             {sedeCandidataB && (
-              <div className="space-y-2 pt-1">
+              <div className="space-y-2 pt-1 flex flex-col">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
                     {sedeCandidataB.desc_igreja}
@@ -384,7 +388,7 @@ export default function RouteCompareModal({
                       href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700"
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-all border bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700"
                       title="Ver trajeto e custos no Google Maps"
                     >
                       <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
@@ -393,13 +397,13 @@ export default function RouteCompareModal({
                 </div>
 
                 {metaAtual && metaCandidataB && (
-                  <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
+                  <div className="flex flex-col items-center justify-center gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
                     {metaAtual.distance - metaCandidataB.distance > 0 ? (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-250 text-center w-full max-w-[260px]">
                         🟢 {(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais perto
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-300 px-3 py-1 rounded-full border border-rose-250 text-center w-full max-w-[260px]">
                         🔴 {Math.abs(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais longe
                       </span>
                     )}
@@ -408,13 +412,13 @@ export default function RouteCompareModal({
                       <button
                         type="button"
                         onClick={() => handleTransferColigacao(sedeCandidataB)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs"
                         title="Gravar nova vinculação hierárquica"
                       >
                         <span>🔄 Transferir Coligação para Candidata B</span>
                       </button>
                     ) : (
-                      <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center">
+                      <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-center w-full">
                         🔒 Transferência bloqueada (Login requerido)
                       </span>
                     )}
