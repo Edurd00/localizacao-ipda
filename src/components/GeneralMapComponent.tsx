@@ -2466,12 +2466,7 @@ export default function GeneralMapComponent() {
 
   const fetchIgrejas = async () => {
     try {
-      const res = await fetch(`/api/igrejas/validadas?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-      });
+      const res = await fetch('/api/igrejas/validadas');
 
       if (!res.ok) throw new Error('Erro na busca');
       const data = await res.json();
