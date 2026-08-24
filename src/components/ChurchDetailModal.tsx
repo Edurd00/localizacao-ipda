@@ -52,7 +52,7 @@ export default function ChurchDetailModal({
   const totalCascata = getDescendantCount(ig.codigo_totvs, igrejas);
 
   return (
-    <div className="max-h-[85vh] sm:max-h-[520px] w-full max-w-[380px] sm:max-w-[420px] overflow-y-auto custom-scrollbar p-3 sm:p-4 space-y-3 font-sans text-xs">
+    <div className="w-full max-w-[380px] sm:max-w-[420px] p-3 sm:p-4 space-y-3 font-sans text-xs max-h-none">
       {/* Title & Header Badges */}
       <div className="border-b border-slate-150 pb-2.5">
         <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
@@ -269,7 +269,7 @@ export default function ChurchDetailModal({
                         type="button"
                         onClick={() => {
                           setPontoOrigem(ig);
-                          toast.success(`Origem definida: ${ig.desc_igreja}. Selecione o destino para traçar a rota.`);
+                          toast.success(`Origem definida: ${ig.desc_igreja}`);
                         }}
                         className="h-9 text-xs font-semibold border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
                       >
