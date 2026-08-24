@@ -16,9 +16,7 @@ import {
   X,
   RefreshCw,
   SlidersHorizontal,
-  GitBranch,
   Lock,
-  Users,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
@@ -575,8 +573,8 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
 
     const matches = igrejas.filter((ig) => {
       const normIg = normalizeTotvs(ig.codigo_totvs);
-      const codeMatch = normIg === termNorm || ig.codigo_totvs.toLowerCase().includes(term);
-      const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
+      const codeMatch = normIg === termNorm || String(ig.codigo_totvs || '').toLowerCase().includes(term);
+      const nameMatch = (ig.desc_igreja || '').toLowerCase().includes(term);
       const addressMatch = (ig.endereco || '').toLowerCase().includes(term);
       const cityMatch = (ig.municipio || '').toLowerCase().includes(term);
       return codeMatch || nameMatch || addressMatch || cityMatch;
@@ -1583,24 +1581,7 @@ const MemoizedMapView = memo(function MapView({
     return (
       <Popup autoPan={true} className="custom-leaflet-popup" maxWidth={380} minWidth={340}>
         <div className="w-full text-slate-800">
-          <ChurchDetailModal
-            ig={ig}
-            igrejas={igrejas}
-            pontoOrigem={customRouteOrigin}
-            setPontoOrigem={setCustomRouteOrigin}
-            comparisonMode={comparisonMode}
-            setComparisonMode={setComparisonMode}
-            fixedDest={fixedDest}
-            setFixedDest={setFixedDest}
-            sedeCandidataA={sedeCandidataA}
-            setSedeCandidataA={setSedeCandidataA}
-            sedeCandidataB={sedeCandidataB}
-            setSedeCandidataB={setSedeCandidataB}
-            connectionPathSource={connectionPathSource}
-            isAuthenticated={isAuthenticated}
-            handleTraceConnectionMesh={handleTraceConnectionMesh}
-            fetchTerrestrialRoute={fetchTerrestrialRoute}
-          />
+          <ChurchDetailModal comparisonMode={comparisonMode} connectionPathSource={connectionPathSource} fetchTerrestrialRoute={fetchTerrestrialRoute} fixedDest={fixedDest} handleTraceConnectionMesh={handleTraceConnectionMesh} ig={ig} igrejas={igrejas} isAuthenticated={isAuthenticated} pontoOrigem={customRouteOrigin} sedeCandidataA={sedeCandidataA} sedeCandidataB={sedeCandidataB} setComparisonMode={setComparisonMode} setFixedDest={setFixedDest} setPontoOrigem={setCustomRouteOrigin} setSedeCandidataA={setSedeCandidataA} setSedeCandidataB={setSedeCandidataB}/>
         </div>
       </Popup>
     );
