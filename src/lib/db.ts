@@ -38,21 +38,34 @@ export interface Igreja {
   tipo_prebenda?: string | null;
 }
 
-// Check database URL in env
-const databaseUrl = process.env.DATABASE_URL;
-let pool: Pool | null = null;
+// Global singleton pattern for pg Pool in serverless environments
+const globalForDb = globalThis as unknown as {
+  pgPool: Pool | undefined;
+};
 
-if (databaseUrl) {
+const databaseUrl = process.env.DATABASE_URL;
+
+function createPool(): Pool | null {
+  if (!databaseUrl) return null;
   try {
-    pool = new Pool({
+    return new Pool({
       connectionString: databaseUrl,
+      max: 10, // Limit connection pool size per lambda instance
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 10000,
       ssl: {
         rejectUnauthorized: false,
       },
     });
   } catch (error) {
     console.error('Failed to initialize Postgres Pool:', error);
+    return null;
   }
+}
+
+let pool: Pool | null = globalForDb.pgPool ?? createPool();
+if (pool) {
+  globalForDb.pgPool = pool;
 }
 
 // Safe In-Memory fallback for environments without DATABASE_URL (no file writing, 100% Vercel friendly)
@@ -736,27 +749,70 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
   return report;
 }
 
-export async function saveIgrejaSingle(codigo_totvs: string, update: Partial<Igreja>): Promise<void> {
+export async function saveIgrejaSingle(
+  identifier: string | { id?: string; codigo_totvs?: string },
+  update: Partial<Igreja>
+): Promise<Igreja> {
   await ensurePostgresTable();
+
+  const id = typeof identifier === 'object' ? identifier.id : undefined;
+  const codigo_totvs = typeof identifier === 'object' ? identifier.codigo_totvs : identifier;
+
+  if (!id && !codigo_totvs) {
+    throw new Error('ID ou codigo_totvs é obrigatório para salvar.');
+  }
+
   if (pool) {
     try {
-      const keys = Object.keys(update) as Array<keyof Igreja>;
-      if (keys.length > 0) {
-        const sets: string[] = [];
-        const params: unknown[] = [codigo_totvs];
-        let idx = 2;
-        keys.forEach((key) => {
-          sets.push(`${String(key)} = $${idx}`);
-          params.push(update[key]);
-          idx++;
-        });
+      const whereClause = id ? 'id = $1' : 'codigo_totvs = $1';
+      const whereParam = id || codigo_totvs;
 
-        sets.push(`updated_at = CURRENT_TIMESTAMP`);
-        await pool.query(
-          `UPDATE igrejas SET ${sets.join(', ')} WHERE codigo_totvs = $1`,
-          params
+      const existingRes = await pool.query(
+        `SELECT * FROM igrejas WHERE ${whereClause} LIMIT 1`,
+        [whereParam]
+      );
+
+      if (existingRes.rows.length === 0) {
+        // INSERT if record does not exist
+        const insertData: Record<string, unknown> = {
+          ...update,
+          codigo_totvs: codigo_totvs || update.codigo_totvs || `TEMP_${Date.now()}`,
+          desc_igreja: update.desc_igreja || `Igreja ${codigo_totvs || ''}`,
+          updated_at: new Date(),
+        };
+        if (id) insertData.id = id;
+
+        const keys = Object.keys(insertData);
+        const cols = keys.join(', ');
+        const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+        const values = keys.map((k) => insertData[k]);
+
+        const insertRes = await pool.query(
+          `INSERT INTO igrejas (${cols}) VALUES (${placeholders}) RETURNING *`,
+          values
         );
-        return;
+        return insertRes.rows[0] as Igreja;
+      } else {
+        // UPDATE if record exists
+        const keys = Object.keys(update) as Array<keyof Igreja>;
+        if (keys.length > 0) {
+          const sets: string[] = [];
+          const params: unknown[] = [whereParam];
+          let idx = 2;
+          keys.forEach((key) => {
+            sets.push(`${String(key)} = $${idx}`);
+            params.push(update[key]);
+            idx++;
+          });
+          sets.push(`updated_at = CURRENT_TIMESTAMP`);
+
+          const updateRes = await pool.query(
+            `UPDATE igrejas SET ${sets.join(', ')} WHERE ${whereClause} RETURNING *`,
+            params
+          );
+          return updateRes.rows[0] as Igreja;
+        }
+        return existingRes.rows[0] as Igreja;
       }
     } catch (err) {
       console.error('Postgres error in saveIgrejaSingle:', err);
@@ -765,15 +821,42 @@ export async function saveIgrejaSingle(codigo_totvs: string, update: Partial<Igr
   }
 
   // Fallback to In-Memory DB
-  const idx = memoryDb.findIndex((item) => item.codigo_totvs === codigo_totvs);
+  let idx = -1;
+  if (id) {
+    idx = memoryDb.findIndex((item) => item.id === id);
+  }
+  if (idx === -1 && codigo_totvs) {
+    idx = memoryDb.findIndex((item) => item.codigo_totvs === codigo_totvs);
+  }
+
   if (idx !== -1) {
     memoryDb[idx] = {
       ...memoryDb[idx],
       ...update,
       updated_at: new Date().toISOString(),
     };
+    return memoryDb[idx];
   } else {
-    throw new Error(`Church with codigo_totvs ${codigo_totvs} not found.`);
+    const newItem: Igreja = {
+      id: id || undefined,
+      codigo_totvs: codigo_totvs || (update.codigo_totvs as string) || `TEMP_${Date.now()}`,
+      desc_igreja: update.desc_igreja || `Igreja ${codigo_totvs || ''}`,
+      tipo_imovel: update.tipo_imovel || 'ALUGADO',
+      endereco: update.endereco || '',
+      bairro: update.bairro || '',
+      municipio: update.municipio || '',
+      estado: update.estado || '',
+      cep: update.cep || '',
+      link_google_maps: update.link_google_maps || '',
+      latitude: update.latitude ?? null,
+      longitude: update.longitude ?? null,
+      status: update.status || 'PENDENTE',
+      ...update,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    memoryDb.push(newItem);
+    return newItem;
   }
 }
 
