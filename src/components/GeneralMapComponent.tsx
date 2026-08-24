@@ -2494,6 +2494,11 @@ export default function GeneralMapComponent() {
 
   const handleSyncDatabase = async () => {
     setIsSyncing(true);
+    try {
+      await fetch('/api/revalidate', { method: 'POST' });
+    } catch (err) {
+      console.error('Erro ao chamar API de revalidação:', err);
+    }
     await fetchIgrejas(true);
     setIsSyncing(false);
   };
