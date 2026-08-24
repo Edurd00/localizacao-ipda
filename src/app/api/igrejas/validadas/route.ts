@@ -1,26 +1,44 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const isRefresh = searchParams.get('refresh');
+    const isManualRefresh = searchParams.has('refresh');
 
-    // Busca TODAS as igrejas validadas sem limite de quantidade
-    const data = await getIgrejas({ status: 'VALIDADO' });
+    const columns = [
+      'id',
+      'codigo_totvs',
+      'desc_igreja',
+      'tipo_imovel',
+      'endereco',
+      'bairro',
+      'municipio',
+      'estado',
+      'cep',
+      'latitude',
+      'longitude',
+      'link_google_maps',
+      'status',
+      'codigo_totvs_pai',
+      'porte',
+    ];
 
-    return NextResponse.json(data, {
+    const result = await getIgrejas({ status: 'VALIDADO' }, columns);
+
+    const cacheHeader = isManualRefresh
+      ? 'no-store, no-cache, must-revalidate'
+      : 'public, s-maxage=86400, stale-while-revalidate=604800';
+
+    return NextResponse.json(result, {
       headers: {
-        'Cache-Control': isRefresh
-          ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
-          : 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': cacheHeader,
+        'CDN-Cache-Control': cacheHeader,
+        'Vercel-CDN-Cache-Control': cacheHeader,
       },
     });
   } catch (error) {
-    console.error('Erro ao buscar igrejas validadas:', error);
-    return NextResponse.json({ error: 'Erro no servidor' }, { status: 500 });
+    console.error('Erro na API publica de igrejas:', error);
+    return NextResponse.json([], { status: 500 });
   }
 }
