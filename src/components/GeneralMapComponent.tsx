@@ -1581,8 +1581,8 @@ const MemoizedMapView = memo(function MapView({
 
   const renderChurchPopup = (ig: Igreja) => {
     return (
-      <Popup className="custom-leaflet-popup" maxWidth={380} minWidth={300}>
-        <div className="w-full max-h-[420px] overflow-y-auto p-1 text-slate-800">
+      <Popup autoPan={true} className="custom-leaflet-popup" maxWidth={380} minWidth={340}>
+        <div className="w-full text-slate-800">
           <ChurchDetailModal
             ig={ig}
             igrejas={igrejas}

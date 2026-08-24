@@ -52,7 +52,7 @@ export default function ChurchDetailModal({
   const totalCascata = getDescendantCount(ig.codigo_totvs, igrejas);
 
   return (
-    <div className="w-[360px] p-5 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden text-slate-800 space-y-3 font-sans text-xs">
+    <div className="w-[350px] p-4 bg-white rounded-2xl overflow-hidden text-slate-800 space-y-3 font-sans text-xs">
       {/* Title & Header Badges */}
       <div className="border-b border-slate-150 pb-2.5">
         <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
