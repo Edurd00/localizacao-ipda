@@ -23,6 +23,8 @@ import {
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ChurchDetailModal from './ChurchDetailModal';
+import RouteCompareModal from './RouteCompareModal';
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -103,20 +105,21 @@ export function getPorte(desc: string, porteField?: string | null): string {
   return 'LOCAL';
 }
 
-export function getDescendantCount(parentCode: string, list: Igreja[]): number {
+export function getDescendantCount(parentCode: string | number, list: Igreja[]): number {
   let count = 0;
-  const queue: string[] = [parentCode];
-  const visited = new Set<string>([parentCode]);
+  const pCodeStr = String(parentCode);
+  const queue: string[] = [pCodeStr];
+  const visited = new Set<string>([pCodeStr]);
 
   while (queue.length > 0) {
     const currentCode = queue.shift()!;
     const directChildren = list.filter(
-      (ig) => ig.codigo_totvs_pai === currentCode && ig.status !== 'DESATIVADO' && !visited.has(ig.codigo_totvs)
+      (ig) => String(ig.codigo_totvs_pai) === String(currentCode) && ig.status !== 'DESATIVADO' && !visited.has(String(ig.codigo_totvs))
     );
     for (const child of directChildren) {
-      visited.add(child.codigo_totvs);
+      visited.add(String(child.codigo_totvs));
       count++;
-      queue.push(child.codigo_totvs);
+      queue.push(String(child.codigo_totvs));
     }
   }
   return count;
@@ -454,7 +457,7 @@ function MapBoundsController({
       points.push([fixedDest.latitude, fixedDest.longitude]);
 
       const parent = fixedDest.codigo_totvs_pai
-        ? igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)
+        ? igrejas.find((p) => String(p.codigo_totvs) === String(fixedDest.codigo_totvs_pai))
         : null;
       if (parent && parent.latitude && parent.longitude) {
         points.push([parent.latitude, parent.longitude]);
@@ -480,14 +483,14 @@ function MapBoundsController({
 
     // 3. If Connection Mesh (Malha de Conexão) is active
     if (connectionPathSource && activeChainCodes.length > 0) {
-      const sourceChurch = igrejas.find((ig) => ig.codigo_totvs === connectionPathSource);
+      const sourceChurch = igrejas.find((ig) => String(ig.codigo_totvs) === String(connectionPathSource));
       const sourcePorte = sourceChurch ? (sourceChurch.porte || getPorte(sourceChurch.desc_igreja, sourceChurch.porte)) : 'LOCAL';
       const isLowLevel = sourcePorte === 'LOCAL' || sourcePorte === 'CASA DE ORAÇÃO' || sourcePorte === 'ALDEIA INDIGENA';
       const selectedPadding = isLowLevel ? [80, 80] : [60, 60];
 
       const meshCoords: [number, number][] = [];
       activeChainCodes.forEach((totvs) => {
-        const found = igrejas.find((ig) => ig.codigo_totvs === totvs);
+        const found = igrejas.find((ig) => String(ig.codigo_totvs) === String(totvs));
         if (found && found.latitude && found.longitude) {
           meshCoords.push([found.latitude, found.longitude]);
         }
@@ -1580,21 +1583,21 @@ const MemoizedMapView = memo(function MapView({
     return (
       <Popup className="custom-leaflet-popup" maxWidth={380} minWidth={300}>
         <div className="w-full max-h-[420px] overflow-y-auto p-1 text-slate-800">
-          <ChurchPopupContent
+          <ChurchDetailModal
             ig={ig}
             igrejas={igrejas}
+            pontoOrigem={customRouteOrigin}
+            setPontoOrigem={setCustomRouteOrigin}
             comparisonMode={comparisonMode}
-            fixedDest={fixedDest}
-            sedeCandidataA={sedeCandidataA}
-            sedeCandidataB={sedeCandidataB}
-            connectionPathSource={connectionPathSource}
-            customRouteOrigin={customRouteOrigin}
-            isAuthenticated={isAuthenticated}
             setComparisonMode={setComparisonMode}
+            fixedDest={fixedDest}
             setFixedDest={setFixedDest}
+            sedeCandidataA={sedeCandidataA}
             setSedeCandidataA={setSedeCandidataA}
+            sedeCandidataB={sedeCandidataB}
             setSedeCandidataB={setSedeCandidataB}
-            setCustomRouteOrigin={setCustomRouteOrigin}
+            connectionPathSource={connectionPathSource}
+            isAuthenticated={isAuthenticated}
             handleTraceConnectionMesh={handleTraceConnectionMesh}
             fetchTerrestrialRoute={fetchTerrestrialRoute}
           />
@@ -1973,261 +1976,23 @@ const MemoizedMapView = memo(function MapView({
         )}
       </div>
 
-      {/* Floating OSRM Route Comparison Card */}
-      {comparisonMode && fixedDest && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
-            onClick={() => {
-              setComparisonMode(false);
-              setFixedDest(null);
-            }}
-          />
-          <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:top-24 md:right-6 md:bottom-auto md:left-auto w-full md:w-96 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white shadow-2xl p-5 space-y-4 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 flex flex-col">
-            <div className="flex items-center justify-between border-b border-zinc-150 pb-2.5 gap-4 shrink-0">
-              <div className="flex items-center gap-1.5 text-zinc-900">
-                <span className="text-base">📐</span>
-                <h3 className="text-xs font-black uppercase tracking-wider">
-                  Comparativo de Rotas e Proximidade
-                </h3>
-              </div>
-              <button
-                onClick={() => {
-                  setComparisonMode(false);
-                  setFixedDest(null);
-                  toast.info('Modo comparativo desativado.');
-                }}
-                className="text-zinc-400 hover:text-zinc-650 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-100 rounded-full transition-all"
-                title="Fechar Comparador"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-1.5 text-xs shrink-0">
-              <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Igreja Alvo (Destino)</span>
-              <span className="font-bold text-zinc-900 block truncate" title={fixedDest.desc_igreja}>{fixedDest.desc_igreja}</span>
-            </div>
-
-            {/* Seletor de Modo de Transporte Ativo */}
-            <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 shrink-0">
-              <button
-                type="button"
-                onClick={() => setComparisonTransportMode('car')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  comparisonTransportMode === 'car'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
-                }`}
-              >
-                <span>🚗 Carro / Moto</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setComparisonTransportMode('bus')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  comparisonTransportMode === 'bus'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
-                }`}
-              >
-                <span>🚌 Ônibus / Trem</span>
-              </button>
-            </div>
-
-            <div className="space-y-3 pt-1 border-t border-zinc-100 overflow-y-auto">
-              {/* Sede Atual Card */}
-              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-orange-500">
-                <div className="flex items-center justify-between flex-wrap gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
-                      Sede Atual
-                    </span>
-                    {shortestOption === 'atual' && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-250">
-                        ⚡ Mais Próxima
-                      </span>
-                    )}
-                  </div>
-                  {metaAtual && (
-                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
-                      {metaAtual.distance} km • {metaAtual.duration}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-zinc-600 dark:text-slate-400 font-bold block truncate max-w-[150px]">
-                    {fixedDest.codigo_totvs_pai ? `TOTVS: ${fixedDest.codigo_totvs_pai}` : 'Nenhuma vinculada'}
-                  </span>
-                  {fixedDest.codigo_totvs_pai && (
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&origin=${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.latitude},${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
-                        comparisonTransportMode === 'bus'
-                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
-                          : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
-                      }`}
-                      title="Ver trajeto e custos no Google Maps"
-                    >
-                      <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Sede Candidata A Card */}
-              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-emerald-500">
-                <div className="flex items-center justify-between flex-wrap gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      Candidata A
-                    </span>
-                    {shortestOption === 'A' && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-250 animate-pulse">
-                        ⚡ Mais Próxima {economyA && Number(economyA) > 0 ? `(Economia de ${economyA} km)` : ''}
-                      </span>
-                    )}
-                  </div>
-                  {metaCandidataA && (
-                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
-                      {metaCandidataA.distance} km • {metaCandidataA.duration}
-                    </span>
-                  )}
-                </div>
-                {sedeCandidataA ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
-                        {sedeCandidataA.desc_igreja}
-                      </span>
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
-                          comparisonTransportMode === 'bus'
-                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
-                            : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
-                        }`}
-                        title="Ver trajeto e custos no Google Maps"
-                      >
-                        <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
-                      </a>
-                    </div>
-
-                    {metaAtual && metaCandidataA && (
-                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
-                        {metaAtual.distance - metaCandidataA.distance > 0 ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
-                            🟢 {(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais perto
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
-                            🔴 {Math.abs(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais longe
-                          </span>
-                        )}
-
-                        {isAuthenticated ? (
-                          <button
-                            type="button"
-                            onClick={() => handleTransferColigacao(sedeCandidataA)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
-                            title="Gravar nova vinculação hierárquica no banco de dados Neon"
-                          >
-                            <span>🔄 Transferir Coligação para esta Sede</span>
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
-                            🔒 Transferência bloqueada (Login requerido)
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
-                )}
-              </div>
-
-              {/* Sede Candidata B Card */}
-              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-cyan-500">
-                <div className="flex items-center justify-between flex-wrap gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
-                      Candidata B
-                    </span>
-                    {shortestOption === 'B' && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-250 animate-pulse">
-                        ⚡ Mais Próxima {economyB && Number(economyB) > 0 ? `(Economia de ${economyB} km)` : ''}
-                      </span>
-                    )}
-                  </div>
-                  {metaCandidataB && (
-                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
-                      {metaCandidataB.distance} km • {metaCandidataB.duration}
-                    </span>
-                  )}
-                </div>
-                {sedeCandidataB ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
-                        {sedeCandidataB.desc_igreja}
-                      </span>
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700"
-                        title="Ver trajeto e custos no Google Maps"
-                      >
-                        <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
-                      </a>
-                    </div>
-
-                    {metaAtual && metaCandidataB && (
-                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
-                        {metaAtual.distance - metaCandidataB.distance > 0 ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
-                            🟢 {(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais perto
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
-                            🔴 {Math.abs(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais longe
-                          </span>
-                        )}
-
-                        {isAuthenticated ? (
-                          <button
-                            type="button"
-                            onClick={() => handleTransferColigacao(sedeCandidataB)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
-                            title="Gravar nova vinculação hierárquica no banco de dados Neon"
-                          >
-                            <span>🔄 Transferir Coligação para esta Sede</span>
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
-                            🔒 Transferência bloqueada (Login requerido)
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-zinc-100 dark:border-slate-800 text-[9px] text-zinc-500 leading-normal shrink-0">
-              <span>ℹ️ Nota: A disponibilidade de transporte público (ônibus/trem) depende do cadastramento das linhas municipais na região. Para áreas rurais ou isoladas, o sistema indicará a rota por veículo próprio.</span>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Floating OSRM Route Comparison Modal */}
+      <RouteCompareModal
+        comparisonMode={comparisonMode}
+        fixedDest={fixedDest}
+        igrejas={igrejas}
+        sedeCandidataA={sedeCandidataA}
+        sedeCandidataB={sedeCandidataB}
+        metaAtual={metaAtual}
+        metaCandidataA={metaCandidataA}
+        metaCandidataB={metaCandidataB}
+        isAuthenticated={isAuthenticated}
+        setComparisonMode={setComparisonMode}
+        setFixedDest={setFixedDest}
+        setSedeCandidataA={setSedeCandidataA}
+        setSedeCandidataB={setSedeCandidataB}
+        handleTransferColigacao={handleTransferColigacao}
+      />
 
       {/* Floating OSRM Route Details Card */}
       {routeMeta && (
@@ -2525,7 +2290,7 @@ export default function GeneralMapComponent() {
 
   useEffect(() => {
     if (fixedDest) {
-      const parent = igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai);
+      const parent = igrejas.find((p) => String(p.codigo_totvs) === String(fixedDest.codigo_totvs_pai));
       if (parent) {
         fetchComparisonRoute(parent, 'atual');
       } else {
@@ -2585,7 +2350,7 @@ export default function GeneralMapComponent() {
         // Optimize: Update state locally without fetching global list again
         setIgrejas((prevIgrejas) =>
           prevIgrejas.map((ig) =>
-            ig.codigo_totvs === fixedDest.codigo_totvs
+            String(ig.codigo_totvs) === String(fixedDest.codigo_totvs)
               ? { ...ig, codigo_totvs_pai: candidata.codigo_totvs }
               : ig
           )
@@ -2840,7 +2605,7 @@ export default function GeneralMapComponent() {
       return;
     }
 
-    let found = igrejas.find((ig) => ig.codigo_totvs === totvs);
+    let found = igrejas.find((ig) => String(ig.codigo_totvs) === String(totvs));
 
     if (!found && (totvs === 'SEDE_MUNDIAL' || totvs === '')) {
       found = igrejas.find((ig) => ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL'));
@@ -2859,7 +2624,7 @@ export default function GeneralMapComponent() {
   };
 
   const handleTraceConnectionMesh = (startChurch: Igreja) => {
-    if (connectionPathSource === startChurch.codigo_totvs) {
+    if (String(connectionPathSource) === String(startChurch.codigo_totvs)) {
       setSelectedConnectionPath(null);
       setConnectionPathSource(null);
       setActiveChainCodes([]);
@@ -2890,7 +2655,7 @@ export default function GeneralMapComponent() {
           break;
         }
         climbVisited.add(currentUp.codigo_totvs);
-        const parent = igrejas.find((ig) => ig.codigo_totvs === currentUp.codigo_totvs_pai);
+        const parent = igrejas.find((ig) => String(ig.codigo_totvs) === String(currentUp.codigo_totvs_pai));
         if (!parent) {
           break;
         }
@@ -2911,7 +2676,7 @@ export default function GeneralMapComponent() {
         while (queue.length > 0) {
           const currentCode = queue.shift();
           const directChildren = igrejas.filter(
-            (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
+            (ig) => String(ig.codigo_totvs_pai) === String(currentCode) && !visitedDescendants.has(ig.codigo_totvs)
           );
           for (const child of directChildren) {
             visitedDescendants.add(child.codigo_totvs);
@@ -2938,11 +2703,11 @@ export default function GeneralMapComponent() {
       }
 
       chainCodes.forEach((codigoTotvs) => {
-        const daughter = igrejas.find((ig) => ig.codigo_totvs === codigoTotvs);
+        const daughter = igrejas.find((ig) => String(ig.codigo_totvs) === String(codigoTotvs));
 
         if (daughter && daughter.codigo_totvs_pai) {
           if (chainCodes.has(daughter.codigo_totvs_pai)) {
-            const parent = igrejas.find((ig) => ig.codigo_totvs === daughter.codigo_totvs_pai);
+            const parent = igrejas.find((ig) => String(ig.codigo_totvs) === String(daughter.codigo_totvs_pai));
 
             if (daughter.latitude && daughter.longitude && parent?.latitude && parent?.longitude) {
               pathSegments.push([
