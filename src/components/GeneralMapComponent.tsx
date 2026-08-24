@@ -2470,12 +2470,7 @@ export default function GeneralMapComponent() {
         ? `/api/igrejas/validadas?refresh=${Date.now()}`
         : `/api/igrejas/validadas`;
 
-      const res = await fetch(url, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-        },
-      });
+      const res = await fetch(url);
 
       if (!res.ok) throw new Error('Erro na busca');
       const data = await res.json();

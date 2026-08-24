@@ -1,26 +1,34 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// Desativa a renderização dinâmica forçada no servidor
+export const revalidate = 86400; // 24 Horas em Segundos
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const isRefresh = searchParams.get('refresh');
+    const isManualRefresh = searchParams.has('refresh');
 
-    // Busca TODAS as igrejas validadas sem limite de quantidade
-    const data = await getIgrejas({ status: 'VALIDADO' });
+    const result = await getIgrejas({ status: 'VALIDADO' });
 
-    return NextResponse.json(data, {
+    // Se o usuário clicar no botão "Recarregar", furamos o cache
+    // Nos acessos comuns, servimos 100% da Vercel Edge CDN
+    const cacheHeader = isManualRefresh
+      ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      : 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800';
+
+    return NextResponse.json(result, {
       headers: {
-        'Cache-Control': isRefresh
-          ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
-          : 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': cacheHeader,
+        'CDN-Cache-Control': cacheHeader,
+        'Vercel-CDN-Cache-Control': cacheHeader,
       },
     });
-  } catch (error) {
-    console.error('Erro ao buscar igrejas validadas:', error);
-    return NextResponse.json({ error: 'Erro no servidor' }, { status: 500 });
+  } catch (error: any) {
+    if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('DYNAMIC_SERVER_USAGE')) {
+      throw error;
+    }
+    console.error('Erro na API publica:', error);
+    return NextResponse.json([], { status: 500 });
   }
 }
