@@ -1083,12 +1083,11 @@ function ChurchPopupContent({
                       <button
                         type="button"
                         onClick={() => {
-                          const sedePai = igrejas.find((p) => String(p.codigo_totvs) === String(ig.codigo_totvs_pai));
                           setComparisonMode(true);
                           setFixedDest(ig);
-                          setSedeCandidataA(sedePai || null);
-                          setSedeCandidataB(customRouteOrigin || null);
-                          toast.success(`Novo destino definido: "${ig.desc_igreja}".`);
+                          setSedeCandidataA(null);
+                          setSedeCandidataB(null);
+                          toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
                         }}
                         className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
                       >
@@ -1125,7 +1124,7 @@ function ChurchPopupContent({
                         type="button"
                         onClick={() => {
                           setCustomRouteOrigin(ig);
-                          toast.success(`Origem definida: ${ig.desc_igreja}. Agora selecione outra igreja para traçar a rota.`);
+                          toast.success(`Origem definida: ${ig.desc_igreja}. Abra o popup da igreja de destino e clique em "Traçar Rota terrestre".`);
                         }}
                         className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
                       >
@@ -1158,12 +1157,11 @@ function ChurchPopupContent({
                     <button
                       type="button"
                       onClick={() => {
-                        const sedePai = igrejas.find((p) => String(p.codigo_totvs) === String(ig.codigo_totvs_pai));
                         setComparisonMode(true);
                         setFixedDest(ig);
-                        setSedeCandidataA(sedePai || null);
-                        setSedeCandidataB(customRouteOrigin || null);
-                        toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino.`);
+                        setSedeCandidataA(null);
+                        setSedeCandidataB(null);
+                        toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino. Agora clique em outras igrejas para selecionar as Candidatas A e B.`);
                       }}
                       className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
                     >
