@@ -23,7 +23,6 @@ export async function PUT(request: Request) {
 
     const body = await request.json();
     const {
-      id,
       codigo_totvs,
       desc_igreja,
       tipo_imovel,
@@ -48,9 +47,9 @@ export async function PUT(request: Request) {
       tipo_prebenda
     } = body;
 
-    if (!id && !codigo_totvs) {
+    if (!codigo_totvs) {
       return NextResponse.json(
-        { success: false, error: 'ID ou codigo_totvs é obrigatório para atualização.' },
+        { success: false, error: 'O campo "codigo_totvs" é obrigatório para atualização.' },
         { status: 400 }
       );
     }
@@ -113,7 +112,7 @@ export async function PUT(request: Request) {
       }
     }
 
-    const savedChurch = await saveIgrejaSingle({ id, codigo_totvs }, updates);
+    await saveIgrejaSingle(codigo_totvs, updates);
 
     // On-demand revalidation to ensure changes appear instantly on Map and Tree
     try {
@@ -129,8 +128,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: savedChurch,
-      message: `Igreja ${codigo_totvs || id} atualizada com sucesso!`,
+      message: `Igreja ${codigo_totvs} atualizada com sucesso!`,
       latitude: updates.latitude,
       longitude: updates.longitude
     });

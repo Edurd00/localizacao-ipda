@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
-// Permite o cache estático no servidor/CDN da Vercel
-export const revalidate = 86400; // 24 horas
+// Desativa a renderização dinâmica forçada no servidor
+export const revalidate = 86400; // 24 Horas em Segundos
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const isRefresh = searchParams.get('refresh') === 'true';
+    const isManualRefresh = searchParams.has('refresh');
 
     const result = await getIgrejas({ status: 'VALIDADO' });
 
-    console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
-
-    // Se for Refresh Manual (botão do mapa): ignora o cache e busca no banco
-    // Acessos normais/F5: serve 100% da Vercel CDN (Consumo ZERO no Supabase)
-    const cacheHeader = isRefresh
-      ? 'no-cache, no-store, must-revalidate'
+    // Se o usuário clicar no botão "Recarregar", furamos o cache
+    // Nos acessos comuns, servimos 100% da Vercel Edge CDN
+    const cacheHeader = isManualRefresh
+      ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
       : 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800';
 
     return NextResponse.json(result, {
@@ -27,10 +25,10 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: any) {
-    if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('Dynamic server usage')) {
+    if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('DYNAMIC_SERVER_USAGE')) {
       throw error;
     }
-    console.error('Erro na API:', error);
+    console.error('Erro na API publica:', error);
     return NextResponse.json([], { status: 500 });
   }
 }

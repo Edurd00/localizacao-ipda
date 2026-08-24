@@ -38,34 +38,21 @@ export interface Igreja {
   tipo_prebenda?: string | null;
 }
 
-// Global singleton pattern for pg Pool in serverless environments
-const globalForDb = globalThis as unknown as {
-  pgPool: Pool | undefined;
-};
-
+// Check database URL in env
 const databaseUrl = process.env.DATABASE_URL;
+let pool: Pool | null = null;
 
-function createPool(): Pool | null {
-  if (!databaseUrl) return null;
+if (databaseUrl) {
   try {
-    return new Pool({
+    pool = new Pool({
       connectionString: databaseUrl,
-      max: 10, // Limit connection pool size per lambda instance
-      idleTimeoutMillis: 20000,
-      connectionTimeoutMillis: 10000,
       ssl: {
         rejectUnauthorized: false,
       },
     });
   } catch (error) {
     console.error('Failed to initialize Postgres Pool:', error);
-    return null;
   }
-}
-
-let pool: Pool | null = globalForDb.pgPool ?? createPool();
-if (pool) {
-  globalForDb.pgPool = pool;
 }
 
 // Safe In-Memory fallback for environments without DATABASE_URL (no file writing, 100% Vercel friendly)
@@ -250,13 +237,9 @@ export async function getIgrejas(
       }
 
       if (filters?.status && filters.status !== 'ALL') {
-        if (filters.status === 'VALIDADO') {
-          query += ` AND (LOWER(status) LIKE 'validad%' OR status = 'VALIDADO')`;
-        } else {
-          query += ` AND status = $${paramCount}`;
-          params.push(filters.status);
-          paramCount++;
-        }
+        query += ` AND status = $${paramCount}`;
+        params.push(filters.status);
+        paramCount++;
       }
 
       // Order by desc_igreja ONLY if it's selected/requested
@@ -336,11 +319,7 @@ export async function getIgrejas(
     data = data.filter((item) => item.estado === filters.estado);
   }
   if (filters?.status && filters.status !== 'ALL') {
-    if (filters.status === 'VALIDADO') {
-      data = data.filter((item) => (item.status || '').toLowerCase().startsWith('validad'));
-    } else {
-      data = data.filter((item) => item.status === filters.status);
-    }
+    data = data.filter((item) => item.status === filters.status);
   }
 
   if (columns && columns.length > 0) {
@@ -749,70 +728,27 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
   return report;
 }
 
-export async function saveIgrejaSingle(
-  identifier: string | { id?: string; codigo_totvs?: string },
-  update: Partial<Igreja>
-): Promise<Igreja> {
+export async function saveIgrejaSingle(codigo_totvs: string, update: Partial<Igreja>): Promise<void> {
   await ensurePostgresTable();
-
-  const id = typeof identifier === 'object' ? identifier.id : undefined;
-  const codigo_totvs = typeof identifier === 'object' ? identifier.codigo_totvs : identifier;
-
-  if (!id && !codigo_totvs) {
-    throw new Error('ID ou codigo_totvs é obrigatório para salvar.');
-  }
-
   if (pool) {
     try {
-      const whereClause = id ? 'id = $1' : 'codigo_totvs = $1';
-      const whereParam = id || codigo_totvs;
+      const keys = Object.keys(update) as Array<keyof Igreja>;
+      if (keys.length > 0) {
+        const sets: string[] = [];
+        const params: unknown[] = [codigo_totvs];
+        let idx = 2;
+        keys.forEach((key) => {
+          sets.push(`${String(key)} = $${idx}`);
+          params.push(update[key]);
+          idx++;
+        });
 
-      const existingRes = await pool.query(
-        `SELECT * FROM igrejas WHERE ${whereClause} LIMIT 1`,
-        [whereParam]
-      );
-
-      if (existingRes.rows.length === 0) {
-        // INSERT if record does not exist
-        const insertData: Record<string, unknown> = {
-          ...update,
-          codigo_totvs: codigo_totvs || update.codigo_totvs || `TEMP_${Date.now()}`,
-          desc_igreja: update.desc_igreja || `Igreja ${codigo_totvs || ''}`,
-          updated_at: new Date(),
-        };
-        if (id) insertData.id = id;
-
-        const keys = Object.keys(insertData);
-        const cols = keys.join(', ');
-        const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
-        const values = keys.map((k) => insertData[k]);
-
-        const insertRes = await pool.query(
-          `INSERT INTO igrejas (${cols}) VALUES (${placeholders}) RETURNING *`,
-          values
+        sets.push(`updated_at = CURRENT_TIMESTAMP`);
+        await pool.query(
+          `UPDATE igrejas SET ${sets.join(', ')} WHERE codigo_totvs = $1`,
+          params
         );
-        return insertRes.rows[0] as Igreja;
-      } else {
-        // UPDATE if record exists
-        const keys = Object.keys(update) as Array<keyof Igreja>;
-        if (keys.length > 0) {
-          const sets: string[] = [];
-          const params: unknown[] = [whereParam];
-          let idx = 2;
-          keys.forEach((key) => {
-            sets.push(`${String(key)} = $${idx}`);
-            params.push(update[key]);
-            idx++;
-          });
-          sets.push(`updated_at = CURRENT_TIMESTAMP`);
-
-          const updateRes = await pool.query(
-            `UPDATE igrejas SET ${sets.join(', ')} WHERE ${whereClause} RETURNING *`,
-            params
-          );
-          return updateRes.rows[0] as Igreja;
-        }
-        return existingRes.rows[0] as Igreja;
+        return;
       }
     } catch (err) {
       console.error('Postgres error in saveIgrejaSingle:', err);
@@ -821,42 +757,15 @@ export async function saveIgrejaSingle(
   }
 
   // Fallback to In-Memory DB
-  let idx = -1;
-  if (id) {
-    idx = memoryDb.findIndex((item) => item.id === id);
-  }
-  if (idx === -1 && codigo_totvs) {
-    idx = memoryDb.findIndex((item) => item.codigo_totvs === codigo_totvs);
-  }
-
+  const idx = memoryDb.findIndex((item) => item.codigo_totvs === codigo_totvs);
   if (idx !== -1) {
     memoryDb[idx] = {
       ...memoryDb[idx],
       ...update,
       updated_at: new Date().toISOString(),
     };
-    return memoryDb[idx];
   } else {
-    const newItem: Igreja = {
-      id: id || undefined,
-      codigo_totvs: codigo_totvs || (update.codigo_totvs as string) || `TEMP_${Date.now()}`,
-      desc_igreja: update.desc_igreja || `Igreja ${codigo_totvs || ''}`,
-      tipo_imovel: update.tipo_imovel || 'ALUGADO',
-      endereco: update.endereco || '',
-      bairro: update.bairro || '',
-      municipio: update.municipio || '',
-      estado: update.estado || '',
-      cep: update.cep || '',
-      link_google_maps: update.link_google_maps || '',
-      latitude: update.latitude ?? null,
-      longitude: update.longitude ?? null,
-      status: update.status || 'PENDENTE',
-      ...update,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    memoryDb.push(newItem);
-    return newItem;
+    throw new Error(`Church with codigo_totvs ${codigo_totvs} not found.`);
   }
 }
 
