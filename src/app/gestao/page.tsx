@@ -277,7 +277,7 @@ export default function GestaoPage() {
   // 1. Lógica do Filtro Combinado
   const igrejasFiltradas = useMemo(() => {
     return igrejas.filter((igreja) => {
-      const matchesStatus = filterStatus === 'ALL' || igreja.status?.toLowerCase() === filterStatus.toLowerCase();
+      const matchesStatus = filterStatus === 'ALL' || String(igreja.status || '').toLowerCase() === filterStatus.toLowerCase();
       const matchesEstado = filterEstado === 'ALL' || igreja.estado === filterEstado;
       const matchesPorte = filterPorte === 'ALL' || igreja.porte === filterPorte;
 

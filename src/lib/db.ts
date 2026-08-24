@@ -43,7 +43,9 @@ const globalForDb = globalThis as unknown as {
   pgPool: Pool | undefined;
 };
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL
+  ? process.env.DATABASE_URL.trim().replace(/^["']|["']$/g, '')
+  : undefined;
 
 function createPool(): Pool | null {
   if (!databaseUrl) return null;
@@ -131,7 +133,7 @@ export async function getIgrejas(
 
       if (filters?.status && filters.status !== 'ALL') {
         if (filters.status === 'VALIDADO') {
-          query += ` AND (LOWER(status) LIKE 'validad%' OR status = 'VALIDADO')`;
+          query += ` AND (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA'))`;
         } else {
           query += ` AND status = $${paramCount}`;
           params.push(filters.status);
@@ -254,7 +256,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
   await ensurePostgresTable();
   if (pool) {
     try {
-      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte, codigo_totvs_pai FROM igrejas WHERE status = 'VALIDADO' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
+      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte, codigo_totvs_pai FROM igrejas WHERE (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA')) AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
       const res = await pool.query(query);
       return res.rows.map((row) => ({
         id: row.id,
@@ -273,7 +275,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
 
   // Fallback to In-Memory DB
   return memoryDb
-    .filter((item) => item.status === 'VALIDADO' && item.latitude !== null && item.longitude !== null && item.latitude !== 0 && item.longitude !== 0)
+    .filter((item) => (item.status || '').toLowerCase().startsWith('validad') && item.latitude !== null && item.longitude !== null && item.latitude !== 0 && item.longitude !== 0)
     .map((item) => ({
       id: item.id,
       codigo_totvs: item.codigo_totvs,
