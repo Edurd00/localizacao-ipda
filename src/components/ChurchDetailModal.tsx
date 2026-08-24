@@ -52,7 +52,7 @@ export default function ChurchDetailModal({
   const totalCascata = getDescendantCount(ig.codigo_totvs, igrejas);
 
   return (
-    <div className="w-full max-w-[380px] sm:max-w-[420px] p-3 sm:p-4 space-y-3 font-sans text-xs max-h-none">
+    <div className="w-full max-w-[380px] p-4 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden text-slate-800 space-y-3 font-sans text-xs">
       {/* Title & Header Badges */}
       <div className="border-b border-slate-150 pb-2.5">
         <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
@@ -170,7 +170,7 @@ export default function ChurchDetailModal({
                             setSedeCandidataB(null);
                             toast.info('Modo comparativo desativado.');
                           }}
-                          className="h-9 text-xs font-semibold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                          className="h-9 text-xs font-semibold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer"
                         >
                           <span>📐 Cancelar Comp.</span>
                         </button>
@@ -178,7 +178,7 @@ export default function ChurchDetailModal({
                         <button
                           type="button"
                           onClick={() => handleTraceConnectionMesh(ig)}
-                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer ${
                             String(connectionPathSource) === String(ig.codigo_totvs)
                               ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                               : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
@@ -197,7 +197,7 @@ export default function ChurchDetailModal({
                             setSedeCandidataA(ig);
                             toast.success(`Sede Candidata A definida: ${ig.desc_igreja}`);
                           }}
-                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer ${
                             String(sedeCandidataA?.codigo_totvs) === String(ig.codigo_totvs)
                               ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
                               : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
@@ -212,7 +212,7 @@ export default function ChurchDetailModal({
                             setSedeCandidataB(ig);
                             toast.success(`Sede Candidata B definida: ${ig.desc_igreja}`);
                           }}
-                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer ${
                             String(sedeCandidataB?.codigo_totvs) === String(ig.codigo_totvs)
                               ? 'border-cyan-500 bg-cyan-500 text-white hover:bg-cyan-600'
                               : 'border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-800'
@@ -232,7 +232,7 @@ export default function ChurchDetailModal({
                             setSedeCandidataB(null);
                             toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
                           }}
-                          className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                          className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer"
                         >
                           <span>📐 Comparar Rotas</span>
                         </button>
@@ -240,7 +240,7 @@ export default function ChurchDetailModal({
                         <button
                           type="button"
                           onClick={() => handleTraceConnectionMesh(ig)}
-                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer ${
                             String(connectionPathSource) === String(ig.codigo_totvs)
                               ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                               : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
@@ -257,10 +257,13 @@ export default function ChurchDetailModal({
                       type="button"
                       disabled={!(ig.codigo_totvs_pai && parentChurch)}
                       onClick={() => fetchTerrestrialRoute(ig, parentChurch!)}
-                      className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:cursor-not-allowed text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
-                      title={ig.codigo_totvs_pai && parentChurch ? 'Traçar rota rodoviária real até a igreja superior coligada' : 'Esta igreja não possui coligação superior registrada'}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      title={ig.codigo_totvs_pai && parentChurch ? `Rota Superior: ${parentChurch.desc_igreja}` : 'Esta igreja não possui coligação superior registrada'}
                     >
-                      <span>🚗 Rota Superior ({parentChurch ? parentChurch.desc_igreja : 'Vinculada'})</span>
+                      <span className="shrink-0">🚗</span>
+                      <span className="truncate block max-w-[260px]">
+                        Rota Superior ({parentChurch ? `${parentChurch.porte} - ${parentChurch.desc_igreja}` : 'N/A'})
+                      </span>
                     </button>
 
                     {/* Definir Origem / Traçar Rota a partir da Origem ([Nome]) */}
@@ -271,9 +274,10 @@ export default function ChurchDetailModal({
                           setPontoOrigem(ig);
                           toast.success(`Origem definida: ${ig.desc_igreja}`);
                         }}
-                        className="h-9 text-xs font-semibold border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-all cursor-pointer"
                       >
-                        <span>📍 Definir Origem</span>
+                        <span className="shrink-0">📍</span>
+                        <span>Definir Origem</span>
                       </button>
                     ) : String(pontoOrigem.codigo_totvs) !== String(ig.codigo_totvs) ? (
                       <button
@@ -282,10 +286,11 @@ export default function ChurchDetailModal({
                           fetchTerrestrialRoute(pontoOrigem, ig);
                           setPontoOrigem(null);
                         }}
-                        className="h-9 text-xs font-bold border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded-lg transition-colors flex items-center justify-center gap-1 w-full shadow-xs"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
                       >
-                        <span className="truncate max-w-[340px]">
-                          🏁 Traçar Rota a partir da Origem ({pontoOrigem.desc_igreja})
+                        <span className="shrink-0">🏁</span>
+                        <span className="truncate block max-w-[260px]">
+                          Traçar Rota a partir da Origem ({pontoOrigem.desc_igreja})
                         </span>
                       </button>
                     ) : (
@@ -295,9 +300,10 @@ export default function ChurchDetailModal({
                           setPontoOrigem(null);
                           toast.info('Origem de rota cancelada.');
                         }}
-                        className="h-9 text-xs font-semibold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer"
                       >
-                        <span>❌ Cancelar Origem</span>
+                        <span className="shrink-0">❌</span>
+                        <span>Cancelar Origem</span>
                       </button>
                     )}
 
@@ -311,7 +317,7 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(null);
                           toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino.`);
                         }}
-                        className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                        className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer"
                       >
                         <span>📐 Comparar Rotas</span>
                       </button>
@@ -319,7 +325,7 @@ export default function ChurchDetailModal({
                       <button
                         type="button"
                         onClick={() => handleTraceConnectionMesh(ig)}
-                        className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                        className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full cursor-pointer ${
                           String(connectionPathSource) === String(ig.codigo_totvs)
                             ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                             : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
