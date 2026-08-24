@@ -237,9 +237,13 @@ export async function getIgrejas(
       }
 
       if (filters?.status && filters.status !== 'ALL') {
-        query += ` AND status = $${paramCount}`;
-        params.push(filters.status);
-        paramCount++;
+        if (filters.status === 'VALIDADO') {
+          query += ` AND (LOWER(status) LIKE 'validad%' OR status = 'VALIDADO')`;
+        } else {
+          query += ` AND status = $${paramCount}`;
+          params.push(filters.status);
+          paramCount++;
+        }
       }
 
       // Order by desc_igreja ONLY if it's selected/requested
@@ -319,7 +323,11 @@ export async function getIgrejas(
     data = data.filter((item) => item.estado === filters.estado);
   }
   if (filters?.status && filters.status !== 'ALL') {
-    data = data.filter((item) => item.status === filters.status);
+    if (filters.status === 'VALIDADO') {
+      data = data.filter((item) => (item.status || '').toLowerCase().startsWith('validad'));
+    } else {
+      data = data.filter((item) => item.status === filters.status);
+    }
   }
 
   if (columns && columns.length > 0) {
