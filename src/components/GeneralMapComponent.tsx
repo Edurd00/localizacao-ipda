@@ -2464,16 +2464,13 @@ export default function GeneralMapComponent() {
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
-  const fetchIgrejas = async (isManualRefresh = false) => {
+  const fetchIgrejas = async () => {
     try {
-      const url = isManualRefresh
-        ? `/api/igrejas/validadas?refresh=${Date.now()}`
-        : `/api/igrejas/validadas`;
-
-      const res = await fetch(url);
+      const res = await fetch('/api/igrejas/validadas');
 
       if (!res.ok) throw new Error('Erro na busca');
       const data = await res.json();
+      console.log('[FRONTEND LOG] Total recebido:', data.length);
 
       const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
       if (Array.isArray(lista)) {
@@ -2481,7 +2478,7 @@ export default function GeneralMapComponent() {
         setError(null);
       }
     } catch (err) {
-      console.error('Erro ao carregar igrejas:', err);
+      console.error('Erro ao carregar mapa:', err);
       setError('Erro ao se conectar com o servidor.');
     } finally {
       setLoading(false);
@@ -2489,13 +2486,37 @@ export default function GeneralMapComponent() {
   };
 
   useEffect(() => {
-    fetchIgrejas(false);
+    fetchIgrejas();
   }, []);
 
   const handleSyncDatabase = async () => {
     setIsSyncing(true);
-    await fetchIgrejas(true);
-    setIsSyncing(false);
+    try {
+      // 1. Apaga a chave no servidor/CDN da Vercel
+      await fetch('/api/revalidate', { method: 'POST' });
+
+      // 2. Traz o payload completo do banco
+      const res = await fetch(`/api/igrejas/validadas?refresh=true&t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache',
+        },
+      });
+
+      const data = await res.json();
+      console.log('[FRONTEND LOG] Total recebido na sincronização:', data.length);
+      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
+      if (Array.isArray(lista) && lista.length > 0) {
+        setIgrejas(lista);
+        setError(null);
+        toast.success(`Mapa atualizado! Total: ${lista.length} igrejas.`);
+      }
+    } catch (err) {
+      console.error('Erro na sincronização:', err);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Handle ?totvs=CODE query parameter on load
@@ -2521,7 +2542,7 @@ export default function GeneralMapComponent() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchIgrejas(false);
+        fetchIgrejas();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -2927,7 +2948,7 @@ export default function GeneralMapComponent() {
             <h3 className="text-base font-bold text-zinc-900">Falha ao buscar dados</h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">{error}</p>
             <button
-              onClick={() => fetchIgrejas(true)}
+              onClick={() => fetchIgrejas()}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-md hover:bg-indigo-700 transition-all"
             >
               Tentar Novamente
