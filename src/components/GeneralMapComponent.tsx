@@ -16,9 +16,7 @@ import {
   X,
   RefreshCw,
   SlidersHorizontal,
-  GitBranch,
   Lock,
-  Users,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
@@ -904,7 +902,7 @@ interface MapViewProps {
   setMapType: (type: 'satellite' | 'osm') => void;
   handleClearAllLines: () => void;
   handleTraceConnectionMesh: (ig: Igreja) => void;
-  fetchTerrestrialRoute: (origin: Igreja, dest: Igreja, profile?: 'driving' | 'foot') => void;
+  fetchTerrestrialRoute: (origin: Igreja, dest: Igreja, profile?: 'driving' | 'foot') => Promise<boolean>;
   handleTransferColigacao: (candidata: Igreja) => void;
   setComparisonMode: (val: boolean) => void;
   setFixedDest: (ig: Igreja | null) => void;
@@ -912,8 +910,6 @@ interface MapViewProps {
   setSedeCandidataB: (ig: Igreja | null) => void;
   setRoutePath: (val: [number, number][] | null) => void;
   setRouteMeta: (val: RouteMeta | null) => void;
-  setActiveRouteOrigin: (ig: Igreja | null) => void;
-  setActiveRouteDest: (ig: Igreja | null) => void;
   isAuthenticated: boolean;
   regionLegendOpen: boolean;
   setRegionLegendOpen: (val: boolean) => void;
@@ -959,8 +955,6 @@ const MemoizedMapView = memo(function MapView({
   setSedeCandidataB,
   setRoutePath,
   setRouteMeta,
-  setActiveRouteOrigin,
-  setActiveRouteDest,
   isAuthenticated,
   regionLegendOpen,
   setRegionLegendOpen,
@@ -968,38 +962,6 @@ const MemoizedMapView = memo(function MapView({
   setPorteLegendMobileOpen,
 }: MapViewProps) {
   const markerRefs = useRef<Record<string, L.Marker | null>>({});
-
-  const [comparisonTransportMode, setComparisonTransportMode] = useState<'car' | 'bus'>('car');
-
-  const shortestOption = useMemo(() => {
-    const options = [];
-    if (metaAtual) options.push({ type: 'atual', distance: metaAtual.distance });
-    if (metaCandidataA) options.push({ type: 'A', distance: metaCandidataA.distance });
-    if (metaCandidataB) options.push({ type: 'B', distance: metaCandidataB.distance });
-
-    if (options.length === 0) return null;
-    let minOpt = options[0];
-    for (let i = 1; i < options.length; i++) {
-      if (options[i].distance < minOpt.distance) {
-        minOpt = options[i];
-      }
-    }
-    return minOpt.type;
-  }, [metaAtual, metaCandidataA, metaCandidataB]);
-
-  const economyA = useMemo(() => {
-    if (metaAtual && metaCandidataA) {
-      return (metaAtual.distance - metaCandidataA.distance).toFixed(1);
-    }
-    return null;
-  }, [metaAtual, metaCandidataA]);
-
-  const economyB = useMemo(() => {
-    if (metaAtual && metaCandidataB) {
-      return (metaAtual.distance - metaCandidataB.distance).toFixed(1);
-    }
-    return null;
-  }, [metaAtual, metaCandidataB]);
 
   const getRouteMarkerIcon = (label: 'A' | 'B', color: string) => {
     return L.divIcon({
@@ -1539,8 +1501,6 @@ const MemoizedMapView = memo(function MapView({
             onClick={() => {
               setRoutePath(null);
               setRouteMeta(null);
-              setActiveRouteOrigin(null);
-              setActiveRouteDest(null);
             }}
           />
           <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:bottom-6 md:right-6 md:left-auto w-full md:w-80 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white/95 backdrop-blur-md p-5 shadow-2xl space-y-3 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-bottom-2 flex flex-col">
@@ -1555,8 +1515,6 @@ const MemoizedMapView = memo(function MapView({
                 onClick={() => {
                   setRoutePath(null);
                   setRouteMeta(null);
-                  setActiveRouteOrigin(null);
-                  setActiveRouteDest(null);
                   toast.info('Rota terrestre removida do mapa.');
                 }}
                 className="text-zinc-400 hover:text-zinc-650 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-100 rounded-full transition-all"
@@ -1742,9 +1700,12 @@ export default function GeneralMapComponent() {
   const [routePath, setRoutePath] = useState<[number, number][] | null>(null);
   const [routeMeta, setRouteMeta] = useState<RouteMeta | null>(null);
   const [customRouteOrigin, setCustomRouteOrigin] = useState<Igreja | null>(null);
+  const routeAbortControllerRef = useRef<AbortController | null>(null);
 
-  const [activeRouteOrigin, setActiveRouteOrigin] = useState<Igreja | null>(null);
-  const [activeRouteDest, setActiveRouteDest] = useState<Igreja | null>(null);
+  useEffect(() => {
+    return () => routeAbortControllerRef.current?.abort();
+  }, []);
+
   const [travelMode, setTravelMode] = useState<'car' | 'motorcycle' | 'foot'>('car');
 
   // Authentication state
@@ -1902,19 +1863,24 @@ export default function GeneralMapComponent() {
     }
   };
 
-  const fetchTerrestrialRoute = async (origin: Igreja, dest: Igreja, profile: 'driving' | 'foot' = 'driving') => {
+  const fetchTerrestrialRoute = async (origin: Igreja, dest: Igreja, profile: 'driving' | 'foot' = 'driving'): Promise<boolean> => {
     if (!origin.latitude || !origin.longitude || !dest.latitude || !dest.longitude) {
       toast.error('Uma das igrejas selecionadas não possui coordenadas de geolocalização válidas.');
-      return;
+      return false;
     }
 
+    routeAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    routeAbortControllerRef.current = controller;
     const url = `https://router.project-osrm.org/route/v1/${profile}/${origin.longitude},${origin.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson`;
 
     toast.info('Calculando trajeto terrestre real via OSRM...');
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) throw new Error('OSRM API Error');
       const data = await res.json();
+
+      if (controller.signal.aborted) return false;
 
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
         const route = data.routes[0];
@@ -1940,8 +1906,7 @@ export default function GeneralMapComponent() {
           originCoords: [origin.latitude, origin.longitude],
           destinationCoords: [dest.latitude, dest.longitude],
         });
-        setActiveRouteOrigin(origin);
-        setActiveRouteDest(dest);
+        setCustomRouteOrigin(null);
         if (profile === 'foot') {
           setTravelMode('foot');
         } else if (travelMode === 'foot') {
@@ -1949,12 +1914,20 @@ export default function GeneralMapComponent() {
         }
 
         toast.success('Rota terrestre traçada com sucesso!');
+        return true;
       } else {
         toast.error('Não foi possível encontrar uma rota terrestre viável entre essas igrejas.');
+        return false;
       }
     } catch (err) {
+      if (controller.signal.aborted) return false;
       console.error('Error fetching OSRM route:', err);
       toast.error('Erro ao conectar com o motor de roteamento terrestre. Tente novamente mais tarde.');
+      return false;
+    } finally {
+      if (routeAbortControllerRef.current === controller) {
+        routeAbortControllerRef.current = null;
+      }
     }
   };
 
@@ -2316,13 +2289,14 @@ export default function GeneralMapComponent() {
   };
 
   const handleClearAllLines = () => {
+    routeAbortControllerRef.current?.abort();
+    routeAbortControllerRef.current = null;
     setSelectedConnectionPath(null);
     setConnectionPathSource(null);
     setActiveChainCodes([]);
     setRoutePath(null);
     setRouteMeta(null);
-    setActiveRouteOrigin(null);
-    setActiveRouteDest(null);
+    setCustomRouteOrigin(null);
     setComparisonMode(false);
     setFixedDest(null);
     setSedeCandidataA(null);
@@ -2536,8 +2510,6 @@ export default function GeneralMapComponent() {
             setSedeCandidataB={setSedeCandidataB}
             setRoutePath={setRoutePath}
             setRouteMeta={setRouteMeta}
-            setActiveRouteOrigin={setActiveRouteOrigin}
-            setActiveRouteDest={setActiveRouteDest}
             isAuthenticated={isAuthenticated}
             regionLegendOpen={regionLegendOpen}
             setRegionLegendOpen={setRegionLegendOpen}

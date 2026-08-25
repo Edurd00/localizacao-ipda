@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 import { revalidatePath } from 'next/cache';
-import { getIgrejas, saveIgrejaSingle, Igreja } from '@/lib/db';
+import { reassignIgrejaChildren, saveIgrejaSingle, Igreja } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -18,16 +18,7 @@ export async function POST(request: Request) {
 
     // 1. If we need to reorganize daughters
     if (reorganizar_filhas_para) {
-      const allIgrejas = await getIgrejas();
-      const daughters = allIgrejas.filter(
-        (ig) => ig.codigo_totvs_pai === codigo_totvs
-      );
-
-      for (const daughter of daughters) {
-        await saveIgrejaSingle(daughter.codigo_totvs, {
-          codigo_totvs_pai: reorganizar_filhas_para,
-        });
-      }
+      await reassignIgrejaChildren(codigo_totvs, reorganizar_filhas_para);
     }
 
     // 2. Build the single update object

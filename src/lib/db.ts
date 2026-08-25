@@ -65,7 +65,7 @@ function createPool(): Pool | null {
   }
 }
 
-let pool: Pool | null = globalForDb.pgPool ?? createPool();
+const pool: Pool | null = globalForDb.pgPool ?? createPool();
 if (pool) {
   globalForDb.pgPool = pool;
 }
@@ -113,14 +113,50 @@ async function ensurePostgresTable() {
   }
 }
 
+// Columns accepted by the data-access layer. Keeping this list here prevents a
+// request payload from ever becoming part of the SQL syntax.
+const IGREJA_COLUMNS = new Set<keyof Igreja>([
+  'id', 'codigo_totvs', 'desc_igreja', 'tipo_imovel', 'endereco', 'bairro',
+  'municipio', 'estado', 'cep', 'link_google_maps', 'latitude', 'longitude',
+  'status', 'usuario_validador', 'codigo_totvs_pai', 'porte', 'updated_at',
+  'created_at', 'validado_por', 'validado_em', 'data_validacao', 'observacoes',
+  'observacao', 'observacao_duvida', 'duvida', 'dirigente_nome',
+  'dirigente_telefone', 'dirigente_email', 'financeira_nome',
+  'financeira_telefone', 'financeira_email', 'dirigente_data_posse',
+  'qtd_membros', 'qtd_jovens', 'tipo_prebenda',
+]);
+
+const UPDATABLE_IGREJA_COLUMNS = new Set<keyof Igreja>([
+  'desc_igreja', 'tipo_imovel', 'endereco', 'bairro', 'municipio', 'estado',
+  'cep', 'link_google_maps', 'latitude', 'longitude', 'status',
+  'usuario_validador', 'codigo_totvs_pai', 'porte', 'validado_por',
+  'validado_em', 'data_validacao', 'observacoes', 'observacao',
+  'observacao_duvida', 'duvida', 'dirigente_nome', 'dirigente_telefone',
+  'dirigente_email', 'financeira_nome', 'financeira_telefone',
+  'financeira_email', 'dirigente_data_posse', 'qtd_membros', 'qtd_jovens',
+  'tipo_prebenda',
+]);
+
+function getSafeColumns(columns?: string[]): Array<keyof Igreja> | undefined {
+  if (!columns || columns.length === 0) return undefined;
+  const invalidColumn = columns.find((column) => !IGREJA_COLUMNS.has(column as keyof Igreja));
+  if (invalidColumn) throw new Error(`Coluna inválida solicitada: ${invalidColumn}`);
+  return columns as Array<keyof Igreja>;
+}
+
+function isValidatedStatus(status: string | null | undefined): boolean {
+  return (status || '').trim().toUpperCase().startsWith('VALIDAD');
+}
+
 export async function getIgrejas(
   filters?: { estado?: string; status?: string },
   columns?: string[]
 ): Promise<Igreja[]> {
   await ensurePostgresTable();
+  const safeColumns = getSafeColumns(columns);
   if (pool) {
     try {
-      const selector = columns && columns.length > 0 ? columns.join(', ') : '*';
+      const selector = safeColumns ? safeColumns.join(', ') : '*';
       let query = `SELECT ${selector} FROM igrejas WHERE 1=1`;
       const params: string[] = [];
       let paramCount = 1;
@@ -142,13 +178,13 @@ export async function getIgrejas(
       }
 
       // Order by desc_igreja ONLY if it's selected/requested
-      if (!columns || columns.includes('desc_igreja')) {
+      if (!safeColumns || safeColumns.includes('desc_igreja')) {
         query += ' ORDER BY desc_igreja ASC';
       }
 
       const res = await pool.query(query, params);
       return res.rows.map((row) => {
-        const item: any = {};
+        const item: Partial<Igreja> = {};
         if (row.id !== undefined) item.id = row.id;
         if (row.codigo_totvs !== undefined) item.codigo_totvs = row.codigo_totvs;
         if (row.desc_igreja !== undefined) item.desc_igreja = row.desc_igreja;
@@ -194,11 +230,12 @@ export async function getIgrejas(
       });
     } catch (err) {
       console.error('Postgres error in getIgrejas:', err);
+      throw err;
     }
   }
 
   // Fallback to In-Memory DB
-  let data = [...memoryDb].map(item => {
+  let data: Igreja[] = [...memoryDb].map(item => {
     let validado_por = item.validado_por;
     let usuario_validador = item.usuario_validador;
 
@@ -219,22 +256,20 @@ export async function getIgrejas(
   }
   if (filters?.status && filters.status !== 'ALL') {
     if (filters.status === 'VALIDADO') {
-      data = data.filter((item) => (item.status || '').toLowerCase().startsWith('validad'));
+      data = data.filter((item) => isValidatedStatus(item.status));
     } else {
       data = data.filter((item) => item.status === filters.status);
     }
   }
 
-  if (columns && columns.length > 0) {
-    const colSet = new Set(columns);
-    data = data.map((item: any) => {
-      const filtered: any = {};
-      colSet.forEach((col) => {
-        if (item[col] !== undefined) {
-          filtered[col] = item[col];
-        }
+  if (safeColumns) {
+    data = data.map((item) => {
+      const filtered: Record<string, unknown> = {};
+      safeColumns.forEach((column) => {
+        const value = item[column];
+        if (value !== undefined) filtered[column] = value;
       });
-      return filtered;
+      return filtered as unknown as Igreja;
     });
   }
 
@@ -270,12 +305,13 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
       }));
     } catch (err) {
       console.error('Postgres error in getIgrejasForMap:', err);
+      throw err;
     }
   }
 
   // Fallback to In-Memory DB
   return memoryDb
-    .filter((item) => (item.status || '').toLowerCase().startsWith('validad') && item.latitude !== null && item.longitude !== null && item.latitude !== 0 && item.longitude !== 0)
+    .filter((item) => isValidatedStatus(item.status) && item.latitude !== null && item.longitude !== null && item.latitude !== 0 && item.longitude !== 0)
     .map((item) => ({
       id: item.id,
       codigo_totvs: item.codigo_totvs,
@@ -297,6 +333,7 @@ export async function getDistinctStates(): Promise<string[]> {
       return res.rows.map((row) => row.estado);
     } catch (err) {
       console.error('Postgres error in getDistinctStates:', err);
+      throw err;
     }
   }
 
@@ -343,7 +380,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
           if (!existing) {
             report.novas++;
           } else {
-            const isStatusValidado = existing.status === 'VALIDADO';
+            const isStatusValidado = isValidatedStatus(existing.status);
             const isParentSet = existing.codigo_totvs_pai !== null && existing.codigo_totvs_pai !== undefined && existing.codigo_totvs_pai !== '';
 
             if (options?.isReclassificacao) {
@@ -520,7 +557,7 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
   igrejas.forEach((ig) => {
     const existing = map.get(ig.codigo_totvs);
     if (existing) {
-      const isStatusValidado = existing.status === 'VALIDADO';
+      const isStatusValidado = isValidatedStatus(existing.status);
       const isParentSet = existing.codigo_totvs_pai !== null && existing.codigo_totvs_pai !== undefined && existing.codigo_totvs_pai !== '';
 
       if (options?.isReclassificacao) {
@@ -644,6 +681,14 @@ export async function saveIgrejaSingle(
     throw new Error('ID ou codigo_totvs é obrigatório para salvar.');
   }
 
+  const updateEntries = Object.entries(update).filter(([key]) =>
+    UPDATABLE_IGREJA_COLUMNS.has(key as keyof Igreja)
+  ) as Array<[keyof Igreja, Igreja[keyof Igreja]]>;
+
+  if (updateEntries.length !== Object.keys(update).length) {
+    throw new Error('A atualização contém campos não permitidos.');
+  }
+
   if (pool) {
     try {
       const whereClause = id ? 'id = $1' : 'codigo_totvs = $1';
@@ -676,7 +721,7 @@ export async function saveIgrejaSingle(
         return insertRes.rows[0] as Igreja;
       } else {
         // UPDATE if record exists
-        const keys = Object.keys(update) as Array<keyof Igreja>;
+        const keys = updateEntries.map(([key]) => key);
         if (keys.length > 0) {
           const sets: string[] = [];
           const params: unknown[] = [whereParam];
@@ -714,7 +759,7 @@ export async function saveIgrejaSingle(
   if (idx !== -1) {
     memoryDb[idx] = {
       ...memoryDb[idx],
-      ...update,
+      ...Object.fromEntries(updateEntries),
       updated_at: new Date().toISOString(),
     };
     return memoryDb[idx];
@@ -733,13 +778,46 @@ export async function saveIgrejaSingle(
       latitude: update.latitude ?? null,
       longitude: update.longitude ?? null,
       status: update.status || 'PENDENTE',
-      ...update,
+      ...Object.fromEntries(updateEntries),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     memoryDb.push(newItem);
     return newItem;
   }
+}
+
+export async function reassignIgrejaChildren(
+  codigoTotvsPai: string,
+  novoCodigoTotvsPai: string
+): Promise<number> {
+  await ensurePostgresTable();
+  if (pool) {
+    try {
+      const result = await pool.query(
+        `UPDATE igrejas
+         SET codigo_totvs_pai = $2, updated_at = CURRENT_TIMESTAMP
+         WHERE codigo_totvs_pai = $1`,
+        [codigoTotvsPai, novoCodigoTotvsPai]
+      );
+      return result.rowCount ?? 0;
+    } catch (err) {
+      console.error('Postgres error in reassignIgrejaChildren:', err);
+      throw err;
+    }
+  }
+
+  let updated = 0;
+  memoryDb = memoryDb.map((igreja) => {
+    if (igreja.codigo_totvs_pai !== codigoTotvsPai) return igreja;
+    updated++;
+    return {
+      ...igreja,
+      codigo_totvs_pai: novoCodigoTotvsPai,
+      updated_at: new Date().toISOString(),
+    };
+  });
+  return updated;
 }
 
 export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
@@ -813,35 +891,38 @@ export async function upsertContactsBulk(contacts: Array<{
     try {
       const CHUNK_SIZE = 500;
       for (let i = 0; i < contacts.length; i += CHUNK_SIZE) {
-        const chunk = contacts.slice(i, i + CHUNK_SIZE);
-        await client.query('BEGIN');
-        for (const item of chunk) {
-          const totvs = item.codigo_totvs ? item.codigo_totvs.toString().trim() : '';
-          if (!totvs) continue;
-          const dirigente = item.dirigente_nome ? item.dirigente_nome.toString().trim() : null;
-          const telefone = item.dirigente_telefone ? item.dirigente_telefone.toString().trim() : null;
+        const uniqueContacts = new Map<string, { dirigente_nome: string | null; dirigente_telefone: string | null }>();
+        contacts.slice(i, i + CHUNK_SIZE).forEach((item) => {
+          const codigo_totvs = item.codigo_totvs?.toString().trim();
+          if (!codigo_totvs) return;
+          uniqueContacts.set(codigo_totvs, {
+            dirigente_nome: item.dirigente_nome?.toString().trim() || null,
+            dirigente_telefone: item.dirigente_telefone?.toString().trim() || null,
+          });
+        });
+        const chunk = Array.from(uniqueContacts, ([codigo_totvs, contact]) => ({ codigo_totvs, ...contact }));
+        if (chunk.length === 0) continue;
 
-          const query = `
-            INSERT INTO igrejas (codigo_totvs, desc_igreja, dirigente_nome, dirigente_telefone, status)
-            VALUES ($1, $2, $3, $4, 'PENDENTE')
-            ON CONFLICT (codigo_totvs) DO UPDATE SET
-              dirigente_nome = COALESCE(EXCLUDED.dirigente_nome, igrejas.dirigente_nome),
-              dirigente_telefone = COALESCE(EXCLUDED.dirigente_telefone, igrejas.dirigente_telefone),
-              updated_at = CURRENT_TIMESTAMP
-            RETURNING (xmax = 0) AS is_inserted;
-          `;
-          const res = await client.query(query, [
-            totvs,
-            `Igreja ${totvs}`,
-            dirigente,
-            telefone,
-          ]);
-          if (res.rows.length > 0 && res.rows[0].is_inserted) {
-            insertedCount++;
-          } else {
-            updatedCount++;
-          }
-        }
+        await client.query('BEGIN');
+        const res = await client.query<{ is_inserted: boolean }>(`
+          INSERT INTO igrejas (codigo_totvs, desc_igreja, dirigente_nome, dirigente_telefone, status)
+          SELECT codigo_totvs, 'Igreja ' || codigo_totvs, dirigente_nome, dirigente_telefone, 'PENDENTE'
+          FROM UNNEST($1::text[], $2::text[], $3::text[])
+            AS contact(codigo_totvs, dirigente_nome, dirigente_telefone)
+          ON CONFLICT (codigo_totvs) DO UPDATE SET
+            dirigente_nome = COALESCE(EXCLUDED.dirigente_nome, igrejas.dirigente_nome),
+            dirigente_telefone = COALESCE(EXCLUDED.dirigente_telefone, igrejas.dirigente_telefone),
+            updated_at = CURRENT_TIMESTAMP
+          WHERE (EXCLUDED.dirigente_nome IS NOT NULL AND EXCLUDED.dirigente_nome IS DISTINCT FROM igrejas.dirigente_nome)
+             OR (EXCLUDED.dirigente_telefone IS NOT NULL AND EXCLUDED.dirigente_telefone IS DISTINCT FROM igrejas.dirigente_telefone)
+          RETURNING (xmax = 0) AS is_inserted;
+        `, [
+          chunk.map((item) => item.codigo_totvs),
+          chunk.map((item) => item.dirigente_nome),
+          chunk.map((item) => item.dirigente_telefone),
+        ]);
+        insertedCount += res.rows.filter((row) => row.is_inserted).length;
+        updatedCount += res.rows.filter((row) => !row.is_inserted).length;
         await client.query('COMMIT');
       }
       return { updatedCount, insertedCount };

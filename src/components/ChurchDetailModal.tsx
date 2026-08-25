@@ -22,7 +22,7 @@ export interface ChurchDetailModalProps {
   connectionPathSource: string | null;
   isAuthenticated: boolean;
   handleTraceConnectionMesh: (ig: Igreja) => void;
-  fetchTerrestrialRoute: (origin: Igreja, dest: Igreja, profile?: 'driving' | 'foot') => void;
+  fetchTerrestrialRoute: (origin: Igreja, dest: Igreja, profile?: 'driving' | 'foot') => Promise<boolean>;
 }
 
 export default function ChurchDetailModal({
@@ -288,9 +288,11 @@ export default function ChurchDetailModal({
                     ) : String(pontoOrigem.codigo_totvs) !== String(ig.codigo_totvs) ? (
                       <button
                         type="button"
-                        onClick={() => {
-                          fetchTerrestrialRoute(pontoOrigem, ig);
-                          setPontoOrigem(null);
+                        onClick={async () => {
+                          const routeWasCreated = await fetchTerrestrialRoute(pontoOrigem, ig);
+                          if (routeWasCreated) {
+                            setPontoOrigem(null);
+                          }
                         }}
                         className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-xl hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
                         title={`Traçar rota a partir de ${pontoOrigem.desc_igreja}`}
