@@ -2,34 +2,61 @@ import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const isRefresh = searchParams.get('refresh') === 'true';
-
-    const result = await getIgrejas({ status: 'VALIDADO' });
-
-    console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
-
-    // Se for refresh, instrui a Vercel a descartar a resposta antiga
-    const cacheHeader = isRefresh
-      ? 'no-store, no-cache, must-revalidate, max-age=0'
-      : 'public, s-maxage=3600, stale-while-revalidate=86400';
-
-    return NextResponse.json(result, {
-      headers: {
-        'Cache-Control': cacheHeader,
-        'CDN-Cache-Control': cacheHeader,
-        'Vercel-CDN-Cache-Control': cacheHeader,
-      },
-    });
-  } catch (error: any) {
-    if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('Dynamic server usage')) {
-      throw error;
-    }
-    console.error('Erro na API:', error);
-    return NextResponse.json([], { status: 500 });
+    const igrejas = await getIgrejas({ status: 'VALIDADO' }, [
+      'id',
+      'codigo_totvs',
+      'desc_igreja',
+      'latitude',
+      'longitude',
+      'status',
+      'porte',
+      'codigo_totvs_pai',
+      'estado',
+      'municipio',
+      'tipo_imovel',
+      'endereco',
+      'bairro',
+      'cep',
+      'link_google_maps',
+      'usuario_validador',
+      'validado_por',
+      'validado_em',
+      'updated_at',
+      'dirigente_nome',
+      'dirigente_telefone',
+      'dirigente_email',
+      'dirigente_data_posse',
+      'financeira_nome',
+      'financeira_telefone',
+      'financeira_email',
+      'qtd_membros',
+      'qtd_jovens',
+      'tipo_prebenda',
+    ]);
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        igrejas,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600',
+          'CDN-Cache-Control': 'public, s-maxage=86400',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
+        },
+      }
+    );
+  } catch (err: unknown) {
+    console.error('API Error in GET /api/igrejas/validadas:', err);
+    const errMsg = err instanceof Error ? err.message : 'Unknown database error';
+    return NextResponse.json(
+      { success: false, error: errMsg },
+      { status: 500 }
+    );
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useTransition, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -23,8 +23,6 @@ import {
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import ChurchDetailModal from './ChurchDetailModal';
-import RouteCompareModal from './RouteCompareModal';
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -105,21 +103,20 @@ export function getPorte(desc: string, porteField?: string | null): string {
   return 'LOCAL';
 }
 
-export function getDescendantCount(parentCode: string | number, list: Igreja[]): number {
+export function getDescendantCount(parentCode: string, list: Igreja[]): number {
   let count = 0;
-  const pCodeStr = String(parentCode);
-  const queue: string[] = [pCodeStr];
-  const visited = new Set<string>([pCodeStr]);
+  const queue: string[] = [parentCode];
+  const visited = new Set<string>([parentCode]);
 
   while (queue.length > 0) {
     const currentCode = queue.shift()!;
     const directChildren = list.filter(
-      (ig) => String(ig.codigo_totvs_pai) === String(currentCode) && ig.status !== 'DESATIVADO' && !visited.has(String(ig.codigo_totvs))
+      (ig) => ig.codigo_totvs_pai === currentCode && ig.status !== 'DESATIVADO' && !visited.has(ig.codigo_totvs)
     );
     for (const child of directChildren) {
-      visited.add(String(child.codigo_totvs));
+      visited.add(child.codigo_totvs);
       count++;
-      queue.push(String(child.codigo_totvs));
+      queue.push(child.codigo_totvs);
     }
   }
   return count;
@@ -322,25 +319,23 @@ function MapController({
   preventAutoFit: boolean;
 }) {
   const map = useMap();
-  const prevFlyToRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (flyToTarget) {
-      const targetKey = `${flyToTarget.totvs}-${flyToTarget.center.join(',')}-${flyToTarget.zoom}`;
-      if (prevFlyToRef.current !== targetKey) {
-        prevFlyToRef.current = targetKey;
-        map.flyTo(flyToTarget.center, flyToTarget.zoom, {
-          animate: true,
-          duration: 1.5,
-        });
-        const timer = setTimeout(() => {
-          onFlyToComplete();
-        }, 1600);
-        return () => clearTimeout(timer);
-      }
+      map.flyTo(flyToTarget.center, flyToTarget.zoom, {
+        animate: true,
+        duration: 1.5,
+      });
+      const timer = setTimeout(() => {
+        onFlyToComplete();
+      }, 1600);
+      return () => clearTimeout(timer);
+    } else if (region === 'ALL' && !hasActiveRouteOrMesh && !preventAutoFit) {
+      map.setView(center, zoom, {
+        animate: true,
+        duration: 1.2,
+      });
     }
-  }, [flyToTarget, map, onFlyToComplete]);
-
+  }, [center, zoom, flyToTarget, map, onFlyToComplete, region, hasActiveRouteOrMesh, preventAutoFit]);
   return null;
 }
 
@@ -357,12 +352,7 @@ function RegionBoundsController({
   preventAutoFit: boolean;
 }) {
   const map = useMap();
-  const prevRegionRef = useRef<string>(region);
-
   useEffect(() => {
-    if (prevRegionRef.current === region) return;
-    prevRegionRef.current = region;
-
     if (!region || region === 'ALL' || hasActiveRouteOrMesh || preventAutoFit) return;
 
     const staticBounds = REGIAO_BOUNDS[region];
@@ -424,19 +414,7 @@ function MapBoundsController({
   activeChainCodes: string[];
 }) {
   const map = useMap();
-  const prevTriggerKeyRef = useRef<string | null>(null);
-
   useEffect(() => {
-    const triggerKey = [
-      routeMeta ? `${routeMeta.originCoords?.join(',')}-${routeMeta.destinationCoords?.join(',')}` : '',
-      comparisonMode ? `${fixedDest?.codigo_totvs}-${sedeCandidataA?.codigo_totvs}-${sedeCandidataB?.codigo_totvs}` : '',
-      connectionPathSource ? `${connectionPathSource}-${activeChainCodes.join(',')}` : '',
-      bounds ? bounds.length : 0,
-    ].join('|');
-
-    if (prevTriggerKeyRef.current === triggerKey) return;
-    prevTriggerKeyRef.current = triggerKey;
-
     // 1. If we have standard route active (routeMeta)
     if (routeMeta && routeMeta.originCoords && routeMeta.destinationCoords) {
       const routeBounds: [number, number][] = [
@@ -457,7 +435,7 @@ function MapBoundsController({
       points.push([fixedDest.latitude, fixedDest.longitude]);
 
       const parent = fixedDest.codigo_totvs_pai
-        ? igrejas.find((p) => String(p.codigo_totvs) === String(fixedDest.codigo_totvs_pai))
+        ? igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)
         : null;
       if (parent && parent.latitude && parent.longitude) {
         points.push([parent.latitude, parent.longitude]);
@@ -483,14 +461,14 @@ function MapBoundsController({
 
     // 3. If Connection Mesh (Malha de Conexão) is active
     if (connectionPathSource && activeChainCodes.length > 0) {
-      const sourceChurch = igrejas.find((ig) => String(ig.codigo_totvs) === String(connectionPathSource));
+      const sourceChurch = igrejas.find((ig) => ig.codigo_totvs === connectionPathSource);
       const sourcePorte = sourceChurch ? (sourceChurch.porte || getPorte(sourceChurch.desc_igreja, sourceChurch.porte)) : 'LOCAL';
       const isLowLevel = sourcePorte === 'LOCAL' || sourcePorte === 'CASA DE ORAÇÃO' || sourcePorte === 'ALDEIA INDIGENA';
       const selectedPadding = isLowLevel ? [80, 80] : [60, 60];
 
       const meshCoords: [number, number][] = [];
       activeChainCodes.forEach((totvs) => {
-        const found = igrejas.find((ig) => String(ig.codigo_totvs) === String(totvs));
+        const found = igrejas.find((ig) => ig.codigo_totvs === totvs);
         if (found && found.latitude && found.longitude) {
           meshCoords.push([found.latitude, found.longitude]);
         }
@@ -575,10 +553,10 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
 
     const matches = igrejas.filter((ig) => {
       const normIg = normalizeTotvs(ig.codigo_totvs);
-      const codeMatch = normIg === termNorm || String(ig.codigo_totvs || '').toLowerCase().includes(term);
-      const nameMatch = String(ig.desc_igreja || '').toLowerCase().includes(term);
-      const addressMatch = String(ig.endereco || '').toLowerCase().includes(term);
-      const cityMatch = String(ig.municipio || '').toLowerCase().includes(term);
+      const codeMatch = normIg === termNorm || ig.codigo_totvs.toLowerCase().includes(term);
+      const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
+      const addressMatch = (ig.endereco || '').toLowerCase().includes(term);
+      const cityMatch = (ig.municipio || '').toLowerCase().includes(term);
       return codeMatch || nameMatch || addressMatch || cityMatch;
     });
 
@@ -697,7 +675,7 @@ interface FiltersModalProps {
   onResetFilters: () => void;
 }
 
-const FiltersModal = memo(function FiltersModal({
+function FiltersModal({
   isOpen,
   onClose,
   selectedRegionGeo,
@@ -870,8 +848,471 @@ const FiltersModal = memo(function FiltersModal({
     </>,
     document.body
   );
-});
+}
 
+interface ChurchPopupContentProps {
+  ig: Igreja;
+  igrejas: Igreja[];
+  comparisonMode: boolean;
+  fixedDest: Igreja | null;
+  sedeCandidataA: Igreja | null;
+  sedeCandidataB: Igreja | null;
+  connectionPathSource: string | null;
+  customRouteOrigin: Igreja | null;
+  isAuthenticated: boolean;
+  setComparisonMode: (val: boolean) => void;
+  setFixedDest: (ig: Igreja | null) => void;
+  setSedeCandidataA: (ig: Igreja | null) => void;
+  setSedeCandidataB: (ig: Igreja | null) => void;
+  setCustomRouteOrigin: (ig: Igreja | null) => void;
+  handleTraceConnectionMesh: (ig: Igreja) => void;
+  fetchTerrestrialRoute: (origin: Igreja, dest: Igreja, profile?: 'driving' | 'foot') => void;
+}
+
+function ChurchPopupContent({
+  ig,
+  igrejas,
+  comparisonMode,
+  fixedDest,
+  sedeCandidataA,
+  sedeCandidataB,
+  connectionPathSource,
+  customRouteOrigin,
+  isAuthenticated,
+  setComparisonMode,
+  setFixedDest,
+  setSedeCandidataA,
+  setSedeCandidataB,
+  setCustomRouteOrigin,
+  handleTraceConnectionMesh,
+  fetchTerrestrialRoute,
+}: ChurchPopupContentProps) {
+  const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'hierarquia'>('geral');
+
+  const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+  const parentChurch = ig.codigo_totvs_pai
+    ? igrejas.find((p) => p.codigo_totvs === ig.codigo_totvs_pai)
+    : null;
+  const totalCascata = getDescendantCount(ig.codigo_totvs, igrejas);
+
+  return (
+    <div className="max-h-[85vh] sm:max-h-[520px] w-full max-w-[380px] sm:max-w-[420px] overflow-y-auto custom-scrollbar p-3 sm:p-4 space-y-3 font-sans text-xs">
+      {/* Title & Header Badges */}
+      <div className="border-b border-slate-150 pb-2.5">
+        <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+          {ig.desc_igreja}
+        </h3>
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+            TOTVS: {ig.codigo_totvs}
+          </span>
+          <span
+            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border text-white"
+            style={{
+              backgroundColor: PORTE_INFO[porte]?.color || '#A6A6A6',
+              borderColor: 'rgba(0,0,0,0.1)',
+            }}
+          >
+            {porte}
+          </span>
+          {totalCascata > 0 && (
+            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-bold rounded-full border border-indigo-200 inline-flex items-center gap-1">
+              🏛️ {totalCascata} na malha
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab('geral')}
+          className={`flex-1 py-1.5 text-center text-xs font-bold border-b-2 transition-colors ${
+            activeTab === 'geral'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          📍 Geral
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('lideranca')}
+          className={`flex-1 py-1.5 text-center text-xs font-bold border-b-2 transition-colors ${
+            activeTab === 'lideranca'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          👥 Liderança
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('hierarquia')}
+          className={`flex-1 py-1.5 text-center text-xs font-bold border-b-2 transition-colors ${
+            activeTab === 'hierarquia'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          🔗 Hierarquia
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="pt-1">
+        {activeTab === 'geral' && (
+          <div className="space-y-2 text-slate-600">
+            {ig.tipo_imovel && (
+              <p className="flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <span>
+                  <span className="font-semibold text-slate-400">Tipo de Imóvel:</span>{' '}
+                  <span className="font-bold text-slate-800">{ig.tipo_imovel}</span>
+                </span>
+              </p>
+            )}
+
+            <p className="flex items-start gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" />
+              <span>
+                <span className="font-semibold text-slate-400">Endereço:</span>{' '}
+                <span className="text-slate-800 font-medium">
+                  {ig.endereco}
+                  {ig.bairro ? `, ${ig.bairro}` : ''}, {ig.municipio} - {ig.estado}
+                  {ig.cep ? ` (${ig.cep})` : ''}
+                </span>
+              </span>
+            </p>
+
+            {(ig.qtd_membros !== null && ig.qtd_membros !== undefined && ig.qtd_membros > 0 || ig.qtd_jovens !== null && ig.qtd_jovens !== undefined && ig.qtd_jovens > 0) && (
+              <div className="flex items-center gap-2 font-bold text-slate-800 bg-slate-100 p-2 rounded-lg border border-slate-200 text-[11px] mt-2">
+                <span>👥 {ig.qtd_membros || 0} Membros</span>
+                <span className="text-slate-300">|</span>
+                <span>⚡ {ig.qtd_jovens || 0} Jovens</span>
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                {comparisonMode ? (
+                  fixedDest?.codigo_totvs === ig.codigo_totvs ? (
+                    <>
+                      <div className="col-span-2 h-9 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center justify-center gap-1">
+                        <span>📍 Alvo de Análise</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setComparisonMode(false);
+                          setFixedDest(null);
+                          setSedeCandidataA(null);
+                          setSedeCandidataB(null);
+                          toast.info('Modo comparativo desativado.');
+                        }}
+                        className="h-9 text-xs font-semibold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                      >
+                        <span>📐 Cancelar Comp.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTraceConnectionMesh(ig)}
+                        className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          connectionPathSource === ig.codigo_totvs
+                            ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        <span>{connectionPathSource === ig.codigo_totvs ? '❌ Ocultar Malha' : '🔗 Ver Malha'}</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSedeCandidataA(ig);
+                          toast.success(`Sede Candidata A definida: ${ig.desc_igreja}`);
+                        }}
+                        className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          sedeCandidataA?.codigo_totvs === ig.codigo_totvs
+                            ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
+                            : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        <span>🟢 Sede Cand. A</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSedeCandidataB(ig);
+                          toast.success(`Sede Candidata B definida: ${ig.desc_igreja}`);
+                        }}
+                        className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          sedeCandidataB?.codigo_totvs === ig.codigo_totvs
+                            ? 'border-cyan-500 bg-cyan-500 text-white hover:bg-cyan-600'
+                            : 'border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-800'
+                        }`}
+                      >
+                        <span>🔵 Sede Cand. B</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setComparisonMode(true);
+                          setFixedDest(ig);
+                          setSedeCandidataA(null);
+                          setSedeCandidataB(null);
+                          toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
+                        }}
+                        className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                      >
+                        <span>📐 Comparar Rotas</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTraceConnectionMesh(ig)}
+                        className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                          connectionPathSource === ig.codigo_totvs
+                            ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        <span>{connectionPathSource === ig.codigo_totvs ? '❌ Ocultar Malha' : '🔗 Ver Malha'}</span>
+                      </button>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={!(ig.codigo_totvs_pai && parentChurch)}
+                      onClick={() => fetchTerrestrialRoute(ig, parentChurch!)}
+                      className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:cursor-not-allowed text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                      title={ig.codigo_totvs_pai && parentChurch ? 'Traçar rota rodoviária real até a igreja superior coligada' : 'Esta igreja não possui coligação superior registrada'}
+                    >
+                      <span>🚗 Rota Superior</span>
+                    </button>
+
+                    {!customRouteOrigin ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomRouteOrigin(ig);
+                          toast.success(`Origem definida: ${ig.desc_igreja}. Abra o popup da igreja de destino e clique em "Traçar Rota terrestre".`);
+                        }}
+                        className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                      >
+                        <span>📍 Definir Origem</span>
+                      </button>
+                    ) : customRouteOrigin.codigo_totvs !== ig.codigo_totvs ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          fetchTerrestrialRoute(customRouteOrigin, ig);
+                          setCustomRouteOrigin(null);
+                        }}
+                        className="h-9 text-xs font-semibold border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                      >
+                        <span>🏁 Traçar Rota</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomRouteOrigin(null);
+                          toast.info('Origem de rota redefinida.');
+                        }}
+                        className="h-9 text-xs font-semibold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                      >
+                        <span>❌ Cancelar</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setComparisonMode(true);
+                        setFixedDest(ig);
+                        setSedeCandidataA(null);
+                        setSedeCandidataB(null);
+                        toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino. Agora clique em outras igrejas para selecionar as Candidatas A e B.`);
+                      }}
+                      className="h-9 text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 w-full"
+                    >
+                      <span>📐 Comparar Rotas</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleTraceConnectionMesh(ig)}
+                      className={`h-9 text-xs font-semibold border rounded-lg transition-colors flex items-center justify-center gap-1 w-full ${
+                        connectionPathSource === ig.codigo_totvs
+                          ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <span>{connectionPathSource === ig.codigo_totvs ? '❌ Ocultar Malha' : '🔗 Ver Malha'}</span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <a
+                href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-1.5 w-full shadow-xs"
+              >
+                <span>🗺️ Abrir no Google Maps ↗</span>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'lideranca' && (
+          <div className="space-y-2">
+            {ig.dirigente_nome && (
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
+                      <span>👔</span> {ig.dirigente_nome}
+                    </p>
+                    <div className="flex items-center gap-1.5 my-1 flex-wrap">
+                      <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
+                      <span className="text-slate-300">•</span>
+                      {ig.tipo_prebenda === 'PREBENDADA' ? (
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                          💼 Prebendado
+                        </span>
+                      ) : (
+                        <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-medium">
+                          🤝 Voluntário
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {ig.dirigente_data_posse && (
+                  <p className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-150 font-bold mt-1.5">
+                    📅 {formatLeadershipTenure(ig.dirigente_data_posse)}
+                  </p>
+                )}
+
+                {ig.dirigente_telefone && (
+                  <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
+                    <a
+                      href={`tel:${ig.dirigente_telefone.replace(/\D/g, '')}`}
+                      className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                      title="Clique para ligar"
+                    >
+                      <span>📞</span> {ig.dirigente_telefone}
+                    </a>
+
+                    <a
+                      href={`https://wa.me/55${ig.dirigente_telefone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors shrink-0"
+                    >
+                      <span>💬</span> WhatsApp
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {ig.financeira_nome && (
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
+                      <span>💰</span> {ig.financeira_nome}
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-medium">Voluntária Financeira</span>
+                  </div>
+                </div>
+
+                {ig.financeira_telefone && (
+                  <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
+                    <a
+                      href={`tel:${ig.financeira_telefone.replace(/\D/g, '')}`}
+                      className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                      title="Clique para ligar"
+                    >
+                      <span>📞</span> {ig.financeira_telefone}
+                    </a>
+
+                    <a
+                      href={`https://wa.me/55${ig.financeira_telefone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors shrink-0"
+                    >
+                      <span>💬</span> WhatsApp
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!ig.dirigente_nome && !ig.financeira_nome && (
+              <p className="text-slate-400 italic text-xs p-2">Nenhum responsável cadastrado.</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'hierarquia' && (
+          <div className="space-y-2 text-xs text-slate-600">
+            {ig.codigo_totvs_pai ? (
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider block">Coligada a:</span>
+                <p className="font-bold text-slate-800 text-xs">
+                  {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
+                </p>
+                <p className="text-[10px] text-slate-400 font-mono">
+                  Código TOTVS: {ig.codigo_totvs_pai}
+                </p>
+              </div>
+            ) : (
+              <p className="text-slate-400 italic text-xs p-2">Sede Raiz (Sem coligação superior).</p>
+            )}
+
+            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1 text-[11px]">
+              <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider block">Histórico de Validação:</span>
+              {((ig as any).validado_em || ig.updated_at) ? (
+                <p className="text-slate-700">
+                  <span className="font-semibold text-slate-500">Data:</span>{' '}
+                  {new Date((ig as any).validado_em || ig.updated_at!).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              ) : null}
+              {(ig.usuario_validador || (ig as any).validado_por) ? (
+                <p className="text-slate-700">
+                  <span className="font-semibold text-slate-500">Validador:</span>{' '}
+                  {ig.usuario_validador || (ig as any).validado_por}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Subcomponent: Memoized Map View to isolate Leaflet DOM reconciliation from header search or modal toggling
 interface MapViewProps {
@@ -1118,23 +1559,23 @@ const MemoizedMapView = memo(function MapView({
 
   const renderChurchPopup = (ig: Igreja) => {
     return (
-      <Popup autoPan={true} className="custom-leaflet-popup" maxWidth={380} minWidth={340}>
-        <div className="w-full text-slate-800">
-          <ChurchDetailModal
+      <Popup className="custom-leaflet-popup" maxWidth={380} minWidth={300}>
+        <div className="w-full max-h-[420px] overflow-y-auto p-1 text-slate-800">
+          <ChurchPopupContent
             ig={ig}
             igrejas={igrejas}
-            pontoOrigem={customRouteOrigin}
-            setPontoOrigem={setCustomRouteOrigin}
             comparisonMode={comparisonMode}
-            setComparisonMode={setComparisonMode}
             fixedDest={fixedDest}
-            setFixedDest={setFixedDest}
             sedeCandidataA={sedeCandidataA}
-            setSedeCandidataA={setSedeCandidataA}
             sedeCandidataB={sedeCandidataB}
-            setSedeCandidataB={setSedeCandidataB}
             connectionPathSource={connectionPathSource}
+            customRouteOrigin={customRouteOrigin}
             isAuthenticated={isAuthenticated}
+            setComparisonMode={setComparisonMode}
+            setFixedDest={setFixedDest}
+            setSedeCandidataA={setSedeCandidataA}
+            setSedeCandidataB={setSedeCandidataB}
+            setCustomRouteOrigin={setCustomRouteOrigin}
             handleTraceConnectionMesh={handleTraceConnectionMesh}
             fetchTerrestrialRoute={fetchTerrestrialRoute}
           />
@@ -1239,32 +1680,27 @@ const MemoizedMapView = memo(function MapView({
           </>
         )}
 
-        {useMemo(() => {
-          if (mapType === 'satellite') {
-            return (
-              <>
-                <TileLayer
-                  attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                />
-                <TileLayer
-                  attribution="Tiles &copy; Esri"
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
-                />
-                <TileLayer
-                  attribution="Tiles &copy; Esri"
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-                />
-              </>
-            );
-          }
-          return (
+        {mapType === 'satellite' ? (
+          <>
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             />
-          );
-        }, [mapType])}
+            <TileLayer
+              attribution="Tiles &copy; Esri"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+            />
+            <TileLayer
+              attribution="Tiles &copy; Esri"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            />
+          </>
+        ) : (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        )}
 
         {selectedConnectionPath && (
           <>
@@ -1310,101 +1746,93 @@ const MemoizedMapView = memo(function MapView({
               );
             })}
 
-        {useMemo(
-          () => (
-            <MarkerClusterGroup
-              chunkedLoading={true}
-              chunkInterval={100}
-              removeOutsideVisibleBounds={true}
-              disableClusteringAtZoom={16}
-              iconCreateFunction={(cluster: any) => {
-                const count = cluster.getChildCount();
-                let size = 35;
-                if (count > 100) {
-                  size = 55;
-                } else if (count > 10) {
-                  size = 45;
-                }
+        <MarkerClusterGroup
+          chunkedLoading
+          iconCreateFunction={(cluster: any) => {
+            const count = cluster.getChildCount();
+            let size = 35;
+            if (count > 100) {
+              size = 55;
+            } else if (count > 10) {
+              size = 45;
+            }
 
-                const childMarkers = cluster.getAllChildMarkers();
-                const stateCounts: Record<string, number> = {};
+            const childMarkers = cluster.getAllChildMarkers();
+            const stateCounts: Record<string, number> = {};
 
-                childMarkers.forEach((m: any) => {
-                  const uf = m.estado || '';
-                  if (uf) {
-                    stateCounts[uf] = (stateCounts[uf] || 0) + 1;
-                  }
-                });
+            childMarkers.forEach((m: any) => {
+              const uf = m.estado || '';
+              if (uf) {
+                stateCounts[uf] = (stateCounts[uf] || 0) + 1;
+              }
+            });
 
-                let majorityUF = '';
-                let maxCount = 0;
-                Object.keys(stateCounts).forEach((uf) => {
-                  if (stateCounts[uf] > maxCount) {
-                    maxCount = stateCounts[uf];
-                    majorityUF = uf;
-                  }
-                });
+            let majorityUF = '';
+            let maxCount = 0;
+            Object.keys(stateCounts).forEach((uf) => {
+              if (stateCounts[uf] > maxCount) {
+                maxCount = stateCounts[uf];
+                majorityUF = uf;
+              }
+            });
 
-                const bg = getClusterColorByState(majorityUF);
+            const bg = getClusterColorByState(majorityUF);
 
-                return L.divIcon({
-                  html: `
-                    <div style="
-                      background-color: ${bg};
-                      color: #ffffff;
-                      font-weight: bold;
-                      border-radius: 50%;
-                      border: 3px solid #ffffff;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-                      font-size: 14px;
-                      width: ${size}px;
-                      height: ${size}px;
-                      cursor: pointer;
-                      user-select: none;
-                    ">
-                      ${count}
-                    </div>
-                  `,
-                  className: 'custom-cluster-icon-parent',
-                  iconSize: L.point(size, size),
-                  iconAnchor: [size / 2, size / 2],
-                });
-              }}
-            >
-              {(!connectionPathSource ? filteredIgrejas : [])
-                .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
-                .map((ig) => {
-                  const isSedeMundial = ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL');
-                  const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
-                  const icon = getMarkerIcon(porte);
+            return L.divIcon({
+              html: `
+                <div style="
+                  background-color: ${bg};
+                  color: #ffffff;
+                  font-weight: bold;
+                  border-radius: 50%;
+                  border: 3px solid #ffffff;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+                  font-size: 14px;
+                  width: ${size}px;
+                  height: ${size}px;
+                  cursor: pointer;
+                  user-select: none;
+                ">
+                  ${count}
+                </div>
+              `,
+              className: 'custom-cluster-icon-parent',
+              iconSize: L.point(size, size),
+              iconAnchor: [size / 2, size / 2],
+            });
+          }}
+        >
+          {(!connectionPathSource ? filteredIgrejas : [])
+            .filter((ig) => !activeChainCodes.includes(ig.codigo_totvs))
+            .map((ig) => {
+              const isSedeMundial = ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL');
+              const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+              const icon = getMarkerIcon(porte);
 
-                  return (
-                    <Marker
-                      key={ig.codigo_totvs}
-                      position={[ig.latitude!, ig.longitude!]}
-                      icon={icon}
-                      alt={isSedeMundial ? 'Sede Mundial' : undefined}
-                      ref={(el) => {
-                        if (el) {
-                          markerRefs.current[ig.codigo_totvs] = el;
-                          (el as any).estado = ig.estado;
-                        } else {
-                          delete markerRefs.current[ig.codigo_totvs];
-                        }
-                      }}
-                    >
-                      {renderChurchTooltip(ig)}
-                      {renderChurchPopup(ig)}
-                    </Marker>
-                  );
-                })}
-            </MarkerClusterGroup>
-          ),
-          [filteredIgrejas, connectionPathSource, activeChainCodes]
-        )}
+              return (
+                <Marker
+                  key={ig.codigo_totvs}
+                  position={[ig.latitude!, ig.longitude!]}
+                  icon={icon}
+                  alt={isSedeMundial ? 'Sede Mundial' : undefined}
+                  ref={(el) => {
+                    if (el) {
+                      markerRefs.current[ig.codigo_totvs] = el;
+                      (el as any).estado = ig.estado;
+                    } else {
+                      delete markerRefs.current[ig.codigo_totvs];
+                    }
+                  }}
+                >
+                  {renderChurchTooltip(ig)}
+                  {renderChurchPopup(ig)}
+                </Marker>
+              );
+            })}
+        </MarkerClusterGroup>
       </MapContainer>
 
       {/* Floating Controls Container (Top Spacing Safe for Navigation Bar: top-36 md:top-24, z-[1025]) */}
@@ -1513,23 +1941,261 @@ const MemoizedMapView = memo(function MapView({
         )}
       </div>
 
-      {/* Floating OSRM Route Comparison Modal */}
-      <RouteCompareModal
-        comparisonMode={comparisonMode}
-        fixedDest={fixedDest}
-        igrejas={igrejas}
-        sedeCandidataA={sedeCandidataA}
-        sedeCandidataB={sedeCandidataB}
-        metaAtual={metaAtual}
-        metaCandidataA={metaCandidataA}
-        metaCandidataB={metaCandidataB}
-        isAuthenticated={isAuthenticated}
-        setComparisonMode={setComparisonMode}
-        setFixedDest={setFixedDest}
-        setSedeCandidataA={setSedeCandidataA}
-        setSedeCandidataB={setSedeCandidataB}
-        handleTransferColigacao={handleTransferColigacao}
-      />
+      {/* Floating OSRM Route Comparison Card */}
+      {comparisonMode && fixedDest && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
+            onClick={() => {
+              setComparisonMode(false);
+              setFixedDest(null);
+            }}
+          />
+          <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:top-24 md:right-6 md:bottom-auto md:left-auto w-full md:w-96 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white shadow-2xl p-5 space-y-4 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-top-2 flex flex-col">
+            <div className="flex items-center justify-between border-b border-zinc-150 pb-2.5 gap-4 shrink-0">
+              <div className="flex items-center gap-1.5 text-zinc-900">
+                <span className="text-base">📐</span>
+                <h3 className="text-xs font-black uppercase tracking-wider">
+                  Comparativo de Rotas e Proximidade
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setComparisonMode(false);
+                  setFixedDest(null);
+                  toast.info('Modo comparativo desativado.');
+                }}
+                className="text-zinc-400 hover:text-zinc-650 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-100 rounded-full transition-all"
+                title="Fechar Comparador"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5 text-xs shrink-0">
+              <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Igreja Alvo (Destino)</span>
+              <span className="font-bold text-zinc-900 block truncate" title={fixedDest.desc_igreja}>{fixedDest.desc_igreja}</span>
+            </div>
+
+            {/* Seletor de Modo de Transporte Ativo */}
+            <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 shrink-0">
+              <button
+                type="button"
+                onClick={() => setComparisonTransportMode('car')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  comparisonTransportMode === 'car'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
+                }`}
+              >
+                <span>🚗 Carro / Moto</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setComparisonTransportMode('bus')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  comparisonTransportMode === 'bus'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-750'
+                }`}
+              >
+                <span>🚌 Ônibus / Trem</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-zinc-100 overflow-y-auto">
+              {/* Sede Atual Card */}
+              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-orange-500">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                      Sede Atual
+                    </span>
+                    {shortestOption === 'atual' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-250">
+                        ⚡ Mais Próxima
+                      </span>
+                    )}
+                  </div>
+                  {metaAtual && (
+                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
+                      {metaAtual.distance} km • {metaAtual.duration}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-zinc-600 dark:text-slate-400 font-bold block truncate max-w-[150px]">
+                    {fixedDest.codigo_totvs_pai ? `TOTVS: ${fixedDest.codigo_totvs_pai}` : 'Nenhuma vinculada'}
+                  </span>
+                  {fixedDest.codigo_totvs_pai && (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&origin=${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.latitude},${igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai)?.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
+                        comparisonTransportMode === 'bus'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
+                          : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
+                      }`}
+                      title="Ver trajeto e custos no Google Maps"
+                    >
+                      <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Sede Candidata A Card */}
+              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-emerald-500">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Candidata A
+                    </span>
+                    {shortestOption === 'A' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-250 animate-pulse">
+                        ⚡ Mais Próxima {economyA && Number(economyA) > 0 ? `(Economia de ${economyA} km)` : ''}
+                      </span>
+                    )}
+                  </div>
+                  {metaCandidataA && (
+                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
+                      {metaCandidataA.distance} km • {metaCandidataA.duration}
+                    </span>
+                  )}
+                </div>
+                {sedeCandidataA ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataA.desc_igreja}>
+                        {sedeCandidataA.desc_igreja}
+                      </span>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataA.latitude},${sedeCandidataA.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border ${
+                          comparisonTransportMode === 'bus'
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-250 hover:bg-amber-100'
+                            : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700'
+                        }`}
+                        title="Ver trajeto e custos no Google Maps"
+                      >
+                        <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
+                      </a>
+                    </div>
+
+                    {metaAtual && metaCandidataA && (
+                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
+                        {metaAtual.distance - metaCandidataA.distance > 0 ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                            🟢 {(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais perto
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                            🔴 {Math.abs(metaAtual.distance - metaCandidataA.distance).toFixed(1)}km mais longe
+                          </span>
+                        )}
+
+                        {isAuthenticated ? (
+                          <button
+                            type="button"
+                            onClick={() => handleTransferColigacao(sedeCandidataA)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                            title="Gravar nova vinculação hierárquica no banco de dados Neon"
+                          >
+                            <span>🔄 Transferir Coligação para esta Sede</span>
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
+                            🔒 Transferência bloqueada (Login requerido)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
+                )}
+              </div>
+
+              {/* Sede Candidata B Card */}
+              <div className="p-2.5 bg-zinc-50 dark:bg-slate-800/50 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-2 border-l-4 border-l-cyan-500">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                      Candidata B
+                    </span>
+                    {shortestOption === 'B' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-250 animate-pulse">
+                        ⚡ Mais Próxima {economyB && Number(economyB) > 0 ? `(Economia de ${economyB} km)` : ''}
+                      </span>
+                    )}
+                  </div>
+                  {metaCandidataB && (
+                    <span className="text-xs font-black text-zinc-800 dark:text-slate-250">
+                      {metaCandidataB.distance} km • {metaCandidataB.duration}
+                    </span>
+                  )}
+                </div>
+                {sedeCandidataB ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-zinc-800 dark:text-slate-200 font-bold block truncate max-w-[180px]" title={sedeCandidataB.desc_igreja}>
+                        {sedeCandidataB.desc_igreja}
+                      </span>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&origin=${sedeCandidataB.latitude},${sedeCandidataB.longitude}&destination=${fixedDest.latitude},${fixedDest.longitude}&travelmode=${comparisonTransportMode === 'bus' ? 'transit' : 'driving'}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[44px] transition-all border bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-200 dark:hover:bg-slate-700"
+                        title="Ver trajeto e custos no Google Maps"
+                      >
+                        <span>{comparisonTransportMode === 'bus' ? '🚌 Ônibus' : '🚗 Carro'}</span>
+                      </a>
+                    </div>
+
+                    {metaAtual && metaCandidataB && (
+                      <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
+                        {metaAtual.distance - metaCandidataB.distance > 0 ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-1.5 rounded-full border border-emerald-250 text-center">
+                            🟢 {(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais perto
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-300 px-2.5 py-1.5 rounded-full border border-rose-250 text-center">
+                            🔴 {Math.abs(metaAtual.distance - metaCandidataB.distance).toFixed(1)}km mais longe
+                          </span>
+                        )}
+
+                        {isAuthenticated ? (
+                          <button
+                            type="button"
+                            onClick={() => handleTransferColigacao(sedeCandidataB)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm w-full py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                            title="Gravar nova vinculação hierárquica no banco de dados Neon"
+                          >
+                            <span>🔄 Transferir Coligação para esta Sede</span>
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-zinc-400 dark:text-slate-500 font-black italic bg-zinc-100 dark:bg-slate-800/85 border border-zinc-200 dark:border-slate-700 px-3 py-2 rounded-xl text-center" title="Faça login como administrador para alterar a coligação">
+                            🔒 Transferência bloqueada (Login requerido)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-zinc-400 block italic">Selecione no mapa para comparar</span>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-zinc-100 dark:border-slate-800 text-[9px] text-zinc-500 leading-normal shrink-0">
+              <span>ℹ️ Nota: A disponibilidade de transporte público (ônibus/trem) depende do cadastramento das linhas municipais na região. Para áreas rurais ou isoladas, o sistema indicará a rota por veículo próprio.</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Floating OSRM Route Details Card */}
       {routeMeta && (
@@ -1729,11 +2395,9 @@ const MemoizedMapView = memo(function MapView({
 });
 
 export default function GeneralMapComponent() {
-  const [, startTransition] = useTransition();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Camera lock flag to prevent boomerang reset when user searches or focuses a target
   const [preventAutoFit, setPreventAutoFit] = useState(false);
@@ -1827,7 +2491,7 @@ export default function GeneralMapComponent() {
 
   useEffect(() => {
     if (fixedDest) {
-      const parent = igrejas.find((p) => String(p.codigo_totvs) === String(fixedDest.codigo_totvs_pai));
+      const parent = igrejas.find((p) => p.codigo_totvs === fixedDest.codigo_totvs_pai);
       if (parent) {
         fetchComparisonRoute(parent, 'atual');
       } else {
@@ -1887,7 +2551,7 @@ export default function GeneralMapComponent() {
         // Optimize: Update state locally without fetching global list again
         setIgrejas((prevIgrejas) =>
           prevIgrejas.map((ig) =>
-            String(ig.codigo_totvs) === String(fixedDest.codigo_totvs)
+            ig.codigo_totvs === fixedDest.codigo_totvs
               ? { ...ig, codigo_totvs_pai: candidata.codigo_totvs }
               : ig
           )
@@ -2001,66 +2665,37 @@ export default function GeneralMapComponent() {
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
-  const fetchIgrejas = async () => {
+  const fetchValidatedChurches = async (silent = false, force = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const res = await fetch(`/api/igrejas/validadas?t=${Date.now()}`, {
-        cache: 'no-cache',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      if (!res.ok) throw new Error('Erro na busca');
+      const url = force ? `/api/igrejas/validadas?t=${Date.now()}` : '/api/igrejas/validadas';
+      const res = await fetch(url);
       const data = await res.json();
-      console.log('[FRONTEND LOG] Total recebido:', data.length);
-
-      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
-      if (Array.isArray(lista)) {
-        setIgrejas(lista);
-        setError(null);
+      if (data.success) {
+        setIgrejas(data.igrejas || []);
+      } else {
+        if (!silent) {
+          setError(data.error || 'Erro ao carregar igrejas.');
+        }
       }
     } catch (err) {
-      console.error('Erro ao carregar mapa:', err);
-      setError('Erro ao se conectar com o servidor.');
+      console.error('Error fetching validated churches:', err);
+      if (!silent) {
+        setError('Erro ao se conectar com o servidor.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchIgrejas();
+    fetchValidatedChurches();
   }, []);
-
-  const handleSyncDatabase = async () => {
-    setIsSyncing(true);
-    try {
-      // 1. Apaga a chave no servidor/CDN da Vercel
-      await fetch('/api/revalidate', { method: 'POST' });
-
-      // 2. Traz o payload completo do banco
-      const res = await fetch(`/api/igrejas/validadas?refresh=true&t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      const data = await res.json();
-      console.log('[FRONTEND LOG] Total recebido na sincronização:', data.length);
-      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
-      if (Array.isArray(lista) && lista.length > 0) {
-        setIgrejas(lista);
-        setError(null);
-        toast.success(`Mapa atualizado! Total: ${lista.length} igrejas.`);
-      }
-    } catch (err) {
-      console.error('Erro na sincronização:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   // Handle ?totvs=CODE query parameter on load
   useEffect(() => {
@@ -2085,7 +2720,7 @@ export default function GeneralMapComponent() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchIgrejas();
+        fetchValidatedChurches(true);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -2164,7 +2799,7 @@ export default function GeneralMapComponent() {
       return;
     }
 
-    let found = igrejas.find((ig) => String(ig.codigo_totvs) === String(totvs));
+    let found = igrejas.find((ig) => ig.codigo_totvs === totvs);
 
     if (!found && (totvs === 'SEDE_MUNDIAL' || totvs === '')) {
       found = igrejas.find((ig) => ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL'));
@@ -2183,7 +2818,7 @@ export default function GeneralMapComponent() {
   };
 
   const handleTraceConnectionMesh = (startChurch: Igreja) => {
-    if (String(connectionPathSource) === String(startChurch.codigo_totvs)) {
+    if (connectionPathSource === startChurch.codigo_totvs) {
       setSelectedConnectionPath(null);
       setConnectionPathSource(null);
       setActiveChainCodes([]);
@@ -2214,7 +2849,7 @@ export default function GeneralMapComponent() {
           break;
         }
         climbVisited.add(currentUp.codigo_totvs);
-        const parent = igrejas.find((ig) => String(ig.codigo_totvs) === String(currentUp.codigo_totvs_pai));
+        const parent = igrejas.find((ig) => ig.codigo_totvs === currentUp.codigo_totvs_pai);
         if (!parent) {
           break;
         }
@@ -2235,7 +2870,7 @@ export default function GeneralMapComponent() {
         while (queue.length > 0) {
           const currentCode = queue.shift();
           const directChildren = igrejas.filter(
-            (ig) => String(ig.codigo_totvs_pai) === String(currentCode) && !visitedDescendants.has(ig.codigo_totvs)
+            (ig) => ig.codigo_totvs_pai === currentCode && !visitedDescendants.has(ig.codigo_totvs)
           );
           for (const child of directChildren) {
             visitedDescendants.add(child.codigo_totvs);
@@ -2262,11 +2897,11 @@ export default function GeneralMapComponent() {
       }
 
       chainCodes.forEach((codigoTotvs) => {
-        const daughter = igrejas.find((ig) => String(ig.codigo_totvs) === String(codigoTotvs));
+        const daughter = igrejas.find((ig) => ig.codigo_totvs === codigoTotvs);
 
         if (daughter && daughter.codigo_totvs_pai) {
           if (chainCodes.has(daughter.codigo_totvs_pai)) {
-            const parent = igrejas.find((ig) => String(ig.codigo_totvs) === String(daughter.codigo_totvs_pai));
+            const parent = igrejas.find((ig) => ig.codigo_totvs === daughter.codigo_totvs_pai);
 
             if (daughter.latitude && daughter.longitude && parent?.latitude && parent?.longitude) {
               pathSegments.push([
@@ -2289,10 +2924,6 @@ export default function GeneralMapComponent() {
       }
     }, 50);
   };
-
-  const handleCloseFilters = useCallback(() => {
-    setShowFilters(false);
-  }, []);
 
   const mapCenter = useMemo<[number, number]>(() => {
     if (filteredIgrejas.length === 1) {
@@ -2392,15 +3023,9 @@ export default function GeneralMapComponent() {
               <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
             </div>
           </div>
-          <button
-            onClick={handleSyncDatabase}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-60 shadow-xs shrink-0"
-            title="Clique para recarregar dados do banco em tempo real"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Sincronizando...' : `${filteredIgrejas.length} no mapa`}</span>
-          </button>
+          <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 border border-indigo-150 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full">
+            {filteredIgrejas.length} no mapa
+          </span>
         </div>
 
         {/* Center Section: Isolated Instant Search Component */}
@@ -2412,21 +3037,10 @@ export default function GeneralMapComponent() {
 
         {/* Right Section: Actions & Access Buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          <a
-            href="/organizacao"
-            className="flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 dark:text-slate-200 dark:bg-slate-800 font-medium text-xs px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all whitespace-nowrap min-h-[44px]"
-          >
-            <span>🏛️</span> <span className="hidden sm:inline">Organização</span>
-          </a>
-
           <button
             onClick={() => {
-              requestAnimationFrame(() => {
-                startTransition(() => {
-                  setShowFilters((prev) => !prev);
-                  toast.dismiss();
-                });
-              });
+              setShowFilters(!showFilters);
+              toast.dismiss();
             }}
             className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
               showFilters
@@ -2446,13 +3060,22 @@ export default function GeneralMapComponent() {
             <Lock className="h-3.5 w-3.5 text-white" />
             <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
           </a>
+
+          <button
+            onClick={() => fetchValidatedChurches(false, true)}
+            disabled={loading}
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50 min-h-[44px]"
+            title="Atualizar dados do banco"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </header>
 
       {/* Floating Collapsible Filters Modal Portal */}
       <FiltersModal
         isOpen={showFilters}
-        onClose={handleCloseFilters}
+        onClose={() => setShowFilters(false)}
         selectedRegionGeo={selectedRegionGeo}
         onRegionGeoChange={handleRegionGeoChange}
         selectedUF={selectedUF}
@@ -2491,7 +3114,7 @@ export default function GeneralMapComponent() {
             <h3 className="text-base font-bold text-zinc-900">Falha ao buscar dados</h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">{error}</p>
             <button
-              onClick={() => fetchIgrejas()}
+              onClick={() => fetchValidatedChurches(false, true)}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-md hover:bg-indigo-700 transition-all"
             >
               Tentar Novamente

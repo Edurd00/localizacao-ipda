@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('session_token');
 
   // Define strictly protected paths
-  const protectedPaths = ['/validacao', '/coligacoes', '/dashboard', '/importar', '/relatorios', '/gestao'];
+  const protectedPaths = ['/validacao', '/coligacoes', '/dashboard', '/importar'];
 
   const pathname = request.nextUrl.pathname;
 
@@ -29,12 +29,5 @@ export function proxy(request: NextRequest) {
 
 // See "Matching Paths" below to learn more
 export const config = {
-  matcher: [
-    '/validacao/:path*',
-    '/coligacoes/:path*',
-    '/dashboard/:path*',
-    '/importar/:path*',
-    '/relatorios/:path*',
-    '/gestao/:path*',
-  ],
+  matcher: ['/validacao/:path*', '/coligacoes/:path*', '/dashboard/:path*', '/importar/:path*'],
 };

@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import React, { useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { ArrowLeft, Lock, Mail, Loader2, Sparkles } from 'lucide-react';

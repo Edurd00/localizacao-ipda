@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'sonner';
@@ -49,15 +47,11 @@ export default function GestaoPage() {
   const [searchInput, setSearchInput] = useState('');
 
   // Filters & Priority Sorting states
-  const [filterStatus, setFilterStatus] = useState<string>('ALL');
-  const [filterEstado, setFilterEstado] = useState<string>('ALL');
-  const [filterPorte, setFilterPorte] = useState<string>('ALL');
   const [filterContactStatus, setFilterContactStatus] = useState<string>('ALL');
   const [filterPorteGroup, setFilterPorteGroup] = useState<string>('ALL');
   const [prioritizeMajorPortes, setPrioritizeMajorPortes] = useState<boolean>(false);
 
-  // Pagination & Card pointer states
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -185,40 +179,28 @@ export default function GestaoPage() {
     fetchIgrejasList();
   }, []);
 
-  const handleForceReloadDatabase = async () => {
+  // Sync public map / cache clear trigger
+  const handleSyncPublicMap = async () => {
     setSyncLoading(true);
     try {
-      fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
-
-      const res = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
+      const res = await fetch('/api/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      if (!res.ok) throw new Error('Erro ao buscar validadas');
-
       const data = await res.json();
-      const churchList = Array.isArray(data)
-        ? data
-        : (data.igrejas || data.data || []);
-
-      if (Array.isArray(churchList)) {
-        setIgrejas(churchList);
-        setFilterContactStatus('ALL');
-        setFilterPorteGroup('ALL');
-        toast.success(`Banco atualizado com sucesso! Total de ${churchList.length} igrejas validadas carregadas.`);
+      if (data.revalidated) {
+        toast.success("Mapa público sincronizado com sucesso! As atualizações de contatos e endereços já estão propagadas.");
+        router.refresh();
+      } else {
+        toast.error("Erro ao sincronizar mapa público.");
       }
-    } catch (error) {
-      console.error('Erro ao recarregar banco completo:', error);
-      toast.error('Erro ao conectar ao banco de dados.');
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao sincronizar mapa público. Verifique a conexão.");
     } finally {
       setSyncLoading(false);
     }
   };
-
-  const handleSyncPublicMap = handleForceReloadDatabase;
 
   const handleLogout = async () => {
     try {
@@ -235,7 +217,6 @@ export default function GestaoPage() {
   useEffect(() => {
     startTransition(() => {
       setSearchTerm(searchInput);
-      setCurrentIndex(0);
       setCurrentPage(1);
     });
   }, [searchInput]);
@@ -274,70 +255,108 @@ export default function GestaoPage() {
     };
   }, [igrejas]);
 
-  // 1. Lógica do Filtro Combinado
-  const igrejasFiltradas = useMemo(() => {
-    return igrejas.filter((igreja) => {
-      const matchesStatus = filterStatus === 'ALL' || String(igreja.status || '').toLowerCase() === filterStatus.toLowerCase();
-      const matchesEstado = filterEstado === 'ALL' || igreja.estado === filterEstado;
-      const matchesPorte = filterPorte === 'ALL' || igreja.porte === filterPorte;
-
-      const query = searchTerm.trim().toLowerCase();
-      const matchesSearch =
-        query === '' ||
-        String(igreja.codigo_totvs || '').toLowerCase().includes(query) ||
-        String(igreja.desc_igreja || '').toLowerCase().includes(query) ||
-        String(igreja.municipio || '').toLowerCase().includes(query) ||
-        String(igreja.bairro || '').toLowerCase().includes(query) ||
-        String(igreja.endereco || '').toLowerCase().includes(query);
-
-      const hasDir = Boolean(igreja.dirigente_nome && igreja.dirigente_nome.trim().length > 0);
-      const hasFin = Boolean(igreja.financeira_nome && igreja.financeira_nome.trim().length > 0);
-      let matchesContact = true;
-      if (filterContactStatus === 'NO_DIRIGENTE') matchesContact = !hasDir;
-      else if (filterContactStatus === 'NO_FINANCEIRA') matchesContact = !hasFin;
-      else if (filterContactStatus === 'NO_BOTH') matchesContact = !hasDir && !hasFin;
-      else if (filterContactStatus === 'COMPLETE') matchesContact = hasDir && hasFin;
-
-      const porteUpper = (igreja.porte || 'LOCAL').toUpperCase();
-      let matchesPorteGroup = true;
-      if (filterPorteGroup === 'ESTADUAL_SETORIAL') {
-        matchesPorteGroup = porteUpper === 'ESTADUAL' || porteUpper === 'SETORIAL';
-      } else if (filterPorteGroup === 'CENTRAL_REGIONAL') {
-        matchesPorteGroup = porteUpper === 'CENTRAL' || porteUpper === 'REGIONAL';
-      } else if (filterPorteGroup === 'LOCAL_OUTROS') {
-        matchesPorteGroup = porteUpper !== 'ESTADUAL' && porteUpper !== 'SETORIAL' && porteUpper !== 'CENTRAL' && porteUpper !== 'REGIONAL';
-      }
-
-      return matchesStatus && matchesEstado && matchesPorte && matchesSearch && matchesContact && matchesPorteGroup;
-    });
-  }, [igrejas, filterStatus, filterEstado, filterPorte, searchTerm, filterContactStatus, filterPorteGroup]);
-
-  // Priority sorting if active
+  // Enhanced filtering & priority sorting logic
   const filteredIgrejas = useMemo(() => {
-    if (!prioritizeMajorPortes) return igrejasFiltradas;
+    let result = igrejas;
 
-    const PORTE_WEIGHTS: Record<string, number> = {
-      ESTADUAL: 1,
-      SETORIAL: 2,
-      CENTRAL: 3,
-      REGIONAL: 4,
-      LOCAL: 5,
-      'CASA DE ORAÇÃO': 6,
-      'ALDEIA INDIGENA': 7,
-    };
+    // 1. Search term filter
+    const term = searchTerm.trim().toLowerCase();
+    if (term) {
+      const numericTerm = term.replace(/^0+/, '');
+      const isPureNumeric = /^\d+$/.test(numericTerm);
 
-    return [...igrejasFiltradas].sort((a, b) => {
-      const weightA = PORTE_WEIGHTS[(a.porte || 'LOCAL').toUpperCase()] || 99;
-      const weightB = PORTE_WEIGHTS[(b.porte || 'LOCAL').toUpperCase()] || 99;
-      return weightA - weightB;
-    });
-  }, [igrejasFiltradas, prioritizeMajorPortes]);
+      if (isPureNumeric) {
+        const exact = igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === numericTerm);
+        if (exact) {
+          result = [exact];
+        } else {
+          result = igrejas.filter((ig) => {
+            const totvsNorm = ig.codigo_totvs.toLowerCase();
+            const nomeNorm = ig.desc_igreja.toLowerCase();
+            const municipioNorm = (ig.municipio || '').toLowerCase();
+            const estadoNorm = (ig.estado || '').toLowerCase();
+            const bairroNorm = (ig.bairro || '').toLowerCase();
 
-  // 2. Reset de Paginação e Ponteiro ao Alterar Busca/Filtros
-  useEffect(() => {
-    setCurrentIndex(0);
-    setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterEstado, filterPorte, filterContactStatus, filterPorteGroup]);
+            return (
+              totvsNorm.includes(term) ||
+              nomeNorm.includes(term) ||
+              municipioNorm.includes(term) ||
+              estadoNorm.includes(term) ||
+              bairroNorm.includes(term)
+            );
+          });
+        }
+      } else {
+        result = igrejas.filter((ig) => {
+          const totvsNorm = ig.codigo_totvs.toLowerCase();
+          const nomeNorm = ig.desc_igreja.toLowerCase();
+          const municipioNorm = (ig.municipio || '').toLowerCase();
+          const estadoNorm = (ig.estado || '').toLowerCase();
+          const bairroNorm = (ig.bairro || '').toLowerCase();
+
+          return (
+            totvsNorm.includes(term) ||
+            nomeNorm.includes(term) ||
+            municipioNorm.includes(term) ||
+            estadoNorm.includes(term) ||
+            bairroNorm.includes(term)
+          );
+        });
+      }
+    }
+
+    // 2. Filter by Contact Status
+    if (filterContactStatus !== 'ALL') {
+      result = result.filter((ig) => {
+        const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
+        const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
+
+        if (filterContactStatus === 'NO_DIRIGENTE') return !hasDir;
+        if (filterContactStatus === 'NO_FINANCEIRA') return !hasFin;
+        if (filterContactStatus === 'NO_BOTH') return !hasDir && !hasFin;
+        if (filterContactStatus === 'COMPLETE') return hasDir && hasFin;
+        return true;
+      });
+    }
+
+    // 3. Filter by Porte Group
+    if (filterPorteGroup !== 'ALL') {
+      result = result.filter((ig) => {
+        const porte = (ig.porte || 'LOCAL').toUpperCase();
+        if (filterPorteGroup === 'ESTADUAL_SETORIAL') {
+          return porte === 'ESTADUAL' || porte === 'SETORIAL';
+        }
+        if (filterPorteGroup === 'CENTRAL_REGIONAL') {
+          return porte === 'CENTRAL' || porte === 'REGIONAL';
+        }
+        if (filterPorteGroup === 'LOCAL_OUTROS') {
+          return porte !== 'ESTADUAL' && porte !== 'SETORIAL' && porte !== 'CENTRAL' && porte !== 'REGIONAL';
+        }
+        return true;
+      });
+    }
+
+    // 4. Priority Sorting by Major Portes
+    if (prioritizeMajorPortes) {
+      const PORTE_WEIGHTS: Record<string, number> = {
+        ESTADUAL: 1,
+        SETORIAL: 2,
+        CENTRAL: 3,
+        REGIONAL: 4,
+        LOCAL: 5,
+        'CASA DE ORAÇÃO': 6,
+        'ALDEIA INDIGENA': 7,
+      };
+
+      result = [...result].sort((a, b) => {
+        const weightA = PORTE_WEIGHTS[(a.porte || 'LOCAL').toUpperCase()] || 99;
+        const weightB = PORTE_WEIGHTS[(b.porte || 'LOCAL').toUpperCase()] || 99;
+        return weightA - weightB;
+      });
+    }
+
+    return result;
+  }, [igrejas, searchTerm, filterContactStatus, filterPorteGroup, prioritizeMajorPortes]);
 
   // Pagination slice
   const paginatedIgrejas = useMemo(() => {
@@ -600,7 +619,7 @@ export default function GestaoPage() {
       <Toaster position="top-right" richColors closeButton />
 
       {/* Header Mirror with Nav Link integration */}
-      <header className="relative z-[9999] h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 shadow-xs flex items-center">
+      <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 z-[1001] shadow-xs flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex justify-between items-center">
           <div className="flex items-center space-x-3 shrink-0">
             <img src="/img/logo.png" alt="IPDA" className="h-10 w-auto object-contain shadow-sm" />
@@ -631,7 +650,7 @@ export default function GestaoPage() {
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
 
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                 <a
                   href="/validacao?tab=validation"
                   className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
@@ -663,7 +682,7 @@ export default function GestaoPage() {
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
 
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                 <a
                   href="/validacao?tab=dashboard"
                   className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"

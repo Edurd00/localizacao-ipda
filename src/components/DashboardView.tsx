@@ -174,7 +174,7 @@ export default function DashboardView({
   const filteredStateMetrics = useMemo(() => {
     if (!filterStateSearch.trim()) return stateMetrics;
     const term = filterStateSearch.trim().toLowerCase();
-    return stateMetrics.filter((s) => String(s.uf || '').toLowerCase().includes(term));
+    return stateMetrics.filter((s) => s.uf.toLowerCase().includes(term));
   }, [stateMetrics, filterStateSearch]);
 
   // Export to Excel handler

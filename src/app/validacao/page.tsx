@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -205,41 +203,27 @@ export default function ValidacaoPage() {
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
   const [syncLoading, setSyncLoading] = useState<boolean>(false);
 
-  const handleForceReloadDatabase = async () => {
+  const handleSyncPublicMap = async () => {
     setSyncLoading(true);
     try {
-      fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
-
-      const res = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
+      const res = await fetch('/api/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      if (!res.ok) throw new Error('Erro ao buscar validadas');
-
       const data = await res.json();
-      const churchList = Array.isArray(data)
-        ? data
-        : (data.igrejas || data.data || []);
-
-      if (Array.isArray(churchList)) {
-        setIgrejas(churchList);
-        setFilterStatus('ALL');
-        setFilterEstado('ALL');
-        setFilterRegiao('ALL');
-        toast.success(`Banco atualizado com sucesso! Total de ${churchList.length} igrejas validadas carregadas.`);
+      if (data.revalidated) {
+        toast.success("Mapa público sincronizado com sucesso! As validações e coligações mais recentes já estão visíveis para todos.");
+        router.refresh();
+      } else {
+        toast.error("Erro ao sincronizar mapa público: Resposta inválida.");
       }
-    } catch (error) {
-      console.error('Erro ao recarregar banco completo:', error);
-      toast.error('Erro ao conectar ao banco de dados.');
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao sincronizar mapa público. Verifique a conexão.");
     } finally {
       setSyncLoading(false);
     }
   };
-
-  const handleSyncPublicMap = handleForceReloadDatabase;
 
   // Load tab and status from query params if present
   useEffect(() => {
@@ -362,10 +346,10 @@ export default function ValidacaoPage() {
     }
   };
 
-  // Reset currentIndex whenever search query or filters change
+  // Reset currentIndex when filterPorte changes
   useEffect(() => {
     setCurrentIndex(0);
-  }, [searchQuery, filterRegiao, filterEstado, filterStatus, filterPorte]);
+  }, [filterPorte]);
 
   // Load operator name from localStorage on mount
   useEffect(() => {
@@ -538,23 +522,9 @@ export default function ValidacaoPage() {
       }
       const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
       if (filterPorte !== 'ALL' && porte !== filterPorte) return false;
-
-      // Real-time search query filtering
-      const term = searchQuery.trim().toLowerCase();
-      if (term !== '') {
-        const matchesSearch =
-          String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
-          String(ig.desc_igreja || '').toLowerCase().includes(term) ||
-          String(ig.municipio || '').toLowerCase().includes(term) ||
-          String(ig.bairro || '').toLowerCase().includes(term) ||
-          String(ig.endereco || '').toLowerCase().includes(term);
-
-        if (!matchesSearch) return false;
-      }
-
       return true;
     });
-  }, [igrejas, filterRegiao, filterEstado, filterPorte, searchQuery]);
+  }, [igrejas, filterRegiao, filterEstado, filterPorte]);
 
   // Current church being validated
   const currentIgreja = filteredIgrejasList[currentIndex];
@@ -568,11 +538,11 @@ export default function ValidacaoPage() {
 
     const idx = filteredIgrejasList.findIndex(
       (ig) =>
-        String(ig.codigo_totvs || '').toLowerCase() === term ||
-        String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
-        String(ig.desc_igreja || '').toLowerCase().includes(term) ||
-        String(ig.endereco || '').toLowerCase().includes(term) ||
-        String(ig.municipio || '').toLowerCase().includes(term)
+        ig.codigo_totvs.toLowerCase() === term ||
+        ig.codigo_totvs.toLowerCase().includes(term) ||
+        ig.desc_igreja.toLowerCase().includes(term) ||
+        ig.endereco.toLowerCase().includes(term) ||
+        ig.municipio.toLowerCase().includes(term)
     );
 
     if (idx !== -1) {
@@ -972,7 +942,7 @@ export default function ValidacaoPage() {
       )}
 
       {/* Top Banner Navigation */}
-      <header className="relative z-[9999] h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 shadow-xs transition-colors duration-200 flex items-center">
+      <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 z-[1001] shadow-xs transition-colors duration-200 flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex justify-between items-center h-full w-full">
             {/* Logo & Branding */}
@@ -1013,7 +983,7 @@ export default function ValidacaoPage() {
                   <ChevronDown className="h-3 w-3 opacity-60" />
                 </button>
 
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                   <button
                     type="button"
                     onClick={() => setActiveTab('validation')}
@@ -1050,7 +1020,7 @@ export default function ValidacaoPage() {
                   <ChevronDown className="h-3 w-3 opacity-60" />
                 </button>
 
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[5000] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                   <button
                     type="button"
                     onClick={() => setActiveTab('dashboard')}
