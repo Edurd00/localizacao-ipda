@@ -1261,6 +1261,9 @@ const MemoizedMapView = memo(function MapView({
                     if (el) {
                       markerRefs.current[ig.codigo_totvs] = el;
                       (el as any).estado = ig.estado;
+                      if (el.options) {
+                        (el.options as any).estado = ig.estado;
+                      }
                     } else {
                       delete markerRefs.current[ig.codigo_totvs];
                     }
@@ -1292,7 +1295,7 @@ const MemoizedMapView = memo(function MapView({
                 const stateCounts: Record<string, number> = {};
 
                 childMarkers.forEach((m: any) => {
-                  const uf = m.estado || '';
+                  const uf = m.options?.estado || m.estado || '';
                   if (uf) {
                     stateCounts[uf] = (stateCounts[uf] || 0) + 1;
                   }
@@ -1353,6 +1356,9 @@ const MemoizedMapView = memo(function MapView({
                         if (el) {
                           markerRefs.current[ig.codigo_totvs] = el;
                           (el as any).estado = ig.estado;
+                          if (el.options) {
+                            (el.options as any).estado = ig.estado;
+                          }
                         } else {
                           delete markerRefs.current[ig.codigo_totvs];
                         }
