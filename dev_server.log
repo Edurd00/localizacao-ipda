@@ -2,17 +2,32 @@
 > test-dir@0.1.0 dev
 > next dev
 
-⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.2.11 (Turbopack)
-- Local:         http://localhost:3001
-- Network:       http://192.168.0.2:3001
-✓ Ready in 619ms
-⨯ Another next dev server is already running.
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 542ms
 
-- Local:        http://localhost:3000
-- PID:          85596
-- Dir:          /app
-- Log:          .next/dev/logs/next-development.log
-
-Run kill 85596 to stop it.
-[?25h
+○ Compiling /login ...
+ GET /login 200 in 6.3s (next.js: 6.0s, application-code: 353ms)
+ POST /api/auth/login 200 in 798ms (next.js: 757ms, application-code: 41ms)
+ GET /validacao 200 in 2.8s (next.js: 2.2s, proxy.ts: 150ms, application-code: 440ms)
+ GET /api/igrejas?status=PENDENTE&t=1786716223909 200 in 285ms (next.js: 270ms, application-code: 15ms)
+ GET /gestao 200 in 836ms (next.js: 637ms, application-code: 199ms)
+ GET /api/igrejas?status=ALL&estado=ALL&t=1786716226944 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/auth/session 200 in 248ms (next.js: 233ms, application-code: 15ms)
+ GET /login 200 in 84ms (next.js: 7ms, application-code: 77ms)
+ POST /api/auth/login 200 in 31ms (next.js: 8ms, application-code: 23ms)
+ GET /validacao 200 in 154ms (next.js: 8ms, proxy.ts: 15ms, application-code: 132ms)
+ GET /api/igrejas?status=PENDENTE&t=1786716358332 200 in 20ms (next.js: 9ms, application-code: 12ms)
+ GET /gestao 200 in 63ms (next.js: 4ms, application-code: 58ms)
+ GET /api/auth/session 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/igrejas?status=ALL&estado=ALL&t=1786716360475 200 in 7ms (next.js: 3ms, application-code: 5ms)
+ GET /login 200 in 62ms (next.js: 4ms, application-code: 58ms)
+ POST /api/auth/login 200 in 19ms (next.js: 3ms, application-code: 16ms)
+ GET /validacao 200 in 91ms (next.js: 5ms, proxy.ts: 6ms, application-code: 79ms)
+ GET /api/igrejas?status=PENDENTE&t=1786716437919 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /gestao 200 in 71ms (next.js: 4ms, application-code: 67ms)
+ GET /api/igrejas?status=ALL&estado=ALL&t=1786716440119 200 in 11ms (next.js: 7ms, application-code: 4ms)
+ GET /api/auth/session 200 in 20ms (next.js: 4ms, application-code: 16ms)
+ POST /api/igrejas/criar 200 in 381ms (next.js: 369ms, application-code: 12ms)
+ GET /api/igrejas?status=ALL&estado=ALL&t=1786716445414 200 in 7ms (next.js: 3ms, application-code: 4ms)

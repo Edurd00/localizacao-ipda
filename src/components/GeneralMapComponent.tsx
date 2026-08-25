@@ -859,7 +859,6 @@ interface ChurchPopupContentProps {
   sedeCandidataB: Igreja | null;
   connectionPathSource: string | null;
   customRouteOrigin: Igreja | null;
-  isAuthenticated: boolean;
   setComparisonMode: (val: boolean) => void;
   setFixedDest: (ig: Igreja | null) => void;
   setSedeCandidataA: (ig: Igreja | null) => void;
@@ -878,7 +877,6 @@ function ChurchPopupContent({
   sedeCandidataB,
   connectionPathSource,
   customRouteOrigin,
-  isAuthenticated,
   setComparisonMode,
   setFixedDest,
   setSedeCandidataA,
@@ -888,6 +886,40 @@ function ChurchPopupContent({
   fetchTerrestrialRoute,
 }: ChurchPopupContentProps) {
   const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'hierarquia'>('geral');
+
+  const [currentPrebenda, setCurrentPrebenda] = useState(ig.tipo_prebenda || '');
+  const [updatingPrebenda, setUpdatingPrebenda] = useState(false);
+
+  useEffect(() => {
+    setCurrentPrebenda(ig.tipo_prebenda || '');
+  }, [ig.tipo_prebenda, ig.codigo_totvs]);
+
+  const handleQuickUpdatePrebenda = async (newValue: string) => {
+    setUpdatingPrebenda(true);
+    try {
+      const res = await fetch('/api/igrejas/atualizar-completo', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigo_totvs: ig.codigo_totvs,
+          tipo_prebenda: newValue,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCurrentPrebenda(newValue);
+        ig.tipo_prebenda = newValue;
+        toast.success('Condição de prebenda atualizada!');
+      } else {
+        toast.error(data.error || 'Erro ao atualizar prebenda.');
+      }
+    } catch (err) {
+      console.error('Error updating prebenda:', err);
+      toast.error('Erro de conexão ao atualizar prebenda.');
+    } finally {
+      setUpdatingPrebenda(false);
+    }
+  };
 
   const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
   const parentChurch = ig.codigo_totvs_pai
@@ -1188,15 +1220,17 @@ function ChurchPopupContent({
                     <div className="flex items-center gap-1.5 my-1 flex-wrap">
                       <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
                       <span className="text-slate-300">•</span>
-                      {ig.tipo_prebenda === 'PREBENDADA' ? (
-                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                          💼 Prebendado
-                        </span>
-                      ) : (
-                        <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-medium">
-                          🤝 Voluntário
-                        </span>
-                      )}
+                      <select
+                        value={currentPrebenda}
+                        disabled={updatingPrebenda}
+                        onChange={(e) => handleQuickUpdatePrebenda(e.target.value)}
+                        className="bg-white text-slate-800 border border-slate-200 text-[10px] font-bold rounded-lg px-1.5 py-0.5 outline-none cursor-pointer hover:border-indigo-400 transition-colors"
+                        title="Clique para alterar a condição pastoral/prebenda"
+                      >
+                        <option value="">Definir Prebenda...</option>
+                        <option value="PREBENDADA">💼 Prebendado (Salariado)</option>
+                        <option value="NAO_PREBENDADA">🤝 Voluntário (Sem Prebenda)</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -1570,7 +1604,6 @@ const MemoizedMapView = memo(function MapView({
             sedeCandidataB={sedeCandidataB}
             connectionPathSource={connectionPathSource}
             customRouteOrigin={customRouteOrigin}
-            isAuthenticated={isAuthenticated}
             setComparisonMode={setComparisonMode}
             setFixedDest={setFixedDest}
             setSedeCandidataA={setSedeCandidataA}
@@ -3051,6 +3084,15 @@ export default function GeneralMapComponent() {
             <SlidersHorizontal className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Filtros</span>
           </button>
+
+          <a
+            href="/organizacao"
+            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 min-h-[44px]"
+            title="Ver Estrutura Organizacional"
+          >
+            <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-xs font-semibold hidden sm:inline">🏛️ Organização</span>
+          </a>
 
           <a
             href="/validacao"
