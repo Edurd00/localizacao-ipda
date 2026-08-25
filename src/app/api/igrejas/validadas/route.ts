@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
-// Permite o cache estático no servidor/CDN da Vercel
-export const revalidate = 86400; // 24 horas
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: Request) {
   try {
@@ -13,11 +13,10 @@ export async function GET(request: Request) {
 
     console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
 
-    // Se for Refresh Manual (botão do mapa): ignora o cache e busca no banco
-    // Acessos normais/F5: serve 100% da Vercel CDN (Consumo ZERO no Supabase)
+    // Se for refresh, instrui a Vercel a descartar a resposta antiga
     const cacheHeader = isRefresh
-      ? 'no-cache, no-store, must-revalidate'
-      : 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800';
+      ? 'no-store, no-cache, must-revalidate, max-age=0'
+      : 'public, s-maxage=3600, stale-while-revalidate=86400';
 
     return NextResponse.json(result, {
       headers: {
