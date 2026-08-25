@@ -1,21 +1,22 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { saveIgrejaSingle } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { codigo_totvs, latitude, longitude, status, usuario_validador, link_google_maps } = body;
+    const { id, codigo_totvs, latitude, longitude, status, usuario_validador, link_google_maps, ...restData } = body;
 
-    if (!codigo_totvs) {
+    if (!id && !codigo_totvs) {
       return NextResponse.json(
-        { success: false, error: 'Field "codigo_totvs" is required.' },
+        { success: false, error: 'ID ou codigo_totvs é obrigatório.' },
         { status: 400 }
       );
     }
 
-    const updates: Record<string, unknown> = {};
+    const updates: Record<string, unknown> = { ...restData };
     if (latitude !== undefined) updates.latitude = latitude;
     if (longitude !== undefined) updates.longitude = longitude;
     if (status !== undefined) updates.status = status;
@@ -29,11 +30,20 @@ export async function POST(request: Request) {
       updates.validado_em = new Date().toISOString();
     }
 
-    await saveIgrejaSingle(codigo_totvs, updates);
+    const savedChurch = await saveIgrejaSingle({ id, codigo_totvs }, updates);
+
+    // Trigger revalidation for dashboard route and public map cache
+    try {
+      revalidatePath('/api/igrejas/dashboard');
+      revalidatePath('/api/igrejas/validadas');
+    } catch (revalErr) {
+      console.warn('Revalidation failed (non-fatal):', revalErr);
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Church ${codigo_totvs} updated successfully.`,
+      data: savedChurch,
+      message: `Church ${codigo_totvs || id} updated successfully.`,
     });
   } catch (err: unknown) {
     console.error('API Error in POST /api/igrejas/save:', err);

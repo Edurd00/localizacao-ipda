@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIgrejasForMap } from '@/lib/db';
 
-export const revalidate = 86400; // Cache de 24 horas no Edge da Vercel
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+import { revalidatePath } from 'next/cache';
 import { getIgrejas, saveIgrejaSingle, Igreja } from '@/lib/db';
 
 export async function POST(request: Request) {
@@ -45,6 +48,12 @@ export async function POST(request: Request) {
     // 3. Save the main church
     if (Object.keys(update).length > 0) {
       await saveIgrejaSingle(codigo_totvs, update);
+    }
+
+    try {
+      revalidatePath('/api/igrejas/dashboard');
+    } catch (revalErr) {
+      console.warn('Dashboard revalidation failed:', revalErr);
     }
 
     return NextResponse.json({

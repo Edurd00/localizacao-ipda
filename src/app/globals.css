@@ -30,15 +30,66 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Ajuste de tamanho do container Leaflet Popup */
-.custom-leaflet-popup .leaflet-popup-content-wrapper {
-  padding: 8px !important;
-  border-radius: 12px !important;
-  width: 360px !important;
-  max-width: 90vw !important;
+/* Remove o padding e barras de rolagem padrão do Leaflet */
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 1rem !important; /* 16px radius */
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
 }
 
-.custom-leaflet-popup .leaflet-popup-content {
-  margin: 4px !important;
+.leaflet-popup-content {
+  margin: 0 !important;
   width: auto !important;
+  line-height: inherit !important;
+  overflow: hidden !important;
+}
+
+/* Oculta o scrollbar caso algum elemento interno tente estourar */
+.leaflet-popup-content::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Estilos de Impressão PDF / A4 (Print-Ready CSS) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar elementos de navegação e filtros durante a impressão */
+  header,
+  nav,
+  button,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Exibir cabeçalho oficial de impressão */
+  .hidden.print\:block {
+    display: block !important;
+  }
+
+  /* Format visual cards for clean printing */
+  .bg-white,
+  .dark\:bg-slate-900 {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Impedir quebras de página desnecessárias no meio de gráficos e tabelas */
+  section,
+  .grid,
+  table {
+    break-inside: avoid;
+  }
 }

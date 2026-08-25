@@ -1,13 +1,29 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { saveIgrejaSingle } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { verifySessionToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+async function checkAuth() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session_token');
+  return verifySessionToken(token?.value);
+}
+
 export async function PUT(request: Request) {
   try {
+    if (!(await checkAuth())) {
+      return NextResponse.json(
+        { success: false, error: 'Acesso não autorizado. Faça login novamente.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
+      id,
       codigo_totvs,
       desc_igreja,
       tipo_imovel,
@@ -23,14 +39,18 @@ export async function PUT(request: Request) {
       dirigente_nome,
       dirigente_telefone,
       dirigente_email,
+      dirigente_data_posse,
       financeira_nome,
       financeira_telefone,
-      financeira_email
+      financeira_email,
+      qtd_membros,
+      qtd_jovens,
+      tipo_prebenda
     } = body;
 
-    if (!codigo_totvs) {
+    if (!id && !codigo_totvs) {
       return NextResponse.json(
-        { success: false, error: 'O campo "codigo_totvs" é obrigatório para atualização.' },
+        { success: false, error: 'ID ou codigo_totvs é obrigatório para atualização.' },
         { status: 400 }
       );
     }
@@ -50,9 +70,34 @@ export async function PUT(request: Request) {
     if (dirigente_nome !== undefined) updates.dirigente_nome = dirigente_nome;
     if (dirigente_telefone !== undefined) updates.dirigente_telefone = dirigente_telefone;
     if (dirigente_email !== undefined) updates.dirigente_email = dirigente_email;
+    if (dirigente_data_posse !== undefined) {
+      if (dirigente_data_posse && typeof dirigente_data_posse === 'string' && dirigente_data_posse.trim() !== '') {
+        const rawDate = dirigente_data_posse.trim();
+        if (rawDate.includes('/')) {
+          const parts = rawDate.split('/');
+          if (parts.length === 3) {
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            updates.dirigente_data_posse = `${year}-${month}-${day}`;
+          } else {
+            updates.dirigente_data_posse = rawDate;
+          }
+        } else if (rawDate.includes('T')) {
+          updates.dirigente_data_posse = rawDate.split('T')[0];
+        } else {
+          updates.dirigente_data_posse = rawDate;
+        }
+      } else {
+        updates.dirigente_data_posse = null;
+      }
+    }
     if (financeira_nome !== undefined) updates.financeira_nome = financeira_nome;
     if (financeira_telefone !== undefined) updates.financeira_telefone = financeira_telefone;
     if (financeira_email !== undefined) updates.financeira_email = financeira_email;
+    if (qtd_membros !== undefined) updates.qtd_membros = qtd_membros !== '' && qtd_membros !== null ? Number(qtd_membros) : null;
+    if (qtd_jovens !== undefined) updates.qtd_jovens = qtd_jovens !== '' && qtd_jovens !== null ? Number(qtd_jovens) : null;
+    if (tipo_prebenda !== undefined) updates.tipo_prebenda = tipo_prebenda !== null && tipo_prebenda !== '' ? tipo_prebenda : 'NAO_PREBENDADA';
 
     // Recalculate coordinates from Google Maps Link if link changed
     if (link_google_maps !== undefined) {
@@ -68,12 +113,13 @@ export async function PUT(request: Request) {
       }
     }
 
-    await saveIgrejaSingle(codigo_totvs, updates);
+    const savedChurch = await saveIgrejaSingle({ id, codigo_totvs }, updates);
 
     // On-demand revalidation to ensure changes appear instantly on Map and Tree
     try {
       revalidatePath('/api/igrejas/validadas');
       revalidatePath('/api/organizacao');
+      revalidatePath('/api/igrejas/dashboard');
       revalidatePath('/gestao');
       revalidatePath('/');
       revalidatePath('/organizacao');
@@ -83,7 +129,8 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Igreja ${codigo_totvs} atualizada com sucesso!`,
+      data: savedChurch,
+      message: `Igreja ${codigo_totvs || id} atualizada com sucesso!`,
       latitude: updates.latitude,
       longitude: updates.longitude
     });

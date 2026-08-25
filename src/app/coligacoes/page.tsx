@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Toaster, toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -216,8 +218,8 @@ export default function ColigacoesPage() {
       if (ig.status === 'DESATIVADO') return false;
 
       const normIg = normalizeTotvs(ig.codigo_totvs);
-      const codeMatch = normIg === queryNorm || ig.codigo_totvs.toLowerCase().includes(term);
-      const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
+      const codeMatch = normIg === queryNorm || String(ig.codigo_totvs || '').toLowerCase().includes(term);
+      const nameMatch = String(ig.desc_igreja || '').toLowerCase().includes(term);
       return codeMatch || nameMatch;
     });
 
@@ -258,8 +260,8 @@ export default function ColigacoesPage() {
       if (ig.status === 'DESATIVADO') return false;
 
       const normIg = normalizeTotvs(ig.codigo_totvs);
-      const codeMatch = normIg === queryNorm || ig.codigo_totvs.toLowerCase().includes(term);
-      const nameMatch = ig.desc_igreja.toLowerCase().includes(term);
+      const codeMatch = normIg === queryNorm || String(ig.codigo_totvs || '').toLowerCase().includes(term);
+      const nameMatch = String(ig.desc_igreja || '').toLowerCase().includes(term);
       return codeMatch || nameMatch;
     });
 
@@ -495,9 +497,9 @@ export default function ColigacoesPage() {
       (ig) => {
         const normIg = normalizeTotvs(ig.codigo_totvs);
         return normIg === queryNorm ||
-          ig.codigo_totvs.toLowerCase().includes(term) ||
-          ig.desc_igreja.toLowerCase().includes(term) ||
-          (ig.municipio || '').toLowerCase().includes(term);
+          String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
+          String(ig.desc_igreja || '').toLowerCase().includes(term) ||
+          String(ig.municipio || '').toLowerCase().includes(term);
       }
     );
 
@@ -790,7 +792,7 @@ export default function ColigacoesPage() {
       )}
 
       {/* Main Header navigation */}
-      <header className="bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 sticky top-0 z-[1001] shadow-sm transition-colors duration-200">
+      <header className="relative z-[9999] bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 sticky top-0 shadow-sm transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center space-x-3">
@@ -823,49 +825,69 @@ export default function ColigacoesPage() {
                 </a>
               </div>
 
-              {/* Block 2: Gestão (Pill Bar Segmentada) */}
-              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 gap-0.5 items-center">
-                <a
-                  href="/validacao?tab=validation"
-                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
-                >
-                  <span>📍 Validação</span>
-                </a>
+              {/* Grouped Administrative Navigation Dropdowns */}
+              <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
+                {/* Item 2: Validação & Gestão Dropdown */}
+                <div className="relative group">
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
+                  >
+                    <span>📍 Validação & Gestão</span>
+                    <ChevronDown className="h-3 w-3 opacity-60" />
+                  </button>
 
-                <button
-                  onClick={() => {
-                    setActiveTab('tree');
-                    setSelectedChurch(null);
-                  }}
-                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
-                    activeTab === 'tree' || activeTab === 'import'
-                      ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200/50 font-bold'
-                      : 'text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50'
-                  }`}
-                >
-                  <span>🌳 Coligações</span>
-                </button>
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <a
+                      href="/validacao?tab=validation"
+                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                    >
+                      📍 Validação de Igrejas
+                    </a>
+                    <a
+                      href="/gestao"
+                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                    >
+                      👥 Gestão de Contatos
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('tree');
+                        setSelectedChurch(null);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg block"
+                    >
+                      🌳 Coligações
+                    </button>
+                  </div>
+                </div>
 
-              <a
-                href="/gestao"
-                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
-              >
-                <span>👥 Gestão</span>
-              </a>
+                {/* Item 3: Inteligência & BI Dropdown */}
+                <div className="relative group">
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+                  >
+                    <span>📊 Inteligência & BI</span>
+                    <ChevronDown className="h-3 w-3 opacity-60" />
+                  </button>
 
-                <a
-                  href="/validacao?tab=dashboard"
-                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
-                >
-                  <span>📊 Dashboard</span>
-                </a>
-
-                <a
-                  href="/validacao?tab=upload"
-                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50"
-                >
-                  <span>📥 Importar</span>
-                </a>
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <a
+                      href="/validacao?tab=dashboard"
+                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                    >
+                      📊 Dashboard de Status
+                    </a>
+                    <a
+                      href="/relatorios"
+                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                    >
+                      📊 Relatórios Hierárquicos
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

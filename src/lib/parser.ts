@@ -243,7 +243,8 @@ export function parseWorkbook(workbook: XLSX.WorkBook): Igreja[] {
       const codigo_totvs = normalizeTotvsCode(rawCodigo);
 
       // Skip title rows, legends, headers residuals, or non-numeric invalid codes
-      if (!codigo_totvs || isNaN(Number(codigo_totvs)) || codigo_totvs.toLowerCase().includes('totvs') || codigo_totvs.toLowerCase().includes('legend')) {
+      const cStr = String(codigo_totvs || '').toLowerCase();
+      if (!codigo_totvs || isNaN(Number(codigo_totvs)) || cStr.includes('totvs') || cStr.includes('legend')) {
         continue;
       }
 

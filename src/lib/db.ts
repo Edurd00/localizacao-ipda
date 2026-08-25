@@ -21,30 +21,53 @@ export interface Igreja {
   created_at?: string;
   validado_por?: string | null;
   validado_em?: string | null;
+  data_validacao?: string | null;
   observacoes?: string | null;
+  observacao?: string | null;
+  observacao_duvida?: string | null;
+  duvida?: string | null;
   dirigente_nome?: string | null;
   dirigente_telefone?: string | null;
   dirigente_email?: string | null;
   financeira_nome?: string | null;
   financeira_telefone?: string | null;
   financeira_email?: string | null;
+  dirigente_data_posse?: string | null;
+  qtd_membros?: number | null;
+  qtd_jovens?: number | null;
+  tipo_prebenda?: string | null;
 }
 
-// Check database URL in env
-const databaseUrl = process.env.DATABASE_URL;
-let pool: Pool | null = null;
+// Global singleton pattern for pg Pool in serverless environments
+const globalForDb = globalThis as unknown as {
+  pgPool: Pool | undefined;
+};
 
-if (databaseUrl) {
+const databaseUrl = process.env.DATABASE_URL
+  ? process.env.DATABASE_URL.trim().replace(/^["']|["']$/g, '')
+  : undefined;
+
+function createPool(): Pool | null {
+  if (!databaseUrl) return null;
   try {
-    pool = new Pool({
+    return new Pool({
       connectionString: databaseUrl,
+      max: 10, // Limit connection pool size per lambda instance
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 10000,
       ssl: {
         rejectUnauthorized: false,
       },
     });
   } catch (error) {
     console.error('Failed to initialize Postgres Pool:', error);
+    return null;
   }
+}
+
+let pool: Pool | null = globalForDb.pgPool ?? createPool();
+if (pool) {
+  globalForDb.pgPool = pool;
 }
 
 // Safe In-Memory fallback for environments without DATABASE_URL (no file writing, 100% Vercel friendly)
@@ -83,126 +106,10 @@ let memoryDb: Igreja[] = [
   }
 ];
 
-// Ensure Postgres table exists if pool is configured
-let isTableInitialized = false;
+// Ensure database check in production
 async function ensurePostgresTable() {
-  // If in production environment and DATABASE_URL is missing, crash/throw error cleanly rather than silently falling back
   if (!databaseUrl && process.env.NODE_ENV === 'production') {
     throw new Error('DATABASE_URL is missing in production environment. Database operations cannot proceed.');
-  }
-
-  if (!pool || isTableInitialized) return;
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS igrejas (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          codigo_totvs VARCHAR(100) UNIQUE NOT NULL,
-          desc_igreja VARCHAR(255) NOT NULL,
-          tipo_imovel VARCHAR(100),
-          endereco TEXT,
-          bairro VARCHAR(100),
-          municipio VARCHAR(100),
-          estado VARCHAR(50),
-          cep VARCHAR(20),
-          link_google_maps TEXT,
-          latitude DOUBLE PRECISION,
-          longitude DOUBLE PRECISION,
-          status VARCHAR(50) DEFAULT 'PENDENTE',
-          validado_por VARCHAR(100),
-          validado_em TIMESTAMP,
-          usuario_validador VARCHAR(100),
-          observacoes TEXT,
-          codigo_totvs_pai VARCHAR(100),
-          porte VARCHAR(50),
-          dirigente_nome VARCHAR(255),
-          dirigente_telefone VARCHAR(100),
-          dirigente_email VARCHAR(255),
-          financeira_nome VARCHAR(255),
-          financeira_telefone VARCHAR(100),
-          financeira_email VARCHAR(255),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-      // Run alter table/checks just in case the table exists but lacks columns
-      try {
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS validado_por VARCHAR(100);`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS validado_em TIMESTAMP;`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS observacoes TEXT;`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_nome VARCHAR(255);`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_telefone VARCHAR(100);`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS dirigente_email VARCHAR(255);`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_nome VARCHAR(255);`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_telefone VARCHAR(100);`);
-        await client.query(`ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS financeira_email VARCHAR(255);`);
-      } catch (alterErr) {
-        console.warn('Alter table columns check failed (might be expected):', alterErr);
-      }
-
-      // ---------------------------------------------------------------
-      // Bug 3: Retroactive correction — fix churches wrongly set as LOCAL
-      // whose name prefix reveals their true porte.
-      // ---------------------------------------------------------------
-      try {
-        await client.query(`UPDATE igrejas SET porte = 'ESTADUAL' WHERE (desc_igreja LIKE 'ESTADUAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
-        await client.query(`UPDATE igrejas SET porte = 'SETORIAL' WHERE (desc_igreja LIKE 'SETORIAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
-        await client.query(`UPDATE igrejas SET porte = 'CENTRAL' WHERE (desc_igreja LIKE 'CENTRAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
-        await client.query(`UPDATE igrejas SET porte = 'REGIONAL' WHERE (desc_igreja LIKE 'REGIONAL%') AND (porte = 'LOCAL' OR porte IS NULL);`);
-        await client.query(`UPDATE igrejas SET porte = 'ALDEIA INDIGENA' WHERE (desc_igreja LIKE 'ALDEIA%') AND (porte = 'LOCAL' OR porte IS NULL);`);
-        await client.query(`UPDATE igrejas SET porte = 'CASA DE ORAÇÃO' WHERE (desc_igreja LIKE 'CASA DE ORA%') AND (porte = 'LOCAL' OR porte IS NULL);`);
-      } catch (retroErr) {
-        console.warn('Retroactive porte correction failed (non-fatal):', retroErr);
-      }
-
-      // ---------------------------------------------------------------
-      // Validator Name Fusion Migration ('Luiz' -> 'Luiz Eduardo')
-      // ---------------------------------------------------------------
-      try {
-        await client.query(`UPDATE igrejas SET validado_por = 'Luiz Eduardo' WHERE validado_por = 'Luiz';`);
-        await client.query(`UPDATE igrejas SET usuario_validador = 'Luiz Eduardo' WHERE usuario_validador = 'Luiz';`);
-      } catch (fuseErr) {
-        console.warn('Validator name fusion failed (non-fatal):', fuseErr);
-      }
-
-      // ---------------------------------------------------------------
-      // Validator Name Fusion Migration ('Guilherme' -> 'Guilherme de Almeida')
-      // ---------------------------------------------------------------
-      try {
-        await client.query(`UPDATE igrejas SET validado_por = 'Guilherme de Almeida' WHERE validado_por = 'Guilherme';`);
-        await client.query(`UPDATE igrejas SET usuario_validador = 'Guilherme de Almeida' WHERE usuario_validador = 'Guilherme';`);
-      } catch (fuseErr) {
-        console.warn('Validator name fusion for Guilherme failed (non-fatal):', fuseErr);
-      }
-
-      // ---------------------------------------------------------------
-      // Row Level Security (RLS) Activation & Public Read Policy
-      // ---------------------------------------------------------------
-      try {
-        console.log('Activating Row Level Security (RLS) on public.igrejas table...');
-        await client.query(`ALTER TABLE public.igrejas ENABLE ROW LEVEL SECURITY;`);
-
-        console.log('Creating/Updating public select policy "Permitir leitura publica de igrejas" on public.igrejas...');
-        await client.query(`DROP POLICY IF EXISTS "Permitir leitura publica de igrejas" ON public.igrejas;`);
-        await client.query(`
-          CREATE POLICY "Permitir leitura publica de igrejas"
-          ON public.igrejas FOR SELECT
-          USING (true);
-        `);
-      } catch (rlsErr) {
-        console.warn('RLS activation or public read policy setup failed (non-fatal):', rlsErr);
-      }
-
-      isTableInitialized = true;
-    } finally {
-      client.release();
-    }
-  } catch (err) {
-    console.error('Failed to initialize Postgres table:', err);
-    pool = null; // force memory fallback
   }
 }
 
@@ -225,9 +132,13 @@ export async function getIgrejas(
       }
 
       if (filters?.status && filters.status !== 'ALL') {
-        query += ` AND status = $${paramCount}`;
-        params.push(filters.status);
-        paramCount++;
+        if (filters.status === 'VALIDADO') {
+          query += ` AND (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA'))`;
+        } else {
+          query += ` AND status = $${paramCount}`;
+          params.push(filters.status);
+          paramCount++;
+        }
       }
 
       // Order by desc_igreja ONLY if it's selected/requested
@@ -258,13 +169,27 @@ export async function getIgrejas(
         if (row.created_at !== undefined) item.created_at = row.created_at;
         if (row.validado_por !== undefined) item.validado_por = row.validado_por;
         if (row.validado_em !== undefined) item.validado_em = row.validado_em;
+        if (row.data_validacao !== undefined) item.data_validacao = row.data_validacao;
         if (row.observacoes !== undefined) item.observacoes = row.observacoes;
+        if (row.observacao !== undefined) item.observacao = row.observacao;
+        if (row.observacao_duvida !== undefined) item.observacao_duvida = row.observacao_duvida;
+        if (row.duvida !== undefined) item.duvida = row.duvida;
         if (row.dirigente_nome !== undefined) item.dirigente_nome = row.dirigente_nome;
         if (row.dirigente_telefone !== undefined) item.dirigente_telefone = row.dirigente_telefone;
         if (row.dirigente_email !== undefined) item.dirigente_email = row.dirigente_email;
         if (row.financeira_nome !== undefined) item.financeira_nome = row.financeira_nome;
         if (row.financeira_telefone !== undefined) item.financeira_telefone = row.financeira_telefone;
         if (row.financeira_email !== undefined) item.financeira_email = row.financeira_email;
+        if (row.dirigente_data_posse !== undefined) {
+          item.dirigente_data_posse = row.dirigente_data_posse
+            ? (typeof row.dirigente_data_posse === 'string'
+                ? row.dirigente_data_posse.split('T')[0]
+                : new Date(row.dirigente_data_posse).toISOString().split('T')[0])
+            : null;
+        }
+        if (row.qtd_membros !== undefined) item.qtd_membros = row.qtd_membros;
+        if (row.qtd_jovens !== undefined) item.qtd_jovens = row.qtd_jovens;
+        if (row.tipo_prebenda !== undefined) item.tipo_prebenda = row.tipo_prebenda;
         return item as Igreja;
       });
     } catch (err) {
@@ -293,7 +218,11 @@ export async function getIgrejas(
     data = data.filter((item) => item.estado === filters.estado);
   }
   if (filters?.status && filters.status !== 'ALL') {
-    data = data.filter((item) => item.status === filters.status);
+    if (filters.status === 'VALIDADO') {
+      data = data.filter((item) => (item.status || '').toLowerCase().startsWith('validad'));
+    } else {
+      data = data.filter((item) => item.status === filters.status);
+    }
   }
 
   if (columns && columns.length > 0) {
@@ -327,7 +256,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
   await ensurePostgresTable();
   if (pool) {
     try {
-      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte, codigo_totvs_pai FROM igrejas WHERE status = 'VALIDADO' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
+      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte, codigo_totvs_pai FROM igrejas WHERE (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA')) AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
       const res = await pool.query(query);
       return res.rows.map((row) => ({
         id: row.id,
@@ -346,7 +275,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
 
   // Fallback to In-Memory DB
   return memoryDb
-    .filter((item) => item.status === 'VALIDADO' && item.latitude !== null && item.longitude !== null && item.latitude !== 0 && item.longitude !== 0)
+    .filter((item) => (item.status || '').toLowerCase().startsWith('validad') && item.latitude !== null && item.longitude !== null && item.latitude !== 0 && item.longitude !== 0)
     .map((item) => ({
       id: item.id,
       codigo_totvs: item.codigo_totvs,
@@ -702,27 +631,70 @@ export async function saveIgrejasBulk(igrejas: Igreja[], options?: { isReclassif
   return report;
 }
 
-export async function saveIgrejaSingle(codigo_totvs: string, update: Partial<Igreja>): Promise<void> {
+export async function saveIgrejaSingle(
+  identifier: string | { id?: string; codigo_totvs?: string },
+  update: Partial<Igreja>
+): Promise<Igreja> {
   await ensurePostgresTable();
+
+  const id = typeof identifier === 'object' ? identifier.id : undefined;
+  const codigo_totvs = typeof identifier === 'object' ? identifier.codigo_totvs : identifier;
+
+  if (!id && !codigo_totvs) {
+    throw new Error('ID ou codigo_totvs é obrigatório para salvar.');
+  }
+
   if (pool) {
     try {
-      const keys = Object.keys(update) as Array<keyof Igreja>;
-      if (keys.length > 0) {
-        const sets: string[] = [];
-        const params: unknown[] = [codigo_totvs];
-        let idx = 2;
-        keys.forEach((key) => {
-          sets.push(`${String(key)} = $${idx}`);
-          params.push(update[key]);
-          idx++;
-        });
+      const whereClause = id ? 'id = $1' : 'codigo_totvs = $1';
+      const whereParam = id || codigo_totvs;
 
-        sets.push(`updated_at = CURRENT_TIMESTAMP`);
-        await pool.query(
-          `UPDATE igrejas SET ${sets.join(', ')} WHERE codigo_totvs = $1`,
-          params
+      const existingRes = await pool.query(
+        `SELECT * FROM igrejas WHERE ${whereClause} LIMIT 1`,
+        [whereParam]
+      );
+
+      if (existingRes.rows.length === 0) {
+        // INSERT if record does not exist
+        const insertData: Record<string, unknown> = {
+          ...update,
+          codigo_totvs: codigo_totvs || update.codigo_totvs || `TEMP_${Date.now()}`,
+          desc_igreja: update.desc_igreja || `Igreja ${codigo_totvs || ''}`,
+          updated_at: new Date(),
+        };
+        if (id) insertData.id = id;
+
+        const keys = Object.keys(insertData);
+        const cols = keys.join(', ');
+        const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+        const values = keys.map((k) => insertData[k]);
+
+        const insertRes = await pool.query(
+          `INSERT INTO igrejas (${cols}) VALUES (${placeholders}) RETURNING *`,
+          values
         );
-        return;
+        return insertRes.rows[0] as Igreja;
+      } else {
+        // UPDATE if record exists
+        const keys = Object.keys(update) as Array<keyof Igreja>;
+        if (keys.length > 0) {
+          const sets: string[] = [];
+          const params: unknown[] = [whereParam];
+          let idx = 2;
+          keys.forEach((key) => {
+            sets.push(`${String(key)} = $${idx}`);
+            params.push(update[key]);
+            idx++;
+          });
+          sets.push(`updated_at = CURRENT_TIMESTAMP`);
+
+          const updateRes = await pool.query(
+            `UPDATE igrejas SET ${sets.join(', ')} WHERE ${whereClause} RETURNING *`,
+            params
+          );
+          return updateRes.rows[0] as Igreja;
+        }
+        return existingRes.rows[0] as Igreja;
       }
     } catch (err) {
       console.error('Postgres error in saveIgrejaSingle:', err);
@@ -731,15 +703,42 @@ export async function saveIgrejaSingle(codigo_totvs: string, update: Partial<Igr
   }
 
   // Fallback to In-Memory DB
-  const idx = memoryDb.findIndex((item) => item.codigo_totvs === codigo_totvs);
+  let idx = -1;
+  if (id) {
+    idx = memoryDb.findIndex((item) => item.id === id);
+  }
+  if (idx === -1 && codigo_totvs) {
+    idx = memoryDb.findIndex((item) => item.codigo_totvs === codigo_totvs);
+  }
+
   if (idx !== -1) {
     memoryDb[idx] = {
       ...memoryDb[idx],
       ...update,
       updated_at: new Date().toISOString(),
     };
+    return memoryDb[idx];
   } else {
-    throw new Error(`Church with codigo_totvs ${codigo_totvs} not found.`);
+    const newItem: Igreja = {
+      id: id || undefined,
+      codigo_totvs: codigo_totvs || (update.codigo_totvs as string) || `TEMP_${Date.now()}`,
+      desc_igreja: update.desc_igreja || `Igreja ${codigo_totvs || ''}`,
+      tipo_imovel: update.tipo_imovel || 'ALUGADO',
+      endereco: update.endereco || '',
+      bairro: update.bairro || '',
+      municipio: update.municipio || '',
+      estado: update.estado || '',
+      cep: update.cep || '',
+      link_google_maps: update.link_google_maps || '',
+      latitude: update.latitude ?? null,
+      longitude: update.longitude ?? null,
+      status: update.status || 'PENDENTE',
+      ...update,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    memoryDb.push(newItem);
+    return newItem;
   }
 }
 
@@ -751,9 +750,9 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
         INSERT INTO igrejas (
           codigo_totvs, desc_igreja, tipo_imovel, endereco, bairro, municipio, estado, cep,
           link_google_maps, latitude, longitude, status, codigo_totvs_pai, porte,
-          dirigente_nome, dirigente_telefone, dirigente_email,
-          financeira_nome, financeira_telefone, financeira_email
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          dirigente_nome, dirigente_telefone, dirigente_email, dirigente_data_posse,
+          financeira_nome, financeira_telefone, financeira_email, qtd_membros, qtd_jovens, tipo_prebenda
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       `;
       await pool.query(query, [
         igreja.codigo_totvs,
@@ -773,9 +772,13 @@ export async function criarIgrejaSingle(igreja: Igreja): Promise<void> {
         igreja.dirigente_nome || null,
         igreja.dirigente_telefone || null,
         igreja.dirigente_email || null,
+        igreja.dirigente_data_posse || null,
         igreja.financeira_nome || null,
         igreja.financeira_telefone || null,
         igreja.financeira_email || null,
+        igreja.qtd_membros !== undefined ? igreja.qtd_membros : null,
+        igreja.qtd_jovens !== undefined ? igreja.qtd_jovens : null,
+        igreja.tipo_prebenda || 'NAO_PREBENDADA',
       ]);
       return;
     } catch (err) {

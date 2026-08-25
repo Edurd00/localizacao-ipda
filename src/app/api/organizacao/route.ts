@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
 
-export const revalidate = 86400; // Cache 24 hours
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +20,9 @@ export async function GET(request: Request) {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=59',
+            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=86400',
+            'CDN-Cache-Control': 'public, s-maxage=86400',
+            'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
           },
         }
       );
@@ -41,7 +43,9 @@ export async function GET(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=59',
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=86400',
+          'CDN-Cache-Control': 'public, s-maxage=86400',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
         },
       }
     );

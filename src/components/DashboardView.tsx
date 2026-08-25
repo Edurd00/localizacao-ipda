@@ -73,12 +73,44 @@ export default function DashboardView({
   const [filterStateSearch, setFilterStateSearch] = useState('');
   const [exportFilter, setExportFilter] = useState<'ALL' | 'VALIDADO' | 'PENDENTE' | 'DUVIDA' | 'PENDENTE_REVISAO'>('VALIDADO');
 
+  // Categorize each church item according to validation flow rules
+  const activeIgrejasWithCategory = useMemo(() => {
+    return igrejas
+      .filter((ig) => ig.status !== 'DESATIVADO')
+      .map((ig: any) => {
+        const dataValidacao = ig.data_validacao || ig.validado_em;
+        const isValidada = Boolean(dataValidacao) || ig.status === 'VALIDADO';
+
+        const obsDuvidaText =
+          (ig.observacao_duvida && String(ig.observacao_duvida).trim()) ||
+          (ig.observacao && String(ig.observacao).trim()) ||
+          (ig.observacoes && String(ig.observacoes).trim()) ||
+          (ig.duvida && String(ig.duvida).trim());
+
+        const hasDuvidaTextOrStatus = Boolean(obsDuvidaText) || ig.status === 'DUVIDA';
+        const isRevisao = ig.status === 'PENDENTE_REVISAO' || ig.status === 'REVISAO_ENDERECO';
+
+        let category: 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'PENDENTE' = 'PENDENTE';
+        if (isValidada) {
+          category = 'VALIDADO';
+        } else if (hasDuvidaTextOrStatus) {
+          category = 'DUVIDA';
+        } else if (isRevisao) {
+          category = 'PENDENTE_REVISAO';
+        } else {
+          category = 'PENDENTE';
+        }
+
+        return { church: ig, category };
+      });
+  }, [igrejas]);
+
   // Overall KPIs calculation
-  const totalCount = igrejas.length;
-  const validadasCount = useMemo(() => igrejas.filter((i) => (i.status as string) === 'VALIDADO').length, [igrejas]);
-  const pendentesCount = useMemo(() => igrejas.filter((i) => (i.status as string) === 'PENDENTE').length, [igrejas]);
-  const duvidasCount = useMemo(() => igrejas.filter((i) => (i.status === 'DUVIDA' || (i.status as string) === 'DUVIDA')).length, [igrejas]);
-  const revisoesCount = useMemo(() => igrejas.filter((i) => (i.status as string) === 'PENDENTE_REVISAO').length, [igrejas]);
+  const totalCount = activeIgrejasWithCategory.length;
+  const validadasCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'VALIDADO').length, [activeIgrejasWithCategory]);
+  const pendentesCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'PENDENTE').length, [activeIgrejasWithCategory]);
+  const duvidasCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'DUVIDA').length, [activeIgrejasWithCategory]);
+  const revisoesCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'PENDENTE_REVISAO').length, [activeIgrejasWithCategory]);
 
   const validadasPct = totalCount > 0 ? ((validadasCount / totalCount) * 100).toFixed(1) : '0.0';
   const pendentesPct = totalCount > 0 ? ((pendentesCount / totalCount) * 100).toFixed(1) : '0.0';
@@ -121,28 +153,28 @@ export default function DashboardView({
       { uf: string; total: number; validadas: number; pendentes: number; duvidas: number; revisoes: number }
     >();
 
-    igrejas.forEach((ig) => {
+    activeIgrejasWithCategory.forEach(({ church: ig, category }) => {
       const uf = ig.estado || 'Outros';
       if (!map.has(uf)) {
         map.set(uf, { uf, total: 0, validadas: 0, pendentes: 0, duvidas: 0, revisoes: 0 });
       }
       const item = map.get(uf)!;
       item.total += 1;
-      if ((ig.status as string) === 'VALIDADO') item.validadas += 1;
-      else if ((ig.status as string) === 'DUVIDA') item.duvidas += 1;
-      else if ((ig.status as string) === 'PENDENTE_REVISAO') item.revisoes += 1;
+      if (category === 'VALIDADO') item.validadas += 1;
+      else if (category === 'DUVIDA') item.duvidas += 1;
+      else if (category === 'PENDENTE_REVISAO') item.revisoes += 1;
       else item.pendentes += 1;
     });
 
     const list = Array.from(map.values());
     list.sort((a, b) => b.total - a.total);
     return list;
-  }, [igrejas]);
+  }, [activeIgrejasWithCategory]);
 
   const filteredStateMetrics = useMemo(() => {
     if (!filterStateSearch.trim()) return stateMetrics;
     const term = filterStateSearch.trim().toLowerCase();
-    return stateMetrics.filter((s) => s.uf.toLowerCase().includes(term));
+    return stateMetrics.filter((s) => String(s.uf || '').toLowerCase().includes(term));
   }, [stateMetrics, filterStateSearch]);
 
   // Export to Excel handler
