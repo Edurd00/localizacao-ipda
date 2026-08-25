@@ -1,8 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+export const dynamic = 'force-dynamic';
 
-const GeneralMapComponent = dynamic(() => import('@/components/GeneralMapComponent'), {
+import nextDynamic from 'next/dynamic';
+
+const GeneralMapComponent = nextDynamic(() => import('@/components/GeneralMapComponent'), {
   ssr: false,
   loading: () => (
     <div className="flex flex-col items-center justify-center h-screen bg-zinc-50">
