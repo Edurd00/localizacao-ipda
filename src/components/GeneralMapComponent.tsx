@@ -424,14 +424,22 @@ function MapBoundsController({
 
     // 3. If Connection Mesh (Malha de Conexão) is active
     if (connectionPathSource && activeChainCodes.length > 0) {
-      const sourceChurch = igrejas.find((ig) => ig.codigo_totvs === connectionPathSource);
+      const sourceChurch = igrejas.find((ig) => String(ig.codigo_totvs) === String(connectionPathSource));
       const sourcePorte = sourceChurch ? (sourceChurch.porte || getPorte(sourceChurch.desc_igreja, sourceChurch.porte)) : 'LOCAL';
-      const isLowLevel = sourcePorte === 'LOCAL' || sourcePorte === 'CASA DE ORAÇÃO' || sourcePorte === 'ALDEIA INDIGENA';
-      const selectedPadding = isLowLevel ? [80, 80] : [60, 60];
+      const isLocalChurch = sourcePorte === 'LOCAL' || sourcePorte === 'CASA DE ORAÇÃO' || sourcePorte === 'ALDEIA INDIGENA';
+
+      if (isLocalChurch && sourceChurch && sourceChurch.latitude && sourceChurch.longitude) {
+        // Para igrejas locais, foca no ponto de origem com zoom aproximado (evita o zoom reverso do mapa todo)
+        map.flyTo([sourceChurch.latitude, sourceChurch.longitude], 12, {
+          animate: true,
+          duration: 1.2,
+        });
+        return;
+      }
 
       const meshCoords: [number, number][] = [];
       activeChainCodes.forEach((totvs) => {
-        const found = igrejas.find((ig) => ig.codigo_totvs === totvs);
+        const found = igrejas.find((ig) => String(ig.codigo_totvs) === String(totvs));
         if (found && found.latitude && found.longitude) {
           meshCoords.push([found.latitude, found.longitude]);
         }
@@ -440,10 +448,10 @@ function MapBoundsController({
       if (meshCoords.length >= 1) {
         const boundsObj = L.latLngBounds(meshCoords);
         map.fitBounds(boundsObj, {
-          padding: selectedPadding as any,
-          maxZoom: 14,
+          padding: [70, 70],
+          maxZoom: 13,
           animate: true,
-          duration: 0.8,
+          duration: 1,
         });
         return;
       }
@@ -2598,6 +2606,7 @@ export default function GeneralMapComponent() {
 
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
+  const [, startTransition] = useTransition();
 
   const fetchValidatedChurches = async (silent = false, force = false) => {
     if (!silent) {
@@ -2971,10 +2980,22 @@ export default function GeneralMapComponent() {
 
         {/* Right Section: Actions & Access Buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          <a
+            href="/organizacao"
+            className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-900 dark:text-indigo-200 font-bold text-xs px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-slate-700 shadow-xs transition-all whitespace-nowrap min-h-[44px]"
+          >
+            <span>🏛️</span>
+            <span>Organização</span>
+          </a>
+
           <button
             onClick={() => {
-              setShowFilters(!showFilters);
-              toast.dismiss();
+              requestAnimationFrame(() => {
+                startTransition(() => {
+                  setShowFilters((prev) => !prev);
+                  toast.dismiss();
+                });
+              });
             }}
             className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
               showFilters
@@ -2982,36 +3003,18 @@ export default function GeneralMapComponent() {
                 : 'bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-50'
             }`}
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <SlidersHorizontal className="h-3.5 w-3.5"/>
             <span className="hidden sm:inline">Filtros</span>
           </button>
-
-          <a
-            href="/organizacao"
-            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-650 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 min-h-[44px]"
-            title="Ver Estrutura Organizacional"
-          >
-            <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-xs font-semibold hidden sm:inline">🏛️ Organização</span>
-          </a>
 
           <a
             href="/validacao"
             className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
             title="Acessar Área Restrita"
           >
-            <Lock className="h-3.5 w-3.5 text-white" />
+            <Lock className="h-3.5 w-3.5 text-white"/>
             <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
           </a>
-
-          <button
-            onClick={() => fetchValidatedChurches(false, true)}
-            disabled={loading}
-            className="p-1.5 bg-white dark:bg-slate-800 text-zinc-600 dark:text-slate-300 hover:text-zinc-950 dark:hover:text-white rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50 min-h-[44px]"
-            title="Atualizar dados do banco"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </header>
 
