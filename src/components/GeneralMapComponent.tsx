@@ -2001,19 +2001,12 @@ export default function GeneralMapComponent() {
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
+  // Carga Inicial do Mapa (Usa URL limpa para bater no Cache HIT da CDN Vercel)
   const fetchIgrejas = async () => {
     try {
-      const res = await fetch(`/api/igrejas/validadas?t=${Date.now()}`, {
-        cache: 'no-cache',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache',
-        },
-      });
-
+      const res = await fetch('/api/igrejas/validadas');
       if (!res.ok) throw new Error('Erro na busca');
       const data = await res.json();
-      console.log('[FRONTEND LOG] Total recebido:', data.length);
 
       const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
       if (Array.isArray(lista)) {
