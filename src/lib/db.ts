@@ -38,10 +38,20 @@ export interface Igreja {
   tipo_prebenda?: string | null;
 }
 
-// Global singleton pattern for pg Pool in serverless environments
+import postgres from 'postgres';
+
 const globalForDb = globalThis as unknown as {
+  conn: ReturnType<typeof postgres> | undefined;
   pgPool: Pool | undefined;
 };
+
+export const conn = globalForDb.conn ?? postgres(process.env.DATABASE_URL!, {
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
+
+if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn;
 
 const databaseUrl = process.env.DATABASE_URL
   ? process.env.DATABASE_URL.trim().replace(/^["']|["']$/g, '')

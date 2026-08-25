@@ -272,13 +272,13 @@ export default function ChurchDetailModal({
                       <span className="truncate font-semibold">Rota Superior</span>
                     </button>
 
-                    {/* 2. Definir Origem */}
+                    {/* 2. Definir Origem / Traçar Rota */}
                     {!pontoOrigem ? (
                       <button
                         type="button"
                         onClick={() => {
                           setPontoOrigem(ig);
-                          toast.success(`Origem definida: ${ig.desc_igreja}`);
+                          toast.success(`Origem definida: ${ig.desc_igreja}. Abra o card da igreja de destino para traçar a rota!`);
                         }}
                         className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all cursor-pointer"
                       >
