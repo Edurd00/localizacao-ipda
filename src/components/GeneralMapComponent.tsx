@@ -2003,17 +2003,10 @@ export default function GeneralMapComponent() {
 
   const fetchIgrejas = async () => {
     try {
-      const res = await fetch(`/api/igrejas/validadas?t=${Date.now()}`, {
-        cache: 'no-cache',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache',
-        },
-      });
-
+      // Chamada limpa para bater no Cache da CDN
+      const res = await fetch('/api/igrejas/validadas');
       if (!res.ok) throw new Error('Erro na busca');
       const data = await res.json();
-      console.log('[FRONTEND LOG] Total recebido:', data.length);
 
       const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
       if (Array.isArray(lista)) {
