@@ -2003,11 +2003,21 @@ export default function GeneralMapComponent() {
 
   const fetchIgrejas = async () => {
     try {
-      const res = await fetch('/api/igrejas/validadas');
+      const res = await fetch(`/api/igrejas/validadas?t=${Date.now()}`, {
+        cache: 'no-cache',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache',
+        },
+      });
+
       if (!res.ok) throw new Error('Erro na busca');
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setIgrejas(data);
+      console.log('[FRONTEND LOG] Total recebido:', data.length);
+
+      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
+      if (Array.isArray(lista)) {
+        setIgrejas(lista);
         setError(null);
       }
     } catch (err) {
@@ -2025,13 +2035,28 @@ export default function GeneralMapComponent() {
   const handleSyncDatabase = async () => {
     setIsSyncing(true);
     try {
+      // 1. Apaga a chave no servidor/CDN da Vercel
       await fetch('/api/revalidate', { method: 'POST' });
-      const res = await fetch(`/api/igrejas/validadas?refresh=true&t=${Date.now()}`);
+
+      // 2. Traz o payload completo do banco
+      const res = await fetch(`/api/igrejas/validadas?refresh=true&t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache',
+        },
+      });
+
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setIgrejas(data);
-        toast.success(`Cache renovado! Total: ${data.length} igrejas.`);
+      console.log('[FRONTEND LOG] Total recebido na sincronização:', data.length);
+      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
+      if (Array.isArray(lista) && lista.length > 0) {
+        setIgrejas(lista);
+        setError(null);
+        toast.success(`Mapa atualizado! Total: ${lista.length} igrejas.`);
       }
+    } catch (err) {
+      console.error('Erro na sincronização:', err);
     } finally {
       setIsSyncing(false);
     }

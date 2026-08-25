@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server';
-import { getIgrejasForMap } from '@/lib/db';
+import { getIgrejas } from '@/lib/db';
 
-export const revalidate = 86400; // Cache de Borda por 24 horas
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const isRefresh = searchParams.get('refresh') === 'true';
 
-    const result = await getIgrejasForMap();
+    const result = await getIgrejas({ status: 'VALIDADO' });
 
-    // Se for refresh manual, instrui a CDN a ignorar o cache temporariamente
+    console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
+
+    // Se for refresh, instrui a Vercel a descartar a resposta antiga
     const cacheHeader = isRefresh
       ? 'no-store, no-cache, must-revalidate, max-age=0'
-      : 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800';
+      : 'public, s-maxage=3600, stale-while-revalidate=86400';
 
     return NextResponse.json(result, {
       headers: {
@@ -26,7 +29,7 @@ export async function GET(request: Request) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('Dynamic server usage')) {
       throw error;
     }
-    console.error('Erro na API publica:', error);
+    console.error('Erro na API:', error);
     return NextResponse.json([], { status: 500 });
   }
 }
