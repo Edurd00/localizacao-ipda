@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-
-export const dynamic = 'force-dynamic';
 import { cookies } from 'next/headers';
 import { verifySessionToken } from '@/lib/auth';
 

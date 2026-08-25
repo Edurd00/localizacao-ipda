@@ -36,17 +36,21 @@ export async function GET() {
       'qtd_jovens',
       'tipo_prebenda',
     ]);
-    const data = {
-      success: true,
-      igrejas,
-    };
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-        'CDN-Cache-Control': 'public, s-maxage=3600',
-        'Vercel-CDN-Cache-Control': 'public, s-maxage=3600',
-      },
-    });
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        igrejas,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600',
+          'CDN-Cache-Control': 'public, s-maxage=86400',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
+        },
+      }
+    );
   } catch (err: unknown) {
     console.error('API Error in GET /api/igrejas/validadas:', err);
     const errMsg = err instanceof Error ? err.message : 'Unknown database error';

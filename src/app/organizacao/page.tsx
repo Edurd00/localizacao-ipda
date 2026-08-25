@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import {
   ChevronRight,
