@@ -245,6 +245,7 @@ export interface IgrejaMap {
   id?: string;
   codigo_totvs: string;
   desc_igreja: string;
+  estado: string;
   latitude: number | null;
   longitude: number | null;
   status: Igreja['status'];
@@ -256,12 +257,13 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
   await ensurePostgresTable();
   if (pool) {
     try {
-      const query = "SELECT id, codigo_totvs, desc_igreja, latitude, longitude, status, porte, codigo_totvs_pai FROM igrejas WHERE (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA')) AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
+      const query = "SELECT id, codigo_totvs, desc_igreja, estado, latitude, longitude, status, porte, codigo_totvs_pai FROM igrejas WHERE (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA')) AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude <> 0 AND longitude <> 0 ORDER BY desc_igreja ASC";
       const res = await pool.query(query);
       return res.rows.map((row) => ({
         id: row.id,
         codigo_totvs: row.codigo_totvs,
         desc_igreja: row.desc_igreja,
+        estado: row.estado || '',
         latitude: row.latitude,
         longitude: row.longitude,
         status: row.status as Igreja['status'],
@@ -280,6 +282,7 @@ export async function getIgrejasForMap(): Promise<IgrejaMap[]> {
       id: item.id,
       codigo_totvs: item.codigo_totvs,
       desc_igreja: item.desc_igreja,
+      estado: item.estado || '',
       latitude: item.latitude,
       longitude: item.longitude,
       status: item.status,

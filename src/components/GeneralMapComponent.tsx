@@ -1298,8 +1298,10 @@ const MemoizedMapView = memo(function MapView({
                   ref={(el) => {
                     if (el) {
                       markerRefs.current[ig.codigo_totvs] = el;
-                      (el.options as any).estado = ig.estado;
                       (el as any).estado = ig.estado;
+                      if (el.options) {
+                        (el.options as any).estado = ig.estado;
+                      }
                     } else {
                       delete markerRefs.current[ig.codigo_totvs];
                     }
@@ -1391,8 +1393,10 @@ const MemoizedMapView = memo(function MapView({
                       ref={(el) => {
                         if (el) {
                           markerRefs.current[ig.codigo_totvs] = el;
-                          (el.options as any).estado = ig.estado;
                           (el as any).estado = ig.estado;
+                          if (el.options) {
+                            (el.options as any).estado = ig.estado;
+                          }
                         } else {
                           delete markerRefs.current[ig.codigo_totvs];
                         }
