@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'sonner';
@@ -21,6 +23,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Upload,
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
@@ -45,7 +48,16 @@ export default function GestaoPage() {
   // Search input typing speed optimization
   const [searchInput, setSearchInput] = useState('');
 
-  // Pagination states
+  // Filters & Priority Sorting states
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [filterEstado, setFilterEstado] = useState<string>('ALL');
+  const [filterPorte, setFilterPorte] = useState<string>('ALL');
+  const [filterContactStatus, setFilterContactStatus] = useState<string>('ALL');
+  const [filterPorteGroup, setFilterPorteGroup] = useState<string>('ALL');
+  const [prioritizeMajorPortes, setPrioritizeMajorPortes] = useState<boolean>(false);
+
+  // Pagination & Card pointer states
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -71,13 +83,66 @@ export default function GestaoPage() {
   const [formParentTotvs, setFormParentTotvs] = useState('');
   const [formTipoImovel, setFormTipoImovel] = useState('ALUGADO');
 
-  // Form State: Responsibles
+  // Form State: Responsibles & Membership
   const [formDirigenteNome, setFormDirigenteNome] = useState('');
   const [formDirigenteTelefone, setFormDirigenteTelefone] = useState('');
   const [formDirigenteEmail, setFormDirigenteEmail] = useState('');
+  const [formDirigenteDataPosse, setFormDirigenteDataPosse] = useState('');
   const [formFinanceiraNome, setFormFinanceiraNome] = useState('');
   const [formFinanceiraTelefone, setFormFinanceiraTelefone] = useState('');
   const [formFinanceiraEmail, setFormFinanceiraEmail] = useState('');
+  const [formQtdMembros, setFormQtdMembros] = useState('');
+  const [formQtdJovens, setFormQtdJovens] = useState('');
+  const [formTipoPrebenda, setFormTipoPrebenda] = useState('NAO_PREBENDADA');
+
+  // ViaCEP Fetcher with Auto-fill
+  const handleCepBlurOrChange = async (val: string) => {
+    const uppercaseVal = val.toUpperCase();
+    setFormCep(uppercaseVal);
+    const cleanCep = uppercaseVal.replace(/\D/g, '');
+    if (cleanCep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && !data.erro) {
+            if (data.logradouro) setFormEndereco(data.logradouro.toUpperCase());
+            if (data.bairro) setFormBairro(data.bairro.toUpperCase());
+            if (data.localidade) setFormMunicipio(data.localidade.toUpperCase());
+            if (data.uf) setFormEstado(data.uf.toUpperCase());
+            toast.success(`ViaCEP: Endereço autopreenchido para ${data.localidade}-${data.uf}!`);
+          }
+        }
+      } catch (err) {
+        console.error('ViaCEP Fetch Error:', err);
+      }
+    }
+  };
+
+  // Helper to generate standardized church name: {PORTE} - {UF}-{MUNICIPIO}-{BAIRRO}
+  const generateStandardName = () => {
+    const porteStr = (formPorte || 'LOCAL').trim().toUpperCase();
+    const ufStr = (formEstado || '').trim().toUpperCase();
+    const munStr = (formMunicipio || '').trim().toUpperCase();
+    const bairroStr = (formBairro || '').trim().toUpperCase();
+
+    let result = porteStr;
+    if (ufStr || munStr) {
+      result += ` - ${ufStr}${munStr ? '-' + munStr : ''}`;
+    }
+    if (bairroStr) {
+      result += `-${bairroStr}`;
+    }
+    setFormNome(result);
+    toast.info(`Nome da Igreja padronizado: ${result}`);
+  };
+
+  // Match TOTVS Parent Church for Autocomplete Confirmation
+  const parentChurchMatch = useMemo(() => {
+    const target = formParentTotvs.trim().replace(/^0+/, '');
+    if (!target) return null;
+    return igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === target);
+  }, [igrejas, formParentTotvs]);
 
   const [saving, setSaving] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -120,28 +185,40 @@ export default function GestaoPage() {
     fetchIgrejasList();
   }, []);
 
-  // Sync public map / cache clear trigger
-  const handleSyncPublicMap = async () => {
+  const handleForceReloadDatabase = async () => {
     setSyncLoading(true);
     try {
-      const res = await fetch('/api/revalidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
+
+      const res = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
       });
+
+      if (!res.ok) throw new Error('Erro ao buscar validadas');
+
       const data = await res.json();
-      if (data.revalidated) {
-        toast.success("Mapa público sincronizado com sucesso! As atualizações de contatos e endereços já estão propagadas.");
-        router.refresh();
-      } else {
-        toast.error("Erro ao sincronizar mapa público.");
+      const churchList = Array.isArray(data)
+        ? data
+        : (data.igrejas || data.data || []);
+
+      if (Array.isArray(churchList)) {
+        setIgrejas(churchList);
+        setFilterContactStatus('ALL');
+        setFilterPorteGroup('ALL');
+        toast.success(`Banco atualizado com sucesso! Total de ${churchList.length} igrejas validadas carregadas.`);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao sincronizar mapa público. Verifique a conexão.");
+    } catch (error) {
+      console.error('Erro ao recarregar banco completo:', error);
+      toast.error('Erro ao conectar ao banco de dados.');
     } finally {
       setSyncLoading(false);
     }
   };
+
+  const handleSyncPublicMap = handleForceReloadDatabase;
 
   const handleLogout = async () => {
     try {
@@ -158,42 +235,109 @@ export default function GestaoPage() {
   useEffect(() => {
     startTransition(() => {
       setSearchTerm(searchInput);
+      setCurrentIndex(0);
       setCurrentPage(1);
     });
   }, [searchInput]);
 
-  // Exact Match First search filter alg
-  const filteredIgrejas = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return igrejas;
+  // Coverage KPI metrics calculation
+  const kpiMetrics = useMemo(() => {
+    const total = igrejas.length;
+    if (total === 0) {
+      return { dirigenteCount: 0, dirigentePct: 0, financeiraCount: 0, financeiraPct: 0, majorPendingCount: 0 };
+    }
 
-    const numericTerm = term.replace(/^0+/, '');
-    const isPureNumeric = /^\d+$/.test(numericTerm);
+    let dirCount = 0;
+    let finCount = 0;
+    let majorPending = 0;
 
-    if (isPureNumeric) {
-      // Look for exact TOTVS match first
-      const exact = igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === numericTerm);
-      if (exact) {
-        return [exact];
+    const majorPortes = new Set(['ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL']);
+
+    for (const ig of igrejas) {
+      const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
+      const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
+      if (hasDir) dirCount++;
+      if (hasFin) finCount++;
+
+      const porte = (ig.porte || 'LOCAL').toUpperCase();
+      if (majorPortes.has(porte) && (!hasDir || !hasFin)) {
+        majorPending++;
       }
     }
 
-    return igrejas.filter((ig) => {
-      const totvsNorm = ig.codigo_totvs.toLowerCase();
-      const nomeNorm = ig.desc_igreja.toLowerCase();
-      const municipioNorm = (ig.municipio || '').toLowerCase();
-      const estadoNorm = (ig.estado || '').toLowerCase();
-      const bairroNorm = (ig.bairro || '').toLowerCase();
+    return {
+      dirigenteCount: dirCount,
+      dirigentePct: Math.round((dirCount / total) * 100),
+      financeiraCount: finCount,
+      financeiraPct: Math.round((finCount / total) * 100),
+      majorPendingCount: majorPending,
+    };
+  }, [igrejas]);
 
-      return (
-        totvsNorm.includes(term) ||
-        nomeNorm.includes(term) ||
-        municipioNorm.includes(term) ||
-        estadoNorm.includes(term) ||
-        bairroNorm.includes(term)
-      );
+  // 1. Lógica do Filtro Combinado
+  const igrejasFiltradas = useMemo(() => {
+    return igrejas.filter((igreja) => {
+      const matchesStatus = filterStatus === 'ALL' || String(igreja.status || '').toLowerCase() === filterStatus.toLowerCase();
+      const matchesEstado = filterEstado === 'ALL' || igreja.estado === filterEstado;
+      const matchesPorte = filterPorte === 'ALL' || igreja.porte === filterPorte;
+
+      const query = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        query === '' ||
+        String(igreja.codigo_totvs || '').toLowerCase().includes(query) ||
+        String(igreja.desc_igreja || '').toLowerCase().includes(query) ||
+        String(igreja.municipio || '').toLowerCase().includes(query) ||
+        String(igreja.bairro || '').toLowerCase().includes(query) ||
+        String(igreja.endereco || '').toLowerCase().includes(query);
+
+      const hasDir = Boolean(igreja.dirigente_nome && igreja.dirigente_nome.trim().length > 0);
+      const hasFin = Boolean(igreja.financeira_nome && igreja.financeira_nome.trim().length > 0);
+      let matchesContact = true;
+      if (filterContactStatus === 'NO_DIRIGENTE') matchesContact = !hasDir;
+      else if (filterContactStatus === 'NO_FINANCEIRA') matchesContact = !hasFin;
+      else if (filterContactStatus === 'NO_BOTH') matchesContact = !hasDir && !hasFin;
+      else if (filterContactStatus === 'COMPLETE') matchesContact = hasDir && hasFin;
+
+      const porteUpper = (igreja.porte || 'LOCAL').toUpperCase();
+      let matchesPorteGroup = true;
+      if (filterPorteGroup === 'ESTADUAL_SETORIAL') {
+        matchesPorteGroup = porteUpper === 'ESTADUAL' || porteUpper === 'SETORIAL';
+      } else if (filterPorteGroup === 'CENTRAL_REGIONAL') {
+        matchesPorteGroup = porteUpper === 'CENTRAL' || porteUpper === 'REGIONAL';
+      } else if (filterPorteGroup === 'LOCAL_OUTROS') {
+        matchesPorteGroup = porteUpper !== 'ESTADUAL' && porteUpper !== 'SETORIAL' && porteUpper !== 'CENTRAL' && porteUpper !== 'REGIONAL';
+      }
+
+      return matchesStatus && matchesEstado && matchesPorte && matchesSearch && matchesContact && matchesPorteGroup;
     });
-  }, [igrejas, searchTerm]);
+  }, [igrejas, filterStatus, filterEstado, filterPorte, searchTerm, filterContactStatus, filterPorteGroup]);
+
+  // Priority sorting if active
+  const filteredIgrejas = useMemo(() => {
+    if (!prioritizeMajorPortes) return igrejasFiltradas;
+
+    const PORTE_WEIGHTS: Record<string, number> = {
+      ESTADUAL: 1,
+      SETORIAL: 2,
+      CENTRAL: 3,
+      REGIONAL: 4,
+      LOCAL: 5,
+      'CASA DE ORAÇÃO': 6,
+      'ALDEIA INDIGENA': 7,
+    };
+
+    return [...igrejasFiltradas].sort((a, b) => {
+      const weightA = PORTE_WEIGHTS[(a.porte || 'LOCAL').toUpperCase()] || 99;
+      const weightB = PORTE_WEIGHTS[(b.porte || 'LOCAL').toUpperCase()] || 99;
+      return weightA - weightB;
+    });
+  }, [igrejasFiltradas, prioritizeMajorPortes]);
+
+  // 2. Reset de Paginação e Ponteiro ao Alterar Busca/Filtros
+  useEffect(() => {
+    setCurrentIndex(0);
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterEstado, filterPorte, filterContactStatus, filterPorteGroup]);
 
   // Pagination slice
   const paginatedIgrejas = useMemo(() => {
@@ -219,9 +363,13 @@ export default function GestaoPage() {
     setFormDirigenteNome('');
     setFormDirigenteTelefone('');
     setFormDirigenteEmail('');
+    setFormDirigenteDataPosse('');
     setFormFinanceiraNome('');
     setFormFinanceiraTelefone('');
     setFormFinanceiraEmail('');
+    setFormQtdMembros('');
+    setFormQtdJovens('');
+    setFormTipoPrebenda('NAO_PREBENDADA');
 
     setIsCreateModalOpen(true);
   };
@@ -239,6 +387,7 @@ export default function GestaoPage() {
     setFormPorte(ig.porte || 'LOCAL');
     setFormParentTotvs(ig.codigo_totvs_pai || '');
     setFormTipoImovel(ig.tipo_imovel || 'ALUGADO');
+    setFormTipoPrebenda(ig.tipo_prebenda || 'NAO_PREBENDADA');
 
     setIsEditModalOpen(true);
   };
@@ -248,9 +397,31 @@ export default function GestaoPage() {
     setFormDirigenteNome(ig.dirigente_nome || '');
     setFormDirigenteTelefone(ig.dirigente_telefone || '');
     setFormDirigenteEmail(ig.dirigente_email || '');
+
+    let formattedPosse = '';
+    if (ig.dirigente_data_posse) {
+      const str = String(ig.dirigente_data_posse).trim();
+      if (str.includes('T')) {
+        formattedPosse = str.split('T')[0];
+      } else if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts.length === 3) {
+          formattedPosse = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        } else {
+          formattedPosse = str;
+        }
+      } else {
+        formattedPosse = str;
+      }
+    }
+    setFormDirigenteDataPosse(formattedPosse);
+
     setFormFinanceiraNome(ig.financeira_nome || '');
     setFormFinanceiraTelefone(ig.financeira_telefone || '');
     setFormFinanceiraEmail(ig.financeira_email || '');
+    setFormQtdMembros(ig.qtd_membros !== null && ig.qtd_membros !== undefined ? String(ig.qtd_membros) : '');
+    setFormQtdJovens(ig.qtd_jovens !== null && ig.qtd_jovens !== undefined ? String(ig.qtd_jovens) : '');
+    setFormTipoPrebenda(ig.tipo_prebenda || 'NAO_PREBENDADA');
 
     setIsContactsModalOpen(true);
   };
@@ -279,12 +450,16 @@ export default function GestaoPage() {
           link_google_maps: formLinkMaps.trim(),
           porte: formPorte,
           codigo_totvs_pai: formParentTotvs.trim() || null,
-          dirigente_nome: formDirigenteNome.trim(),
+          dirigente_nome: formDirigenteNome.trim().toUpperCase(),
           dirigente_telefone: formDirigenteTelefone.trim(),
           dirigente_email: formDirigenteEmail.trim(),
-          financeira_nome: formFinanceiraNome.trim(),
+          dirigente_data_posse: formDirigenteDataPosse || null,
+          financeira_nome: formFinanceiraNome.trim().toUpperCase(),
           financeira_telefone: formFinanceiraTelefone.trim(),
           financeira_email: formFinanceiraEmail.trim(),
+          qtd_membros: formQtdMembros ? Number(formQtdMembros) : null,
+          qtd_jovens: formQtdJovens ? Number(formQtdJovens) : null,
+          tipo_prebenda: formTipoPrebenda,
           status: 'PENDENTE',
         }),
       });
@@ -360,6 +535,7 @@ export default function GestaoPage() {
           link_google_maps: formLinkMaps.trim(),
           porte: formPorte,
           codigo_totvs_pai: formParentTotvs.trim() || null,
+          tipo_prebenda: formTipoPrebenda,
         }),
       });
 
@@ -390,12 +566,16 @@ export default function GestaoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           codigo_totvs: selectedChurch.codigo_totvs,
-          dirigente_nome: formDirigenteNome.trim(),
+          dirigente_nome: formDirigenteNome.trim().toUpperCase(),
           dirigente_telefone: formDirigenteTelefone.trim(),
           dirigente_email: formDirigenteEmail.trim(),
-          financeira_nome: formFinanceiraNome.trim(),
+          dirigente_data_posse: formDirigenteDataPosse || null,
+          financeira_nome: formFinanceiraNome.trim().toUpperCase(),
           financeira_telefone: formFinanceiraTelefone.trim(),
           financeira_email: formFinanceiraEmail.trim(),
+          qtd_membros: formQtdMembros ? Number(formQtdMembros) : null,
+          qtd_jovens: formQtdJovens ? Number(formQtdJovens) : null,
+          tipo_prebenda: formTipoPrebenda,
         }),
       });
 
@@ -420,7 +600,7 @@ export default function GestaoPage() {
       <Toaster position="top-right" richColors closeButton />
 
       {/* Header Mirror with Nav Link integration */}
-      <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 z-[1001] shadow-xs flex items-center">
+      <header className="relative z-[9999] h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 shadow-xs flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex justify-between items-center">
           <div className="flex items-center space-x-3 shrink-0">
             <img src="/img/logo.png" alt="IPDA" className="h-10 w-auto object-contain shadow-sm" />
@@ -432,48 +612,72 @@ export default function GestaoPage() {
             </div>
           </div>
 
-          {/* Nav Pills including Gestao */}
-          <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-0.5 items-center">
+          {/* Grouped Administrative Navigation Dropdowns */}
+          <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
             <a
               href="/"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+              className="px-3 py-1.5 rounded-lg text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50 transition-all"
             >
-              <span>🗺️ Mapa Geral</span>
+              🗺️ Mapa Geral
             </a>
 
-            <a
-              href="/validacao?tab=validation"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>📍 Validação</span>
-            </a>
+            {/* Item 2: Validação & Gestão Dropdown */}
+            <div className="relative group">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
+              >
+                <span>📍 Validação & Gestão</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
 
-            <a
-              href="/coligacoes"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>🌳 Coligações</span>
-            </a>
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <a
+                  href="/validacao?tab=validation"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  📍 Validação de Igrejas
+                </a>
+                <a
+                  href="/gestao"
+                  className="block px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg"
+                >
+                  👥 Gestão de Contatos
+                </a>
+                <a
+                  href="/coligacoes"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  🌳 Coligações
+                </a>
+              </div>
+            </div>
 
-            <button
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 bg-white dark:bg-slate-750 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
-            >
-              <span>👥 Gestão</span>
-            </button>
+            {/* Item 3: Inteligência & BI Dropdown */}
+            <div className="relative group">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
+              >
+                <span>📊 Inteligência & BI</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
 
-            <a
-              href="/validacao?tab=dashboard"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>📊 Dashboard</span>
-            </a>
-
-            <a
-              href="/validacao?tab=upload"
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50"
-            >
-              <span>📥 Importar</span>
-            </a>
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                <a
+                  href="/validacao?tab=dashboard"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  📊 Dashboard de Status
+                </a>
+                <a
+                  href="/relatorios"
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                >
+                  📊 Relatórios Hierárquicos
+                </a>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -497,6 +701,45 @@ export default function GestaoPage() {
       </header>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+        {/* Indicadores Rápidos de Cobertura (KPI Cards Topo) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🎴 Cobertura de Dirigentes</p>
+              <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
+                {kpiMetrics.dirigenteCount} <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">({kpiMetrics.dirigentePct}%)</span>
+              </h3>
+            </div>
+            <div className="p-2.5 bg-indigo-50 dark:bg-slate-800 text-indigo-600 rounded-xl border border-indigo-100 dark:border-slate-700">
+              <User className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">💼 Cobertura Financeira</p>
+              <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
+                {kpiMetrics.financeiraCount} <span className="text-xs text-violet-600 dark:text-violet-400 font-bold">({kpiMetrics.financeiraPct}%)</span>
+              </h3>
+            </div>
+            <div className="p-2.5 bg-violet-50 dark:bg-slate-800 text-violet-600 rounded-xl border border-violet-100 dark:border-slate-700">
+              <Users className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🚨 Sedes Maiores Pendentes</p>
+              <h3 className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 font-mono">
+                {kpiMetrics.majorPendingCount} <span className="text-xs text-amber-500 font-normal">igrejas</span>
+              </h3>
+            </div>
+            <div className="p-2.5 bg-amber-50 dark:bg-slate-800 text-amber-600 rounded-xl border border-amber-100 dark:border-slate-700">
+              <Building2 className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
         {/* Workspace controls panel */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           {/* Quick search input */}
@@ -533,6 +776,56 @@ export default function GestaoPage() {
               <span>Nova Igreja</span>
             </button>
           </div>
+        </div>
+
+        {/* Painel de Filtros e Priorização de Portes */}
+        <div className="flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+          {/* Filter 1: Status do Contato */}
+          <select
+            value={filterContactStatus}
+            onChange={(e) => {
+              setFilterContactStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="ALL">Status de Contato: Todos</option>
+            <option value="NO_DIRIGENTE">⚠️ Sem Dirigente Cadastrado</option>
+            <option value="NO_FINANCEIRA">⚠️ Sem Voluntária Financeira</option>
+            <option value="NO_BOTH">🚨 Sem Nenhum Contato</option>
+            <option value="COMPLETE">✅ Com Contatos Completos</option>
+          </select>
+
+          {/* Filter 2: Porte Group */}
+          <select
+            value={filterPorteGroup}
+            onChange={(e) => {
+              setFilterPorteGroup(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="ALL">Porte: Todos os Portes</option>
+            <option value="ESTADUAL_SETORIAL">🔵 Estaduais & 🟡 Setoriais</option>
+            <option value="CENTRAL_REGIONAL">🟠 Centrais & 🟢 Regionais</option>
+            <option value="LOCAL_OUTROS">⚪ Locais & Outros</option>
+          </select>
+
+          {/* Toggle: Priorizar Portes Maiores */}
+          <button
+            type="button"
+            onClick={() => {
+              setPrioritizeMajorPortes(!prioritizeMajorPortes);
+              setCurrentPage(1);
+            }}
+            className={`h-10 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs border ${
+              prioritizeMajorPortes
+                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-sm'
+                : 'bg-zinc-50 dark:bg-slate-800 text-zinc-650 dark:text-slate-350 border-zinc-200 dark:border-slate-700 hover:bg-zinc-100'
+            }`}
+          >
+            <span>⚡ Priorizar Portes Maiores</span>
+          </button>
         </div>
 
         {/* Loading Indicator */}
@@ -606,7 +899,13 @@ export default function GestaoPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-zinc-400 italic text-[11px]">Não registrado</span>
+                            <button
+                              type="button"
+                              onClick={() => openContactsModal(ig)}
+                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 inline-flex cursor-pointer transition-all"
+                            >
+                              <span>⚠️ Cadastrar Contato</span>
+                            </button>
                           )}
                         </td>
                         <td className="p-4">
@@ -624,7 +923,13 @@ export default function GestaoPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-zinc-400 italic text-[11px]">Não registrado</span>
+                            <button
+                              type="button"
+                              onClick={() => openContactsModal(ig)}
+                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 inline-flex cursor-pointer transition-all"
+                            >
+                              <span>⚠️ Cadastrar Contato</span>
+                            </button>
                           )}
                         </td>
                         <td className="p-4 text-center">
@@ -705,20 +1010,30 @@ export default function GestaoPage() {
                     type="text"
                     required
                     value={formTotvs}
-                    onChange={(e) => setFormTotvs(e.target.value)}
+                    onChange={(e) => setFormTotvs(e.target.value.toUpperCase())}
                     placeholder="Ex: 10045"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">Descrição / Nome da Igreja *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Descrição / Nome da Igreja *</label>
+                    <button
+                      type="button"
+                      onClick={generateStandardName}
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                      title="Gerar Nome Padronizado no formato {PORTE} - {UF}-{MUNICIPIO}-{BAIRRO}"
+                    >
+                      ✨ Padronizar Nome
+                    </button>
+                  </div>
                   <input
                     type="text"
                     required
                     value={formNome}
-                    onChange={(e) => setFormNome(e.target.value)}
-                    placeholder="Ex: Central Santo André"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormNome(e.target.value.toUpperCase())}
+                    placeholder="Ex: CENTRAL - SP-SANTO ANDRE-CENTRO"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -728,9 +1043,9 @@ export default function GestaoPage() {
                 <input
                   type="text"
                   value={formEndereco}
-                  onChange={(e) => setFormEndereco(e.target.value)}
-                  placeholder="Ex: Rua Basílio Fazzi, 120"
-                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                  onChange={(e) => setFormEndereco(e.target.value.toUpperCase())}
+                  placeholder="Ex: RUA BASÍLIO FAZZI, 120"
+                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -740,9 +1055,9 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formBairro}
-                    onChange={(e) => setFormBairro(e.target.value)}
-                    placeholder="Ex: Centro"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormBairro(e.target.value.toUpperCase())}
+                    placeholder="Ex: CENTRO"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -750,9 +1065,9 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formMunicipio}
-                    onChange={(e) => setFormMunicipio(e.target.value)}
-                    placeholder="Ex: Santo André"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormMunicipio(e.target.value.toUpperCase())}
+                    placeholder="Ex: SANTO ANDRÉ"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -761,20 +1076,23 @@ export default function GestaoPage() {
                     type="text"
                     maxLength={2}
                     value={formEstado}
-                    onChange={(e) => setFormEstado(e.target.value)}
+                    onChange={(e) => setFormEstado(e.target.value.toUpperCase())}
                     placeholder="Ex: SP"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">CEP</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">CEP (Busca ViaCEP)</label>
+                    <span className="text-[9px] text-zinc-400 font-medium">Auto-preenche endereço</span>
+                  </div>
                   <input
                     type="text"
                     value={formCep}
-                    onChange={(e) => setFormCep(e.target.value)}
+                    onChange={(e) => handleCepBlurOrChange(e.target.value)}
                     placeholder="Ex: 09015-000"
                     className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
                   />
@@ -822,10 +1140,23 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formParentTotvs}
-                    onChange={(e) => setFormParentTotvs(e.target.value)}
+                    onChange={(e) => setFormParentTotvs(e.target.value.toUpperCase())}
                     placeholder="Ex: 10001"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  {formParentTotvs.trim() && (
+                    <div className="mt-1 text-[10px] font-bold">
+                      {parentChurchMatch ? (
+                        <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 inline-block">
+                          ✓ Sede Pai Encontrada: {parentChurchMatch.porte || 'LOCAL'} - {parentChurchMatch.estado}-{parentChurchMatch.municipio}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 inline-block">
+                          ⚠️ Sede Pai TOTVS "{formParentTotvs}" não encontrada na base.
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -841,9 +1172,9 @@ export default function GestaoPage() {
                     <input
                       type="text"
                       value={formDirigenteNome}
-                      onChange={(e) => setFormDirigenteNome(e.target.value)}
-                      placeholder="Ex: Pr. Carlos"
-                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                      onChange={(e) => setFormDirigenteNome(e.target.value.toUpperCase())}
+                      placeholder="Ex: PR. CARLOS"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase"
                     />
                     <label className="text-[10px] font-bold text-zinc-500 block">Telefone do Dirigente</label>
                     <input
@@ -853,8 +1184,25 @@ export default function GestaoPage() {
                       placeholder="Ex: (11) 98765-4321"
                       className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
                     />
+                    <label className="text-[10px] font-bold text-zinc-500 block">Data de Posse/Início do Dirigente</label>
+                    <input
+                      type="date"
+                      value={formDirigenteDataPosse}
+                      onChange={(e) => setFormDirigenteDataPosse(e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    />
+                    <label className="text-[10px] font-bold text-zinc-500 block">Prebenda do Dirigente</label>
+                    <select
+                      value={formTipoPrebenda}
+                      onChange={(e) => setFormTipoPrebenda(e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                    >
+                      <option value="NAO_PREBENDADA">Não Prebendada - Dirigente Voluntário</option>
+                      <option value="PREBENDADA">Prebendada - Dedicação Exclusiva / Remunerado</option>
+                    </select>
                   </div>
-
+                </div>
+                <div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-bold text-zinc-500 block">Nome da Voluntária Financeira</label>
                     <input
@@ -922,13 +1270,23 @@ export default function GestaoPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">Descrição / Nome da Igreja *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Descrição / Nome da Igreja *</label>
+                  <button
+                    type="button"
+                    onClick={generateStandardName}
+                    className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                    title="Gerar Nome Padronizado no formato {PORTE} - {UF}-{MUNICIPIO}-{BAIRRO}"
+                  >
+                    ✨ Padronizar Nome
+                  </button>
+                </div>
                 <input
                   type="text"
                   required
                   value={formNome}
-                  onChange={(e) => setFormNome(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                  onChange={(e) => setFormNome(e.target.value.toUpperCase())}
+                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -937,8 +1295,8 @@ export default function GestaoPage() {
                 <input
                   type="text"
                   value={formEndereco}
-                  onChange={(e) => setFormEndereco(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                  onChange={(e) => setFormEndereco(e.target.value.toUpperCase())}
+                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -948,8 +1306,8 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formBairro}
-                    onChange={(e) => setFormBairro(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => setFormBairro(e.target.value.toUpperCase())}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -957,8 +1315,8 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formMunicipio}
-                    onChange={(e) => setFormMunicipio(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none"
+                    onChange={(e) => setFormMunicipio(e.target.value.toUpperCase())}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none"
                   />
                 </div>
                 <div>
@@ -967,19 +1325,22 @@ export default function GestaoPage() {
                     type="text"
                     maxLength={2}
                     value={formEstado}
-                    onChange={(e) => setFormEstado(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none"
+                    onChange={(e) => setFormEstado(e.target.value.toUpperCase())}
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block mb-1">CEP</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">CEP (Busca ViaCEP)</label>
+                    <span className="text-[9px] text-zinc-400 font-medium">Auto-preenche endereço</span>
+                  </div>
                   <input
                     type="text"
                     value={formCep}
-                    onChange={(e) => setFormCep(e.target.value)}
+                    onChange={(e) => handleCepBlurOrChange(e.target.value)}
                     className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none"
                   />
                 </div>
@@ -1025,10 +1386,23 @@ export default function GestaoPage() {
                   <input
                     type="text"
                     value={formParentTotvs}
-                    onChange={(e) => setFormParentTotvs(e.target.value)}
+                    onChange={(e) => setFormParentTotvs(e.target.value.toUpperCase())}
                     placeholder="Sem igreja pai vinculada"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  {formParentTotvs.trim() && (
+                    <div className="mt-1 text-[10px] font-bold">
+                      {parentChurchMatch ? (
+                        <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 inline-block">
+                          ✓ Sede Pai Encontrada: {parentChurchMatch.porte || 'LOCAL'} - {parentChurchMatch.estado}-{parentChurchMatch.municipio}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 inline-block">
+                          ⚠️ Sede Pai TOTVS "{formParentTotvs}" não encontrada na base.
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1125,8 +1499,8 @@ export default function GestaoPage() {
       {/* 👥 Modal: Gerenciar Responsáveis (Dirigente e Financeira) */}
       {isContactsModalOpen && selectedChurch && (
         <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full shadow-2xl border border-zinc-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
-            <div className="p-5 border-b border-zinc-100 dark:border-slate-800 flex justify-between items-center bg-zinc-50/50 dark:bg-slate-800/40">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-[620px] w-full shadow-2xl border border-zinc-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 max-h-[85vh]">
+            <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-slate-800 flex justify-between items-center bg-zinc-50/50 dark:bg-slate-800/40 shrink-0">
               <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400">
                 <Users className="h-5 w-5" />
                 <h3 className="font-extrabold text-sm uppercase tracking-wider">Gerenciar Responsáveis</h3>
@@ -1139,28 +1513,30 @@ export default function GestaoPage() {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateContacts} className="p-6 space-y-5">
-              <div className="text-xs bg-zinc-50 dark:bg-slate-800/40 p-3.5 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-1">
-                <div className="font-bold text-zinc-950 dark:text-white text-sm">{selectedChurch.desc_igreja}</div>
-                <div className="text-zinc-500 font-medium">TOTVS: {selectedChurch.codigo_totvs} • {selectedChurch.municipio} - {selectedChurch.estado}</div>
+            <form onSubmit={handleUpdateContacts} className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+              <div className="text-xs bg-zinc-50 dark:bg-slate-800/40 p-3 border border-zinc-150 dark:border-slate-800 rounded-xl space-y-0.5">
+                <div className="font-bold text-zinc-950 dark:text-white text-xs sm:text-sm">{selectedChurch.desc_igreja}</div>
+                <div className="text-zinc-500 font-medium text-[11px]">TOTVS: {selectedChurch.codigo_totvs} • {selectedChurch.municipio} - {selectedChurch.estado}</div>
               </div>
 
-              {/* Dirigente Form fields */}
-              <div className="space-y-3 bg-zinc-50/30 p-4 rounded-xl border border-zinc-150">
-                <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+              {/* Seção Dirigente Atual */}
+              <div className="space-y-3 bg-zinc-50/40 dark:bg-slate-800/30 p-3.5 rounded-xl border border-zinc-200/80 dark:border-slate-700/80">
+                <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                   👤 Dirigente Atual
                 </span>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Linha 1: Nome Completo (col-span-2) */}
+                  <div className="col-span-2">
                     <label className="text-[10px] font-bold text-zinc-500 block mb-1">Nome Completo</label>
                     <input
                       type="text"
                       value={formDirigenteNome}
-                      onChange={(e) => setFormDirigenteNome(e.target.value)}
-                      placeholder="Ex: Pr. Carlos Alberto"
-                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                      onChange={(e) => setFormDirigenteNome(e.target.value.toUpperCase())}
+                      placeholder="Ex: PR. CARLOS ALBERTO"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
+                  {/* Linha 2: Telefone/WhatsApp | Email */}
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 block mb-1">Telefone / WhatsApp</label>
                     <input
@@ -1168,38 +1544,92 @@ export default function GestaoPage() {
                       value={formDirigenteTelefone}
                       onChange={(e) => setFormDirigenteTelefone(e.target.value)}
                       placeholder="Ex: (11) 98765-4321"
-                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 block mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formDirigenteEmail}
-                    onChange={(e) => setFormDirigenteEmail(e.target.value)}
-                    placeholder="Ex: dirigente@ipda.com.br"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
-                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={formDirigenteEmail}
+                      onChange={(e) => setFormDirigenteEmail(e.target.value)}
+                      placeholder="Ex: dirigente@ipda.com.br"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  {/* Linha 3: Data de Posse | Condição Pastoral / Prebenda */}
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Data de Posse/Início</label>
+                    <input
+                      type="date"
+                      value={formDirigenteDataPosse}
+                      onChange={(e) => setFormDirigenteDataPosse(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Condição Pastoral / Prebenda</label>
+                    <select
+                      value={formTipoPrebenda}
+                      onChange={(e) => setFormTipoPrebenda(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="PREBENDADA">💼 Prebendado (Dedicação Exclusiva / Salariado)</option>
+                      <option value="NAO_PREBENDADA">🤝 Voluntário (Sem Prebenda)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {/* Financeira Form fields */}
-              <div className="space-y-3 bg-zinc-50/30 p-4 rounded-xl border border-zinc-150">
-                <span className="text-[10px] font-black text-violet-700 uppercase tracking-wider flex items-center gap-1">
+              {/* Seção Membresia & Estatísticas */}
+              <div className="space-y-3 bg-zinc-50/40 dark:bg-slate-800/30 p-3.5 rounded-xl border border-zinc-200/80 dark:border-slate-700/80">
+                <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                  👥 Membresia & Estatísticas
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Quantidade de Membros</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formQtdMembros}
+                      onChange={(e) => setFormQtdMembros(e.target.value)}
+                      placeholder="Ex: 120"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Quantidade de Jovens</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formQtdJovens}
+                      onChange={(e) => setFormQtdJovens(e.target.value)}
+                      placeholder="Ex: 35"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção Voluntária Financeira */}
+              <div className="space-y-3 bg-zinc-50/40 dark:bg-slate-800/30 p-3.5 rounded-xl border border-zinc-200/80 dark:border-slate-700/80">
+                <span className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-wider flex items-center gap-1">
                   👤 Voluntária Financeira
                 </span>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Linha 1: Nome Completo (col-span-2) */}
+                  <div className="col-span-2">
                     <label className="text-[10px] font-bold text-zinc-500 block mb-1">Nome Completo</label>
                     <input
                       type="text"
                       value={formFinanceiraNome}
-                      onChange={(e) => setFormFinanceiraNome(e.target.value)}
-                      placeholder="Ex: Irmã Maria de Souza"
-                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                      onChange={(e) => setFormFinanceiraNome(e.target.value.toUpperCase())}
+                      placeholder="Ex: IRMÃ MARIA DE SOUZA"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
+                  {/* Linha 2: Telefone/WhatsApp | Email */}
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 block mb-1">Telefone / WhatsApp</label>
                     <input
@@ -1207,34 +1637,34 @@ export default function GestaoPage() {
                       value={formFinanceiraTelefone}
                       onChange={(e) => setFormFinanceiraTelefone(e.target.value)}
                       placeholder="Ex: (11) 91234-5678"
-                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={formFinanceiraEmail}
+                      onChange={(e) => setFormFinanceiraEmail(e.target.value)}
+                      placeholder="Ex: financeira@ipda.com.br"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-500 block mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formFinanceiraEmail}
-                    onChange={(e) => setFormFinanceiraEmail(e.target.value)}
-                    placeholder="Ex: financeira@ipda.com.br"
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold"
-                  />
-                </div>
               </div>
 
-              <div className="pt-4 border-t border-zinc-100 flex justify-end space-x-2 shrink-0">
+              <div className="pt-3 border-t border-zinc-100 dark:border-slate-800 flex justify-end space-x-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsContactsModalOpen(false)}
-                  className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-xs rounded-xl"
+                  className="px-4 py-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 text-zinc-700 dark:text-slate-200 font-semibold text-xs rounded-xl transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1 transition-all"
                 >
                   {saving && <Loader2 className="h-3 w-3 animate-spin" />}
                   <span>Salvar Responsáveis</span>
