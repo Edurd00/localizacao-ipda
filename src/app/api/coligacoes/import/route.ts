@@ -33,7 +33,6 @@ export async function POST(request: Request) {
     revalidatePath('/mapa-geral');
     revalidatePath('/api/mapa-geral');
     revalidatePath('/api/igrejas/validadas');
-    revalidatePath('/api/igrejas/dashboard');
 
     return NextResponse.json({
       success: true,

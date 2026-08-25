@@ -28,13 +28,9 @@ export async function GET() {
       'dirigente_nome',
       'dirigente_telefone',
       'dirigente_email',
-      'dirigente_data_posse',
       'financeira_nome',
       'financeira_telefone',
       'financeira_email',
-      'qtd_membros',
-      'qtd_jovens',
-      'tipo_prebenda',
     ]);
     return new NextResponse(
       JSON.stringify({
