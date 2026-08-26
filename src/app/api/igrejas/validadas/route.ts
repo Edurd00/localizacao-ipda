@@ -1,26 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
+import { unstable_cache } from 'next/cache';
 
-export const revalidate = 86400; // 24 horas ISR
-
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const isRefresh = searchParams.get('refresh') === 'true';
-
+const getIgrejasCacheadas = unstable_cache(
+  async () => {
     const result = await getIgrejas({ status: 'VALIDADO' });
-
     console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
+    return result;
+  },
+  ['igrejas-validadas-key'],
+  { tags: ['igrejas-tag'], revalidate: 86400 }
+);
 
-    if (isRefresh) {
-      return NextResponse.json(result, {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-        },
-      });
-    }
-
-    return NextResponse.json(result);
+export async function GET() {
+  try {
+    const dados = await getIgrejasCacheadas();
+    return NextResponse.json(dados);
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('Dynamic server usage')) {
       throw error;
