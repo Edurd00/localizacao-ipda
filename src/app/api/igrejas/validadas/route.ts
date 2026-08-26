@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 import { unstable_cache } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+
 const getIgrejasCacheadas = unstable_cache(
   async () => {
     const result = await getIgrejas({ status: 'VALIDADO' });

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
 import { unstable_cache } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+
 const getOrganizacaoDataCacheada = unstable_cache(
   async () => {
     const states = await getDistinctStates();
