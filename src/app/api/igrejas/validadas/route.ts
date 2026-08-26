@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
     const cacheHeader = isRefresh
       ? 'no-store, no-cache, must-revalidate, max-age=0'
-      : 'public, s-maxage=60, stale-while-revalidate=300';
+      : 'public, s-maxage=86400, stale-while-revalidate=43200';
 
     return NextResponse.json(result, {
       headers: {

@@ -1947,16 +1947,7 @@ export default function GeneralMapComponent() {
     return Array.isArray(json) ? json : json.igrejas || json.data || [];
   }, []);
 
-  const swrKey = useMemo(() => {
-    const params = new URLSearchParams({
-      region: selectedRegionGeo,
-      uf: selectedUF,
-      imovel: selectedTipoImovel,
-      portes: selectedPortes.sort().join(','),
-      estadual: selectedEstadual,
-    });
-    return `/api/igrejas/validadas?${params.toString()}`;
-  }, [selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes, selectedEstadual]);
+  const swrKey = '/api/igrejas/validadas';
 
   const { data: swrData, error: swrError, isLoading: swrLoading, mutate: swrMutate } = useSWR<Igreja[]>(
     swrKey,
