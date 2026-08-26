@@ -1,130 +1,133 @@
+
+```markdown
 # Localização IPDA - Sistema de Validação de Geolocalização (GEO-VALIG)
 
-Sistema Web interativo desenvolvido em Next.js para gerenciamento, localização automática (Geocoding), tratamento de endereços e validação manual de coordenadas geográficas de mais de 12.000 igrejas da Igreja Pentecostal Deus é Amor (IPDA).
+Sistema Web interativo, responsivo e de alta performance desenvolvido em Next.js para gerenciamento, localização automática (Geocoding), roteamento inteligente e validação manual de coordenadas geográficas de mais de 12.000 igrejas da Igreja Pentecostal Deus é Amor (IPDA).
+
+---
+
+## 🚀 Arquitetura de Performance e Escalabilidade (Enterprise Grade)
+
+O sistema foi arquitetado para suportar milhares de acessos simultâneos ao mapa com **custo zero** de processamento de banco de dados, utilizando os mais modernos paradigmas do ecossistema Vercel e Next.js:
+
+*   **Full Route Caching (Edge CDN):** As rotas pesadas da API (`/api/igrejas/validadas` e `/api/organizacao`) são forçadas à estaticidade pelo servidor (`export const revalidate = 86400`). O payload do mapa (anteriormente de ~10MB, agora otimizado cirurgicamente para <2MB através da segmentação de queries `.select()` no Supabase) é injetado diretamente nos Nodes de Borda (CDN) da Vercel. 
+*   **Expurgo sob Demanda (ISR On-Demand):** O sincronismo e a atualização do mapa acontecem em tempo real via ISR. Quando o administrador edita um dado, o gatilho `/api/revalidate` destrói agressivamente as tags nativas do Next.js (`revalidatePath`), forçando a reconstrução do JSON de forma assíncrona, não impactando a experiência do usuário.
+*   **Gerenciamento de Estado no Cliente (SWR):** O consumo de dados pelo mapa público utiliza a biblioteca **SWR**. Isso assegura cacheamento local infalível no browser, tolerância a falhas na rede, "deduping" de requisições e fetch limpo (sem parâmetros "cache busters") para garantir o *Hit Rate* na CDN.
+*   **Single Global Popup (DOM Otimizado):** Para suportar +9.800 marcadores simultâneos em dispositivos móveis, a renderização de modais (Popups do Leaflet) foi retirada do loop principal de marcadores. Um único `<Popup>` global é transicionado dinamicamente com base no `activePopupChurch`, zerando engasgos (freezes) no *MarkerClusterGroup* e permitindo interações instantâneas a 60 FPS.
 
 ---
 
 ## 📁 Estrutura Completa do Projeto
 
-```
+```text
 Localizar/
 ├── public/                     # Arquivos estáticos acessíveis publicamente
 │   ├── img/                    # Ícones e logotipo da aplicação
 │   │   ├── favicon.jpg         # Favicon principal
 │   │   └── logo.png            # Logotipo oficial
-│   ├── file.svg
-│   ├── globe.svg
-│   ├── next.svg
-│   ├── vercel.svg
-│   └── window.svg
+│   ├── globe.svg, next.svg, etc.
 ├── src/                        # Código-fonte principal da aplicação
 │   ├── app/                    # App Router do Next.js (Páginas e Rotas de API)
 │   │   ├── api/                # Endpoints HTTP da API Serverless
 │   │   │   └── igrejas/
-│   │   │       ├── save/
-│   │   │       │   └── route.ts  # POST: Salva a validação manual de uma igreja (lat/lng, status, operador, link)
-│   │   │       ├── upload/
-│   │   │       │   └── route.ts  # POST: Importação em lote e cálculo hierárquico vertical de coligações
-│   │   │       ├── validadas/
-│   │   │       │   └── route.ts  # GET: Retorna as igrejas validadas otimizadas para o Mapa Geral
-│   │   │       └── route.ts      # GET: Lista igrejas filtradas por estado/status e lista de estados distintos
-│   │   ├── mapa-geral/
-│   │   │   └── page.tsx        # Página do "📍 Mapa Geral de Igrejas Validadas" (Lazy loading, ssr: false)
-│   │   ├── favicon.ico         # Favicon original do Next.js
-│   │   ├── globals.css         # Estilos globais e configuração Tailwind CSS v4
-│   │   ├── layout.tsx          # Layout raiz da aplicação (Fontes Geist, Favicon e Meta tags globais)
-│   │   └── page.tsx            # Página principal / Painel split-screen de validação e importador de planilhas
+│   │   │       ├── save/       # POST: Salva a validação manual de uma igreja
+│   │   │       ├── upload/     # POST: Importação em lote e cálculo hierárquico
+│   │   │       ├── validadas/  # GET: Igrejas validadas otimizadas para o Mapa Geral (Edge Cached)
+│   │   │       └── route.ts    # GET: Lista filtrada geral de igrejas e UFs
+│   │   ├── api/revalidate/     # GET/POST: Rota de purga de cache ISR sob demanda
+│   │   ├── mapa-geral/         # Página do "📍 Mapa Geral de Igrejas"
+│   │   ├── gestao/             # Dashboard Analítico de Produtividade
+│   │   ├── organizacao/        # Aba Pública de Hierarquias, Liderança e Coligações
+│   │   └── page.tsx            # Página de validação interna
 │   ├── components/             # Componentes de interface do usuário (UI)
-│   │   ├── MapComponent.tsx    # Componente de mapa Leaflet (Camadas Esri Satélite / OpenStreetMap e Marker arrastável)
-│   │   ├── MapWrapper.tsx      # Wrapper dynamic import (ssr: false) para carregar o Leaflet apenas no navegador
-│   │   ├── GeneralMapComponent.tsx # Painel principal do Mapa Geral (Filtros, Legenda retrátil, Malhas de conexão, Otimização de Performance, Trava de Câmera)
-│   │   ├── DashboardView.tsx   # Dashboard analítico de progresso da validação
-│   │   └── SpreadsheetUpload.tsx # Drag & Drop e leitor de planilhas Excel/CSV com envio base64
-│   └── lib/                    # Camada de serviços, utilitários e dados
-│       ├── db.ts               # Conexão com PostgreSQL (Neon DB) com fallback automático em memória e alter table dinâmico
-│       ├── parser.ts           # Normalizador e conversor de colunas de planilhas Excel para a estrutura de Igreja
-│       └── geocoding.ts        # Utilitários de normalização geográfica e travas de estado (UFs)
-├── .gitignore                  # Arquivos e pastas ignorados pelo Git
-├── AGENTS.md                   # Regras e diretrizes para os agentes de IA
-├── CLAUDE.md                   # Instruções secundárias para assistente de código
-├── eslint.config.mjs           # Configurações do linter ESLint
-├── next.config.ts              # Configuração do Next.js
-├── package-lock.json           # Lockfile de dependências do npm
-├── package.json                # Dependências e scripts do projeto
-├── postcss.config.mjs          # Configuração do PostCSS para Tailwind
-├── README.md                   # Documentação oficial do projeto (Este arquivo)
-└── tsconfig.json               # Configurações do compilador TypeScript
+│   │   ├── MapComponent.tsx    # Leaflet Map (Visualização unitária na validação)
+│   │   ├── GeneralMapComponent.tsx # Engine Principal (Filtros, SWR, Rotas OSRM, Clustering)
+│   │   ├── ChurchDetailModal.tsx   # O Modal Dinâmico Rico (Single Popup Pattern)
+│   │   ├── RouteCompareModal.tsx   # Painel Comparador de Rotas Geográficas
+│   │   ├── DashboardView.tsx   # Gráficos e Exportação (.xlsx)
+│   │   └── SpreadsheetUpload.tsx # Leitor Excel/CSV de importação vertical
+│   └── lib/                    # Camada de Serviços, DB e Utils
+│       ├── db.ts               # Conexões Neon DB / Supabase e Query Builders otimizadas
+│       ├── parser.ts           # Motor interpretador de planilhas complexas
+│       └── geocoding.ts        # Normalizador de UFs e geocódigos
+
 ```
-
----
-
-## 🚀 Como Executar o Projeto Localmente
-
-### 1. Pré-requisitos
-- Node.js (v18+) e npm instalado na máquina.
-
-### 2. Instalação de Dependências
-```bash
-npm install
-```
-
-### 3. Variáveis de Ambiente (Opcional)
-Crie um arquivo `.env.local` na raiz do projeto caso queira conectar a um banco PostgreSQL persistente (ex: Neon DB):
-```env
-DATABASE_URL=postgres://usuario:senha@host:5432/nomedobanco?sslmode=require
-```
-> *Nota*: Se `DATABASE_URL` não for informado, o sistema utilizará o banco em memória automaticamente.
-
-### 4. Executando o Servidor de Desenvolvimento
-```bash
-npm run dev
-```
-Abra o navegador em `http://localhost:3000`.
 
 ---
 
 ## 📌 Principais Recursos e Funcionalidades Implementadas
 
-### 1. 📍 Mapa Geral de Igrejas Validadas (`/mapa-geral`)
-Um dashboard geoespacial em tela cheia projetado para supervisores monitorarem todos os pontos geolocalizados consolidados no sistema.
-- **Visualização Dual**: Alternância entre mapa de ruas (OpenStreetMap) e imagens de alta resolução (Esri Satélite) por cima de overlays z-index calibrados.
-- **Legenda Fixa**: Card de portes de igreja oficiais mapeado estritamente por cores.
-- **Painel de Filtros Rápidos**: Pesquisa de texto reativa (TOTVS/Nome), filtro por Estado (UF), Tipo de Imóvel, e seleção por tags de Porte.
-- **Filtro Hierárquico Regional**: Dropdowns inteligentes baseados na constante `REGOES_ESTADUAIS` que executam um enquadramento de câmera (`flyTo`) no ponto selecionado com zoom de alta precisão e abrem seu Popup automaticamente.
+### 1. 📍 Mapa Geral Global (`/mapa-geral`)
+
+Dashboard geoespacial projetado para diretores e supervisores monitorarem todos os pontos da igreja pelo mundo.
+
+* **Visualização Dual**: Alternância entre mapa limpo (OpenStreetMap) e visão fotográfica (Esri Satélite) por cima de overlays ajustados.
+* **Painel de Filtros Reativos (React Portal)**: Modal desacoplado da árvore do mapa, permitindo abrir, fechar e pesquisar (via `<HeaderSearchBar>` com `useTransition`) de forma instantânea sem causar repinturas massivas (re-renders) no mapa base.
+* **Trava Anti-Bumerangue na Câmera**: Ao selecionar uma congregação, a câmera realiza um `flyTo` fixo, bloqueando reorientações automáticas involuntárias da tela enquanto o usuário interage.
 
 ### 2. 🎨 Agrupamentos (Clusters) Inteligentes e Cores por Estado
-Para organizar milhares de pontos no zoom global/estadual, implementamos o **Marker Clustering** altamente customizado:
-- **Cores por Região Geográfica**: A cor de fundo de cada bolha de agrupamento é definida dinamicamente com base no Estado (UF) da maioria das igrejas contidas dentro daquele grupo:
-  - 🟡 **Sudeste - SP** (`SP`): Amarelo Dourado (`#F59E0B`)
-  - 🟧 **Sudeste - MG** (`MG`): Laranja (`#EA580C`)
-  - 🔴 **Sudeste - ES e RJ** (`ES`, `RJ`): Vermelho (`#DC2626`)
-  - 🔵 **Região Sul** (`PR`, `RS`, `SC`): Azul (`#2563EB`)
-  - 🟢 **Região Norte** (`AC`, `AM`, `RO`, `PA`, `AP`, `RR`, `TO`): Verde (`#059669`)
-  - 🟣 **Região Nordeste** (`AL`, `BA`, `CE`, `RN`, `PE`, `PI`, `MA`, `PB`, `SE`): Roxo (`#7C3AED`)
-  - 🩵 **Região Centro-Oeste** (`MT`, `DF`, `GO`, `MS`): Ciano (`#0891B2`)
-- **Estilização Moderna**: Círculo perfeito, número de contagem em **Branco Negrito (`#FFFFFF`)**, borda branca de `3px` sólida para alto contraste no satélite e sombras projetadas.
-- **Legenda Retrátil (Sanfona)**: Painel flutuante compacto e retrátil no mapa que exibe este mapeamento de cores sem ocupar espaço visual.
 
-### 3. 🕸️ Teia de Coligações e Malha de Conexão (Grafo Multinível)
-As coligações representam o encadeamento hierárquico corporativo vertical:
+Para organizar quase 10.000 pontos de forma elegante e fluida:
+
+* **Cores por Região Geográfica**: A cor da bolha do cluster é definida por cálculo dinâmico verificando qual Estado (UF) predomina naquele agrupamento (ex: Amarelo para SP, Azul para Região Sul, etc).
+* **Legendas Dinâmicas**: Dois sistemas de legenda independentes: um de Portes (Desktop/Mobile) e outro sanfona para os Clusters de Regiões.
+
+### 3. 🕸️ Teia de Coligações Multinível (Hierarquia de Obreiros)
+
+As coligações representam o encadeamento corporativo da IPDA de forma visual:
+
+
 $$\text{LOCAL} \rightarrow \text{REGIONAL} \rightarrow \text{CENTRAL} \rightarrow \text{SETORIAL} \rightarrow \text{ESTADUAL}$$
 
-- **Desenho Dinâmico da Malha**: Ao clicar em **"Ver Malha de Conexão"** no Popup de qualquer igreja:
-  - **Se for ESTADUAL (ou nó superior)**: O sistema calcula a **teia de cobertura completa** conectando todos os nós filhos e netos do estado inteiro simultaneamente até seus respectivos pais diretos, gerando um grafo geoespacial brilhante na tela.
-  - **Se for LOCAL / REGIONAL / CENTRAL / SETORIAL**: Traça o caminho linear ascendente direto passando por cada nível até atingir a Estadual de referência.
-- **Destaque Visual**: Todos os nós participantes da malha ativa são exibidos fora de clusters de agrupamento com pins neon pulsantes em alta prioridade (`zIndexOffset: 1000`).
-- **Segmentos de Linha**: Polilinhas Leaflet (`L.polyline`) estilizadas em roxo/azul neon vibrante (`#6366F1`), espessura de `4px`, tracejado (`dashArray: "6, 6"`) e opacidade `0.9`.
-- **Enquadramento de Câmera (`fitBounds`)**: Centralização automática com padding de `[50, 50]` englobando 100% da árvore conectada simultaneamente na tela.
+* **Traçado Dinâmico**: Ao abrir o modal, o operador pode clicar em "Ver Malha de Conexão". O motor varre a árvore genealógica de forma ascendente e descendente, traçando polilinhas de alta precisão (em azul/roxo neon tracejado) conectando a igreja alvo a todos os seus supervisores ou subordinados, isolando essa malha visualmente do resto do mundo.
 
-### 4. 🗄️ Estrutura do Banco de Dados (Neon DB)
-Damos suporte às relações hierárquicas através da coluna adicionada:
-- **`codigo_totvs_pai` (VARCHAR(100))**: Armazena o código TOTVS do nó pai hierarquicamente superior direto para cada igreja.
-- **Uploader Resiliente**: O importador de planilhas no servidor (`/api/igrejas/upload`) lê múltiplas abas, ignora cabeçalhos flutuantes de legendas, e utiliza o remapeamento sequencial vertical por blocos vazios para calcular esta coligação de forma automatizada e gravá-la em lotes otimizados de **500 registros por vez** (Bulk Upsert), eliminando erros de payload e timeout.
-- **Modificações de Esquema**: O banco Neon DB executa um `ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS codigo_totvs_pai VARCHAR(100);` automaticamente ao inicializar a base, mantendo plena integridade.
+### 4. 🚗 Motor de Roteamento Terrestre e Tomada de Decisão (API OSRM)
 
-### 5. ⚡ Otimizações de Performance e Ajustes de UI no Mapa Geral
-- **Escrita Fluidíssima na Busca (60 FPS)**: O campo de busca de texto (`HeaderSearchBar`) foi isolado em componente próprio com estado local e `useTransition` (React 18), garantindo que a digitação seja 100% instantânea sem provocar re-renders síncronos da árvore de marcadores do Leaflet ou do DOM do mapa.
-- **Trava Anti-Bumerangue na Câmera**: Implementação da flag `preventAutoFit` no `MapController` e `RegionBoundsController`. Quando o usuário seleciona uma igreja na busca ou estadual de referência, a câmera realiza o `flyTo` com precisão e permanece fixa na igreja selecionada, bloqueando re-orientações automáticas involuntárias (`setView`/`fitBounds`) para a visão geral. A câmera só retorna à visão global quando o usuário clica explicitamente em "Limpar Filtros".
-- **Painel de Filtros Desacoplado via Portal**: O modal de Filtros Rápidos (`FiltersModal`) foi envolvido em um React Portal (`ReactDOM.createPortal`), desvinculando sua renderização do ciclo do mapa. Sua abertura e fechamento ocorrem instantaneamente (0ms de atraso) sem recalcular a camada geoespacial.
-- **Isolamento de Renderização com `React.memo`**: O mapa geoespacial (`MemoizedMapView`) foi isolado e memoizado, garantindo que digitações no cabeçalho ou interações com modais não provoquem reconciliações desnecessárias dos marcadores e clusters ao fundo.
-- **Ajuste de Posição e Profundidade do Botão "Remover Malha"**: O container de controles flutuantes no canto superior direito foi ajustado com espaçamento superior seguro (`top-36 md:top-24`) e camada de profundidade coerente (`z-[1025]`), impedindo que a ação "Remover Malha / Limpar Linhas" ou a seleção de camada (Satélite/OSM) fiquem ocultas ou sobrepostas pela barra de navegação superior fixada (`Header`).
+Foi desenvolvida uma integração robusta com o serviço Open Source Routing Machine para roteamento "A to B" diretamente no mapa:
+
+* **Rotas e Logística**: Capacidade de clicar em uma igreja e traçar uma rota de carro ou a pé (desenhando a polilinha sobre ruas exatas) até a sua Sede Superior, incluindo cálculos de Tempo Estimado e Quilometragem em tempo real.
+* **Comparador Analítico de Rotas**: Um módulo inteligente (`<RouteCompareModal>`) que permite aos administradores definirem uma Igreja "Alvo" e simularem a distância geográfica exata contra duas Sedes Candidatas (Candidata A vs Candidata B). O sistema indica visualmente qual sede proporcionará mais economia em quilometragem e tempo de viagem, permitindo realizar a **Transferência de Coligação** em um clique após a análise.
+
+### 5. 🗄️ Estrutura Resiliente de Banco de Dados (Supabase/Neon DB)
+
+* **Importador Sequencial Inteligente**: O backend aceita uploads de arquivos `.xlsx`, processando o Buffer via Base64 e ignorando sujeiras (como cabeçalhos flutuantes). O algoritmo lê a sequência vertical da planilha e infere automaticamente quem é a Sede Pai de quem, atualizando o campo `codigo_totvs_pai` em massa.
+* **Fatiamento de Payload**: O `.select()` da listagem do mapa não traz texto lixo, focando puramente em coordenadas e metadados, o que derruba o tamanho do JSON e habilita o Vercel Edge Caching completo.
+
+---
+
+## ⚙️ Como Executar o Projeto Localmente
+
+1. Clone o repositório.
+2. Instale as dependências:
+```bash
+npm install
+
+```
+
+
+3. Crie um arquivo `.env` na raiz do projeto com a chave do seu banco de dados Supabase/Neon:
+```env
+DATABASE_URL="postgres://usuario:senha@host:5432/nomedobanco?sslmode=require"
+
+```
+
+
+4. Inicie o servidor de desenvolvimento:
+```bash
+npm run dev
+
+```
+
+
+5. Acesse `http://localhost:3000` no seu navegador.
+
+---
+
+## 👨‍💻 Autoria e Direitos Reservados
+
+Projeto idealizado, arquitetado e desenvolvido por **Luiz Eduardo Rodrigues Da Silva**.
+Construído para otimizar, digitalizar e revolucionar a logística, a infraestrutura e a gestão de dados geográficos da IPDA no Brasil e no Mundo.
+
+*Todos os direitos reservados à lógica proprietária e arquitetura deste software.*
+
+```
