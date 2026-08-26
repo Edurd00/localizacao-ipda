@@ -1340,7 +1340,7 @@ const MemoizedMapView = memo(function MapView({
         {activePopupChurch && activePopupChurch.latitude && activePopupChurch.longitude && (
           <Popup
             position={[activePopupChurch.latitude, activePopupChurch.longitude]}
-            onClose={() => setActivePopupChurch(null)}
+            eventHandlers={{ remove: () => setActivePopupChurch(null) }}
             autoPan={true}
             className="custom-leaflet-popup"
             maxWidth={380}
