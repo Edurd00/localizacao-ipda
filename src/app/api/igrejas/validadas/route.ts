@@ -6,7 +6,28 @@ export const dynamic = 'force-dynamic';
 
 const getIgrejasCacheadas = unstable_cache(
   async () => {
-    const result = await getIgrejas({ status: 'VALIDADO' });
+    const result = await getIgrejas({ status: 'VALIDADO' }, [
+      'codigo_totvs',
+      'desc_igreja',
+      'latitude',
+      'longitude',
+      'estado',
+      'municipio',
+      'bairro',
+      'endereco',
+      'cep',
+      'porte',
+      'codigo_totvs_pai',
+      'tipo_imovel',
+      'qtd_membros',
+      'qtd_jovens',
+      'dirigente_nome',
+      'dirigente_data_posse',
+      'dirigente_telefone',
+      'financeira_nome',
+      'financeira_telefone',
+      'tipo_prebenda',
+    ]);
     console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
     return result;
   },
