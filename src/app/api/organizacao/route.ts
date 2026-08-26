@@ -1,42 +1,32 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
-import { unstable_cache } from 'next/cache';
 
-export const dynamic = 'force-dynamic';
-
-const getOrganizacaoDataCacheada = unstable_cache(
-  async () => {
-    const states = await getDistinctStates();
-    const allChurches = await getIgrejas();
-    const churches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
-    return {
-      states: states.filter(Boolean),
-      churches,
-    };
-  },
-  ['organizacao-data-key'],
-  { tags: ['organizacao-tag'], revalidate: 86400 }
-);
+export const revalidate = 86400;
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado');
 
-    const cachedData = await getOrganizacaoDataCacheada();
+    const states = await getDistinctStates();
+    const allChurches = await getIgrejas();
+    const churches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
 
     if (!estado) {
       return NextResponse.json({
         success: true,
-        states: cachedData.states,
+        states: states.filter(Boolean),
       });
     }
 
     return NextResponse.json({
       success: true,
-      churches: cachedData.churches,
+      churches,
     });
-  } catch (err: unknown) {
+  } catch (err: any) {
+    if (err?.digest === 'DYNAMIC_SERVER_USAGE' || err?.message?.includes('Dynamic server usage')) {
+      throw err;
+    }
     console.error('API Error in GET /api/organizacao:', err);
     const errMsg = err instanceof Error ? err.message : 'Unknown database error';
     return NextResponse.json(
