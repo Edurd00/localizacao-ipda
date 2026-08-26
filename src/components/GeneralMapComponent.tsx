@@ -1941,7 +1941,7 @@ export default function GeneralMapComponent() {
   const [selectedEstadual, setSelectedEstadual] = useState<string>('');
 
   const swrFetcher = useCallback(async (url: string) => {
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Erro na busca de dados das igrejas');
     const json = await res.json();
     return Array.isArray(json) ? json : json.igrejas || json.data || [];
@@ -2007,15 +2007,16 @@ export default function GeneralMapComponent() {
   const handleSyncDatabase = async () => {
     setIsSyncing(true);
     try {
-      // 1. Apaga a chave no servidor/CDN da Vercel
       await fetch('/api/revalidate', { method: 'POST' });
-
-      // 2. Revalida via SWR nativo
-      const lista = await swrMutate();
-      if (Array.isArray(lista) && lista.length > 0) {
-        setIgrejas(lista);
-        toast.success(`Mapa atualizado! Total: ${lista.length} igrejas.`);
-      }
+      // Aguarda um instante para a Vercel invalidar a CDN globalmente
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Força o browser a buscar o dado novo da CDN
+      const res = await fetch('/api/igrejas/validadas', { cache: 'reload' });
+      const freshData = await res.json();
+      const lista = Array.isArray(freshData) ? freshData : freshData.igrejas || freshData.data || [];
+      swrMutate(lista, false);
+      setIgrejas(lista);
+      toast.success('Mapa atualizado!');
     } catch (err) {
       console.error('Erro na sincronização:', err);
     } finally {

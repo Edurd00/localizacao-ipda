@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
-import { unstable_cache } from 'next/cache';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400;
 
-const getIgrejasCacheadas = unstable_cache(
-  async () => {
-    const result = await getIgrejas({ status: 'VALIDADO' }, [
+export async function GET() {
+  try {
+    const dados = await getIgrejas({ status: 'VALIDADO' }, [
       'codigo_totvs',
       'desc_igreja',
       'latitude',
@@ -28,16 +27,6 @@ const getIgrejasCacheadas = unstable_cache(
       'financeira_telefone',
       'tipo_prebenda',
     ]);
-    console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
-    return result;
-  },
-  ['igrejas-validadas-key'],
-  { tags: ['igrejas-tag'], revalidate: 86400 }
-);
-
-export async function GET() {
-  try {
-    const dados = await getIgrejasCacheadas();
     return NextResponse.json(dados);
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('Dynamic server usage')) {
