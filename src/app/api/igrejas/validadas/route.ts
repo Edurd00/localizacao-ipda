@@ -4,9 +4,36 @@ import { unstable_cache } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
+const COLUNAS_ESSENCIAIS = [
+  'id',
+  'codigo_totvs',
+  'desc_igreja',
+  'latitude',
+  'longitude',
+  'estado',
+  'municipio',
+  'bairro',
+  'endereco',
+  'cep',
+  'porte',
+  'codigo_totvs_pai',
+  'tipo_imovel',
+  'qtd_membros',
+  'qtd_jovens',
+  'dirigente_nome',
+  'dirigente_data_posse',
+  'dirigente_telefone',
+  'dirigente_email',
+  'financeira_nome',
+  'financeira_telefone',
+  'financeira_email',
+  'tipo_prebenda',
+  'status',
+];
+
 const getIgrejasCacheadas = unstable_cache(
   async () => {
-    const result = await getIgrejas({ status: 'VALIDADO' });
+    const result = await getIgrejas({ status: 'VALIDADO' }, COLUNAS_ESSENCIAIS);
     console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
     return result;
   },

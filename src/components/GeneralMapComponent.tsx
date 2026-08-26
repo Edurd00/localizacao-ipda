@@ -962,6 +962,7 @@ const MemoizedMapView = memo(function MapView({
   porteLegendMobileOpen,
   setPorteLegendMobileOpen,
 }: MapViewProps) {
+  const [activePopupChurch, setActivePopupChurch] = useState<Igreja | null>(null);
   const markerRefs = useRef<Record<string, L.Marker | null>>({});
 
   const getRouteMarkerIcon = (label: 'A' | 'B', color: string) => {
@@ -1079,33 +1080,6 @@ const MemoizedMapView = memo(function MapView({
     );
   };
 
-  const renderChurchPopup = (ig: Igreja) => {
-    return (
-      <Popup autoPan={true} className="custom-leaflet-popup" maxWidth={380} minWidth={340}>
-        <div className="w-full text-slate-800">
-          <ChurchDetailModal
-            ig={ig}
-            igrejas={igrejas}
-            pontoOrigem={customRouteOrigin}
-            setPontoOrigem={setCustomRouteOrigin}
-            comparisonMode={comparisonMode}
-            setComparisonMode={setComparisonMode}
-            fixedDest={fixedDest}
-            setFixedDest={setFixedDest}
-            sedeCandidataA={sedeCandidataA}
-            setSedeCandidataA={setSedeCandidataA}
-            sedeCandidataB={sedeCandidataB}
-            setSedeCandidataB={setSedeCandidataB}
-            connectionPathSource={connectionPathSource}
-            isAuthenticated={isAuthenticated}
-            handleTraceConnectionMesh={handleTraceConnectionMesh}
-            fetchTerrestrialRoute={fetchTerrestrialRoute}
-          />
-        </div>
-      </Popup>
-    );
-  };
-
   return (
     <div className="w-full h-full relative">
       <MapContainer
@@ -1127,18 +1101,12 @@ const MemoizedMapView = memo(function MapView({
           onFlyToComplete={() => {
             if (flyToTarget) {
               const targetTotvs = flyToTarget.totvs;
-              const markerInstance = markerRefs.current[targetTotvs];
-              if (markerInstance) {
-                markerInstance.openPopup();
-              } else {
-                if (targetTotvs === '' || targetTotvs === 'SEDE_MUNDIAL') {
-                  const smMarker = Object.values(markerRefs.current).find(
-                    (m) => m && m.options?.alt === 'Sede Mundial'
-                  );
-                  if (smMarker) {
-                    smMarker.openPopup();
-                  }
-                }
+              let target = igrejas.find((ig) => String(ig.codigo_totvs) === String(targetTotvs));
+              if (!target && (targetTotvs === '' || targetTotvs === 'SEDE_MUNDIAL')) {
+                target = igrejas.find((ig) => ig.desc_igreja.toUpperCase().includes('SEDE MUNDIAL'));
+              }
+              if (target) {
+                setActivePopupChurch(target);
               }
             }
             onFlyToComplete();
@@ -1258,6 +1226,7 @@ const MemoizedMapView = memo(function MapView({
                   icon={icon}
                   alt={isSedeMundial ? 'Sede Mundial' : undefined}
                   zIndexOffset={1000}
+                  eventHandlers={{ click: () => setActivePopupChurch(ig) }}
                   ref={(el) => {
                     if (el) {
                       markerRefs.current[ig.codigo_totvs] = el;
@@ -1268,7 +1237,6 @@ const MemoizedMapView = memo(function MapView({
                   }}
                 >
                   {renderChurchTooltip(ig)}
-                  {renderChurchPopup(ig)}
                 </Marker>
               );
             })}
@@ -1350,6 +1318,7 @@ const MemoizedMapView = memo(function MapView({
                       position={[ig.latitude!, ig.longitude!]}
                       icon={icon}
                       alt={isSedeMundial ? 'Sede Mundial' : undefined}
+                      eventHandlers={{ click: () => setActivePopupChurch(ig) }}
                       ref={(el) => {
                         if (el) {
                           markerRefs.current[ig.codigo_totvs] = el;
@@ -1360,13 +1329,44 @@ const MemoizedMapView = memo(function MapView({
                       }}
                     >
                       {renderChurchTooltip(ig)}
-                      {renderChurchPopup(ig)}
                     </Marker>
                   );
                 })}
             </MarkerClusterGroup>
           ),
           [filteredIgrejas, connectionPathSource, activeChainCodes]
+        )}
+
+        {activePopupChurch && activePopupChurch.latitude && activePopupChurch.longitude && (
+          <Popup
+            position={[activePopupChurch.latitude, activePopupChurch.longitude]}
+            eventHandlers={{ remove: () => setActivePopupChurch(null) }}
+            autoPan={true}
+            className="custom-leaflet-popup"
+            maxWidth={380}
+            minWidth={340}
+          >
+            <div className="w-full text-slate-800">
+              <ChurchDetailModal
+                ig={activePopupChurch}
+                igrejas={igrejas}
+                pontoOrigem={customRouteOrigin}
+                setPontoOrigem={setCustomRouteOrigin}
+                comparisonMode={comparisonMode}
+                setComparisonMode={setComparisonMode}
+                fixedDest={fixedDest}
+                setFixedDest={setFixedDest}
+                sedeCandidataA={sedeCandidataA}
+                setSedeCandidataA={setSedeCandidataA}
+                sedeCandidataB={sedeCandidataB}
+                setSedeCandidataB={setSedeCandidataB}
+                connectionPathSource={connectionPathSource}
+                isAuthenticated={isAuthenticated}
+                handleTraceConnectionMesh={handleTraceConnectionMesh}
+                fetchTerrestrialRoute={fetchTerrestrialRoute}
+              />
+            </div>
+          </Popup>
         )}
       </MapContainer>
 
