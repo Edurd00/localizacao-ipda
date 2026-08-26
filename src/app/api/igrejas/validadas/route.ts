@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 86400; // 24 horas ISR
 
 export async function GET(request: Request) {
   try {
@@ -13,17 +12,15 @@ export async function GET(request: Request) {
 
     console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
 
-    const cacheHeader = isRefresh
-      ? 'no-store, no-cache, must-revalidate, max-age=0'
-      : 'public, s-maxage=86400, stale-while-revalidate=43200';
+    if (isRefresh) {
+      return NextResponse.json(result, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        },
+      });
+    }
 
-    return NextResponse.json(result, {
-      headers: {
-        'Cache-Control': cacheHeader,
-        'CDN-Cache-Control': cacheHeader,
-        'Vercel-CDN-Cache-Control': cacheHeader,
-      },
-    });
+    return NextResponse.json(result);
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('Dynamic server usage')) {
       throw error;
