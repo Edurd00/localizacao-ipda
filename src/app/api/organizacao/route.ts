@@ -1,54 +1,39 @@
 import { NextResponse } from 'next/server';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
+import { unstable_cache } from 'next/cache';
 
-export const dynamic = 'force-dynamic';
+const getOrganizacaoDataCacheada = unstable_cache(
+  async () => {
+    const states = await getDistinctStates();
+    const allChurches = await getIgrejas();
+    const churches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
+    return {
+      states: states.filter(Boolean),
+      churches,
+    };
+  },
+  ['organizacao-data-key'],
+  { tags: ['organizacao-tag'], revalidate: 86400 }
+);
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado');
 
+    const cachedData = await getOrganizacaoDataCacheada();
+
     if (!estado) {
-      // Return lightweight list of distinct states/UFs
-      const states = await getDistinctStates();
-      return new NextResponse(
-        JSON.stringify({
-          success: true,
-          states: states.filter(Boolean),
-        }),
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=43200',
-            'CDN-Cache-Control': 'public, s-maxage=86400',
-            'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
-          },
-        }
-      );
+      return NextResponse.json({
+        success: true,
+        states: cachedData.states,
+      });
     }
 
-    // Return ALL active churches for hierarchical tree structure matching
-    // (excluding DESATIVADO) to support divisa/cross-state hierarchy.
-    // When estado is 'ALL' or a specific jurisdiction region, we return all churches to map cross-border links.
-    const allChurches = await getIgrejas();
-    const churches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
-
-    return new NextResponse(
-      JSON.stringify({
-        success: true,
-        churches,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=43200',
-          'CDN-Cache-Control': 'public, s-maxage=86400',
-          'Vercel-CDN-Cache-Control': 'public, s-maxage=86400',
-        },
-      }
-    );
+    return NextResponse.json({
+      success: true,
+      churches: cachedData.churches,
+    });
   } catch (err: unknown) {
     console.error('API Error in GET /api/organizacao:', err);
     const errMsg = err instanceof Error ? err.message : 'Unknown database error';

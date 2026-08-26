@@ -2010,11 +2010,15 @@ export default function GeneralMapComponent() {
       // 1. Apaga a chave no servidor/CDN da Vercel
       await fetch('/api/revalidate', { method: 'POST' });
 
-      // 2. Revalida SWR e traz o payload completo
-      const lista = await swrMutate();
-      if (Array.isArray(lista) && lista.length > 0) {
-        setIgrejas(lista);
-        toast.success(`Mapa atualizado! Total: ${lista.length} igrejas.`);
+      // 2. Revalida via fetch com parâmetro timestamp para ignorar cache local do navegador
+      const res = await fetch(`/api/igrejas/validadas?t=${Date.now()}`);
+      if (!res.ok) throw new Error('Erro ao buscar igrejas validadas');
+      const freshData: Igreja[] = await res.json();
+
+      if (Array.isArray(freshData) && freshData.length > 0) {
+        setIgrejas(freshData);
+        swrMutate(freshData, false);
+        toast.success(`Mapa atualizado! Total: ${freshData.length} igrejas.`);
       }
     } catch (err) {
       console.error('Erro na sincronização:', err);
