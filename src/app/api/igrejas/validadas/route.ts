@@ -13,10 +13,9 @@ export async function GET(request: Request) {
 
     console.log(`[API LOG] Total de igrejas retornadas do banco: ${result.length}`);
 
-    // Se for refresh, instrui a Vercel a descartar a resposta antiga
     const cacheHeader = isRefresh
       ? 'no-store, no-cache, must-revalidate, max-age=0'
-      : 'public, s-maxage=3600, stale-while-revalidate=86400';
+      : 'public, s-maxage=60, stale-while-revalidate=300';
 
     return NextResponse.json(result, {
       headers: {

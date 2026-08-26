@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
+import useSWR from 'swr';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ChurchDetailModal from './ChurchDetailModal';
 import RouteCompareModal from './RouteCompareModal';
@@ -1689,8 +1690,6 @@ const MemoizedMapView = memo(function MapView({
 export default function GeneralMapComponent() {
   const [, startTransition] = useTransition();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Camera lock flag to prevent boomerang reset when user searches or focuses a target
@@ -1941,6 +1940,42 @@ export default function GeneralMapComponent() {
   const [selectedPortes, setSelectedPortes] = useState<string[]>([]);
   const [selectedEstadual, setSelectedEstadual] = useState<string>('');
 
+  const swrFetcher = useCallback(async (url: string) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Erro na busca de dados das igrejas');
+    const json = await res.json();
+    return Array.isArray(json) ? json : json.igrejas || json.data || [];
+  }, []);
+
+  const swrKey = useMemo(() => {
+    const params = new URLSearchParams({
+      region: selectedRegionGeo,
+      uf: selectedUF,
+      imovel: selectedTipoImovel,
+      portes: selectedPortes.sort().join(','),
+      estadual: selectedEstadual,
+    });
+    return `/api/igrejas/validadas?${params.toString()}`;
+  }, [selectedRegionGeo, selectedUF, selectedTipoImovel, selectedPortes, selectedEstadual]);
+
+  const { data: swrData, error: swrError, isLoading: swrLoading, mutate: swrMutate } = useSWR<Igreja[]>(
+    swrKey,
+    swrFetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  );
+
+  useEffect(() => {
+    if (swrData) {
+      setIgrejas(swrData);
+    }
+  }, [swrData]);
+
+  const loading = swrLoading && igrejas.length === 0;
+  const error = swrError ? 'Erro ao se conectar com o servidor.' : null;
+
   const handleRegionGeoChange = (val: string) => {
     setSelectedRegionGeo(val);
     setSelectedEstadual('');
@@ -1975,35 +2010,8 @@ export default function GeneralMapComponent() {
   const [showFilters, setShowFilters] = useState(false);
 
   const fetchIgrejas = async () => {
-    try {
-      const res = await fetch(`/api/igrejas/validadas?t=${Date.now()}`, {
-        cache: 'no-cache',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      if (!res.ok) throw new Error('Erro na busca');
-      const data = await res.json();
-      console.log('[FRONTEND LOG] Total recebido:', data.length);
-
-      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
-      if (Array.isArray(lista)) {
-        setIgrejas(lista);
-        setError(null);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar mapa:', err);
-      setError('Erro ao se conectar com o servidor.');
-    } finally {
-      setLoading(false);
-    }
+    swrMutate();
   };
-
-  useEffect(() => {
-    fetchIgrejas();
-  }, []);
 
   const handleSyncDatabase = async () => {
     setIsSyncing(true);
@@ -2011,21 +2019,10 @@ export default function GeneralMapComponent() {
       // 1. Apaga a chave no servidor/CDN da Vercel
       await fetch('/api/revalidate', { method: 'POST' });
 
-      // 2. Traz o payload completo do banco
-      const res = await fetch(`/api/igrejas/validadas?refresh=true&t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      const data = await res.json();
-      console.log('[FRONTEND LOG] Total recebido na sincronização:', data.length);
-      const lista = Array.isArray(data) ? data : (data.igrejas || data.data || []);
+      // 2. Revalida SWR e traz o payload completo
+      const lista = await swrMutate();
       if (Array.isArray(lista) && lista.length > 0) {
         setIgrejas(lista);
-        setError(null);
         toast.success(`Mapa atualizado! Total: ${lista.length} igrejas.`);
       }
     } catch (err) {
