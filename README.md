@@ -1,5 +1,4 @@
 
-```markdown
 # Localização IPDA - Sistema de Validação de Geolocalização (GEO-VALIG)
 
 Sistema Web interativo, responsivo e de alta performance desenvolvido em Next.js para gerenciamento, localização automática (Geocoding), roteamento inteligente e validação manual de coordenadas geográficas de mais de 12.000 igrejas da Igreja Pentecostal Deus é Amor (IPDA).
@@ -130,4 +129,4 @@ Construído para otimizar, digitalizar e revolucionar a logística, a infraestru
 
 *Todos os direitos reservados à lógica proprietária e arquitetura deste software.*
 
-```
+
