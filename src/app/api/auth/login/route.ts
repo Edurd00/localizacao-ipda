@@ -22,11 +22,14 @@ export async function POST(request: Request) {
     const expectedViewerEmail = process.env.VIEWER_EMAIL || 'viewer@ipda.com.br';
 
     let authenticatedEmail: string | null = null;
+    let userRole: 'admin' | 'viewer' = 'viewer';
 
     if (adminPassword && email === expectedAdminEmail && password === adminPassword) {
       authenticatedEmail = expectedAdminEmail;
+      userRole = 'admin';
     } else if (viewerPassword && email === expectedViewerEmail && password === viewerPassword) {
       authenticatedEmail = expectedViewerEmail;
+      userRole = 'viewer';
     }
 
     if (authenticatedEmail) {
@@ -35,7 +38,7 @@ export async function POST(request: Request) {
         message: 'Autenticação realizada com sucesso!',
       });
 
-      const secureToken = generateSessionToken(authenticatedEmail);
+      const secureToken = generateSessionToken(authenticatedEmail, userRole);
 
       // Set cookie for session token
       response.cookies.set('session_token', secureToken, {

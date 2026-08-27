@@ -8,8 +8,8 @@ export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get('session_token')?.value;
 
-  const authenticated = verifySessionToken(token);
-  if (!authenticated) {
+  const sessionData = verifySessionToken(token);
+  if (!sessionData) {
     return NextResponse.json({
       success: true,
       authenticated: false,
@@ -18,15 +18,11 @@ export async function GET() {
     });
   }
 
-  const email = getEmailFromSessionToken(token);
-  const adminEmail = process.env.ADMIN_EMAIL || 'gestaodedados@ipda.com.br';
-  const role = email === adminEmail ? 'admin' : 'viewer';
-
   return NextResponse.json({
     success: true,
     authenticated: true,
     isAuthenticated: true,
-    role,
-    email,
+    role: sessionData.role,
+    email: sessionData.email,
   });
 }

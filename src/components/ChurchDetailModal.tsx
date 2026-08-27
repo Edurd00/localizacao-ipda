@@ -47,6 +47,7 @@ export default function ChurchDetailModal({
   const [liderancaData, setLiderancaData] = useState<any>(null);
   const [loadingLideranca, setLoadingLideranca] = useState<boolean>(false);
 
+  // Fetch leadership data dynamically in real time for authenticated users (Admin or Viewer) to prevent leakage in public CDN cache
   useEffect(() => {
     if (activeTab === 'lideranca' && ig?.codigo_totvs) {
       setLoadingLideranca(true);

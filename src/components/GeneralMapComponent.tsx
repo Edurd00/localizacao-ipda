@@ -1689,10 +1689,12 @@ const MemoizedMapView = memo(function MapView({
 
 export interface GeneralMapComponentProps {
   isAuthenticated?: boolean;
+  userRole?: string | null;
 }
 
 export default function GeneralMapComponent({
   isAuthenticated: propIsAuthenticated,
+  userRole: propUserRole,
 }: GeneralMapComponentProps = {}) {
   const [, startTransition] = useTransition();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
@@ -1715,6 +1717,7 @@ export default function GeneralMapComponent({
 
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(propIsAuthenticated ?? false);
+  const [userRole, setUserRole] = useState<string | null>(propUserRole ?? null);
 
   // Transfer Confirmation state
   const [showTransferConfirm, setShowTransferConfirm] = useState(false);
@@ -1729,15 +1732,18 @@ export default function GeneralMapComponent({
       .then((data) => {
         if (data.success && data.authenticated) {
           setIsAuthenticated(true);
+          setUserRole(data.role);
         } else {
           setIsAuthenticated(propIsAuthenticated ?? false);
+          setUserRole(propUserRole ?? null);
         }
       })
       .catch((err) => {
         console.error('Error checking auth session:', err);
         setIsAuthenticated(propIsAuthenticated ?? false);
+        setUserRole(propUserRole ?? null);
       });
-  }, [propIsAuthenticated]);
+  }, [propIsAuthenticated, propUserRole]);
 
   // Comparison Module states
   const [comparisonMode, setComparisonMode] = useState(false);
@@ -2412,14 +2418,37 @@ export default function GeneralMapComponent({
             <span className="hidden sm:inline">Filtros</span>
           </button>
 
-          <a
-            href="/validacao"
-            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
-            title="Acessar Área Restrita"
-          >
-            <Lock className="h-3.5 w-3.5 text-white" />
-            <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
-          </a>
+          {isAuthenticated && userRole === 'admin' ? (
+            <a
+              href="/validacao"
+              className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
+              title="Acessar Painel de Validação"
+            >
+              <Lock className="h-3.5 w-3.5 text-white" />
+              <span className="text-xs font-bold hidden sm:inline">Painel Admin</span>
+            </a>
+          ) : isAuthenticated && userRole === 'viewer' ? (
+            <button
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/';
+              }}
+              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs min-h-[44px]"
+              title="Sair da Sessão de Leitor"
+            >
+              <Lock className="h-3.5 w-3.5 text-slate-500" />
+              <span className="text-xs font-bold hidden sm:inline">Sair (Leitor)</span>
+            </button>
+          ) : (
+            <a
+              href="/validacao"
+              className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
+              title="Acessar Área Restrita"
+            >
+              <Lock className="h-3.5 w-3.5 text-white" />
+              <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
+            </a>
+          )}
         </div>
       </header>
 

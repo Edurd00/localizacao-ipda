@@ -296,6 +296,7 @@ export const REGIAO_GEOGRAFICA_MAPPING: Record<string, string[]> = {
 export default function OrganizacaoContent() {
   const [states, setStates] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Check auth session for protected action buttons
   useEffect(() => {
@@ -304,6 +305,7 @@ export default function OrganizacaoContent() {
       .then((data) => {
         if (data.authenticated) {
           setIsAuthenticated(true);
+          setUserRole(data.role);
         }
       })
       .catch((err) => console.error('Error checking auth session:', err));
@@ -688,7 +690,7 @@ export default function OrganizacaoContent() {
             </div>
 
             <div className="flex items-center gap-3">
-              {isAuthenticated && (
+              {isAuthenticated && userRole !== 'viewer' && (
                 <a
                   href="/relatorios"
                   className="bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-200 font-semibold px-3 py-2 rounded-xl border border-zinc-200 dark:border-slate-700 hover:bg-zinc-50 transition-all flex items-center gap-1.5 text-xs"

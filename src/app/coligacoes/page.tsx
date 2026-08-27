@@ -86,11 +86,18 @@ export default function ColigacoesPage() {
     fetch('/api/auth/session')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.role) {
+        if (!data.authenticated) {
+          window.location.href = '/login';
+        } else if (data.role === 'viewer') {
+          window.location.href = '/mapa-geral';
+        } else if (data.success && data.role) {
           setUserRole(data.role);
         }
       })
-      .catch((err) => console.error('Error fetching session role:', err));
+      .catch((err) => {
+        console.error('Error fetching session role:', err);
+        window.location.href = '/login';
+      });
   }, []);
 
   // Search/Filter states
