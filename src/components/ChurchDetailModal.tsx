@@ -39,7 +39,7 @@ export default function ChurchDetailModal({
   sedeCandidataB,
   setSedeCandidataB,
   connectionPathSource,
-  isAuthenticated: _isAuthenticated,
+  isAuthenticated,
   handleTraceConnectionMesh,
   fetchTerrestrialRoute,
 }: ChurchDetailModalProps) {
@@ -92,17 +92,19 @@ export default function ChurchDetailModal({
         >
           📍 Geral
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('lideranca')}
-          className={`flex-1 py-1.5 text-center text-xs font-bold border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'lideranca'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          👥 Liderança
-        </button>
+        {isAuthenticated && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('lideranca')}
+            className={`flex-1 py-1.5 text-center text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'lideranca'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            👥 Liderança
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setActiveTab('hierarquia')}
@@ -361,7 +363,7 @@ export default function ChurchDetailModal({
           </div>
         )}
 
-        {activeTab === 'lideranca' && (
+        {isAuthenticated && activeTab === 'lideranca' && (
           <div className="space-y-2">
             {ig.dirigente_nome && (
               <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">

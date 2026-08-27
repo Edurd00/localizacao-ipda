@@ -3,7 +3,7 @@ import GeneralMapWrapper from '@/components/GeneralMapWrapper';
 export default function MapaGeralPage() {
   return (
     <main className="w-full h-screen overflow-hidden">
-      <GeneralMapWrapper />
+      <GeneralMapWrapper isAuthenticated={false} />
     </main>
   );
 }
