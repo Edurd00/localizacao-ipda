@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
+import { verifySessionToken } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const isAuthenticated = verifySessionToken(cookieStore.get('session_token')?.value);
+
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado') || 'ALL';
     const status = searchParams.get('status') || 'ALL';
@@ -55,10 +60,24 @@ export async function GET(request: Request) {
       getDistinctStates(),
     ]);
 
+    let igrejasData = result.data;
+    if (!isAuthenticated) {
+      igrejasData = igrejasData.map((igreja: any) => ({
+        ...igreja,
+        dirigente_nome: null,
+        dirigente_telefone: null,
+        dirigente_email: null,
+        financeira_nome: null,
+        financeira_telefone: null,
+        financeira_email: null,
+        tipo_prebenda: null,
+      }));
+    }
+
     return new NextResponse(
       JSON.stringify({
         success: true,
-        igrejas: result.data,
+        igrejas: igrejasData,
         total: result.total,
         page,
         limit,

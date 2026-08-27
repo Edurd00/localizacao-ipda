@@ -6,10 +6,17 @@ import { generateSessionToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.ADMIN_PASSWORD_HASH) {
+      return NextResponse.json(
+        { success: false, error: 'Servidor não configurado. ADMIN_PASSWORD_HASH ausente.' },
+        { status: 500 }
+      );
+    }
+
     const { email, password } = await request.json();
 
     const expectedEmail = process.env.ADMIN_EMAIL || 'gestaodedados@ipda.com.br';
-    const expectedPassword = process.env.ADMIN_PASSWORD_HASH || '@admgd2026';
+    const expectedPassword = process.env.ADMIN_PASSWORD_HASH;
 
     if (email === expectedEmail && password === expectedPassword) {
       const response = NextResponse.json({

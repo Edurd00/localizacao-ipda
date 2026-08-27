@@ -1687,7 +1687,13 @@ const MemoizedMapView = memo(function MapView({
   );
 });
 
-export default function GeneralMapComponent() {
+export interface GeneralMapComponentProps {
+  isAuthenticated?: boolean;
+}
+
+export default function GeneralMapComponent({
+  isAuthenticated: propIsAuthenticated,
+}: GeneralMapComponentProps = {}) {
   const [, startTransition] = useTransition();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -1708,7 +1714,7 @@ export default function GeneralMapComponent() {
   const [travelMode, setTravelMode] = useState<'car' | 'motorcycle' | 'foot'>('car');
 
   // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(propIsAuthenticated ?? false);
 
   // Transfer Confirmation state
   const [showTransferConfirm, setShowTransferConfirm] = useState(false);
@@ -1718,6 +1724,12 @@ export default function GeneralMapComponent() {
   const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
+    if (propIsAuthenticated !== undefined) {
+      setIsAuthenticated(propIsAuthenticated);
+      if (propIsAuthenticated === false) {
+        return;
+      }
+    }
     fetch('/api/auth/session')
       .then((res) => res.json())
       .then((data) => {
@@ -1726,7 +1738,7 @@ export default function GeneralMapComponent() {
         }
       })
       .catch((err) => console.error('Error checking auth session:', err));
-  }, []);
+  }, [propIsAuthenticated]);
 
   // Comparison Module states
   const [comparisonMode, setComparisonMode] = useState(false);
