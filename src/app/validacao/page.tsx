@@ -455,6 +455,9 @@ export default function ValidacaoPage() {
       if (filterStatus && filterStatus !== 'ALL') {
         query.set('status', filterStatus);
       }
+      if (filterPorte && filterPorte !== 'ALL') {
+        query.set('porte', filterPorte);
+      }
       if (searchQuery.trim()) {
         query.set('q', searchQuery.trim());
       }

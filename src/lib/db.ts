@@ -152,6 +152,7 @@ export async function getIgrejas(
   filters?: {
     estado?: string;
     status?: string;
+    porte?: string;
     page?: number;
     limit?: number;
     search?: string;
@@ -184,6 +185,22 @@ export async function getIgrejas(
           whereClause += ` AND status = $${paramCount}`;
           params.push(filters.status);
           paramCount++;
+        }
+      }
+
+      if (filters?.porte && filters.porte !== 'ALL') {
+        const p = filters.porte.toUpperCase();
+        if (p === 'LOCAL') {
+          whereClause += ` AND (porte = 'LOCAL' OR (porte IS NULL AND UPPER(desc_igreja) NOT LIKE '%ESTADUAL%' AND UPPER(desc_igreja) NOT LIKE '%SETORIAL%' AND UPPER(desc_igreja) NOT LIKE '%CENTRAL%' AND UPPER(desc_igreja) NOT LIKE '%REGIONAL%' AND UPPER(desc_igreja) NOT LIKE '%ORAÇÃO%' AND UPPER(desc_igreja) NOT LIKE '%ORACAO%' AND UPPER(desc_igreja) NOT LIKE '%ALDEIA%' AND UPPER(desc_igreja) NOT LIKE '%INDIGENA%'))`;
+        } else if (p === 'CASA DE ORAÇÃO' || p === 'CASA DE ORACAO') {
+          whereClause += ` AND (porte = 'CASA DE ORAÇÃO' OR porte = 'CASA DE ORACAO' OR (porte IS NULL AND (UPPER(desc_igreja) LIKE '%CASA DE ORAÇÃO%' OR UPPER(desc_igreja) LIKE '%CASA DE ORACAO%' OR UPPER(desc_igreja) LIKE '%ORAÇÃO%' OR UPPER(desc_igreja) LIKE '%ORACAO%')))`;
+        } else if (p === 'ALDEIA INDIGENA' || p === 'ALDEIA INDÍGENA') {
+          whereClause += ` AND (porte = 'ALDEIA INDIGENA' OR porte = 'ALDEIA INDÍGENA' OR (porte IS NULL AND (UPPER(desc_igreja) LIKE '%ALDEIA%' OR UPPER(desc_igreja) LIKE '%INDIGENA%' OR UPPER(desc_igreja) LIKE '%INDÍGENA%')))`;
+        } else {
+          // ESTADUAL, SETORIAL, CENTRAL, REGIONAL
+          whereClause += ` AND (porte = $${paramCount} OR (porte IS NULL AND UPPER(desc_igreja) LIKE $${paramCount + 1}))`;
+          params.push(p, `%${p}%`);
+          paramCount += 2;
         }
       }
 
@@ -293,6 +310,42 @@ export async function getIgrejas(
     } else {
       data = data.filter((item) => item.status === filters.status);
     }
+  }
+  if (filters?.porte && filters.porte !== 'ALL') {
+    const p = filters.porte.toUpperCase();
+    data = data.filter((item) => {
+      const explicitPorte = (item.porte || '').toUpperCase();
+      const desc = (item.desc_igreja || '').toUpperCase();
+      if (p === 'LOCAL') {
+        return (
+          explicitPorte === 'LOCAL' ||
+          (!item.porte &&
+            !desc.includes('ESTADUAL') &&
+            !desc.includes('SETORIAL') &&
+            !desc.includes('CENTRAL') &&
+            !desc.includes('REGIONAL') &&
+            !desc.includes('ORAÇÃO') &&
+            !desc.includes('ORACAO') &&
+            !desc.includes('ALDEIA') &&
+            !desc.includes('INDIGENA') &&
+            !desc.includes('INDÍGENA'))
+        );
+      } else if (p === 'CASA DE ORAÇÃO' || p === 'CASA DE ORACAO') {
+        return (
+          explicitPorte === 'CASA DE ORAÇÃO' ||
+          explicitPorte === 'CASA DE ORACAO' ||
+          (!item.porte && (desc.includes('CASA DE ORAÇÃO') || desc.includes('CASA DE ORACAO') || desc.includes('ORAÇÃO') || desc.includes('ORACAO')))
+        );
+      } else if (p === 'ALDEIA INDIGENA' || p === 'ALDEIA INDÍGENA') {
+        return (
+          explicitPorte === 'ALDEIA INDIGENA' ||
+          explicitPorte === 'ALDEIA INDÍGENA' ||
+          (!item.porte && (desc.includes('ALDEIA') || desc.includes('INDIGENA') || desc.includes('INDÍGENA')))
+        );
+      } else {
+        return explicitPorte === p || (!item.porte && desc.includes(p));
+      }
+    });
   }
   if (search) {
     const s = search.toLowerCase();

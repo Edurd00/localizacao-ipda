@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado') || 'ALL';
     const status = searchParams.get('status') || 'ALL';
+    const porte = searchParams.get('porte') || 'ALL';
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
     const search = searchParams.get('search') || searchParams.get('q') || '';
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
 
     const [result, states] = await Promise.all([
       getIgrejas(
-        { estado, status, page, limit, search },
+        { estado, status, porte, page, limit, search },
         [
           'id',
           'codigo_totvs',
