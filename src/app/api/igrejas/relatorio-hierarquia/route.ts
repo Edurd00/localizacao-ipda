@@ -145,7 +145,8 @@ export async function GET(request: Request) {
     const filterEstadual = searchParams.get('estadual') || 'ALL';
     const filterCondicao = searchParams.get('condicao_pastoral') || 'ALL';
 
-    const allChurches = await getIgrejas({ status: 'ALL', estado: 'ALL' });
+    const allChurchesRes = await getIgrejas({ status: 'ALL', estado: 'ALL' });
+    const allChurches = allChurchesRes.data;
     const activeChurches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
 
     // Populate lookup maps

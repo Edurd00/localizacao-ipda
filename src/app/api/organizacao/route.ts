@@ -9,8 +9,8 @@ export async function GET(request: Request) {
     const estado = searchParams.get('estado');
 
     const states = await getDistinctStates();
-    const allChurches = await getIgrejas();
-    const churches = allChurches.filter((ig) => ig.status !== 'DESATIVADO');
+    const allChurchesRes = await getIgrejas();
+    const churches = allChurchesRes.data.filter((ig) => ig.status !== 'DESATIVADO');
 
     if (!estado) {
       return NextResponse.json({

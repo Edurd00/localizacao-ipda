@@ -149,41 +149,72 @@ function isValidatedStatus(status: string | null | undefined): boolean {
 }
 
 export async function getIgrejas(
-  filters?: { estado?: string; status?: string },
+  filters?: {
+    estado?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+  },
   columns?: string[]
-): Promise<Igreja[]> {
+): Promise<{ data: Igreja[]; total: number }> {
   await ensurePostgresTable();
   const safeColumns = getSafeColumns(columns);
+
+  const page = filters?.page && filters.page > 0 ? filters.page : 1;
+  const limit = filters?.limit && filters.limit > 0 ? filters.limit : undefined;
+  const search = filters?.search?.trim() || '';
+
   if (pool) {
     try {
-      const selector = safeColumns ? safeColumns.join(', ') : '*';
-      let query = `SELECT ${selector} FROM igrejas WHERE 1=1`;
-      const params: string[] = [];
+      let whereClause = ' WHERE 1=1';
+      const params: (string | number)[] = [];
       let paramCount = 1;
 
       if (filters?.estado && filters.estado !== 'ALL') {
-        query += ` AND estado = $${paramCount}`;
+        whereClause += ` AND estado = $${paramCount}`;
         params.push(filters.estado);
         paramCount++;
       }
 
       if (filters?.status && filters.status !== 'ALL') {
         if (filters.status === 'VALIDADO') {
-          query += ` AND (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA'))`;
+          whereClause += ` AND (LOWER(status) LIKE 'validad%' OR UPPER(status) IN ('VALIDADO', 'VALIDADA'))`;
         } else {
-          query += ` AND status = $${paramCount}`;
+          whereClause += ` AND status = $${paramCount}`;
           params.push(filters.status);
           paramCount++;
         }
       }
 
-      // Order by desc_igreja ONLY if it's selected/requested
-      if (!safeColumns || safeColumns.includes('desc_igreja')) {
-        query += ' ORDER BY desc_igreja ASC';
+      if (search) {
+        whereClause += ` AND (desc_igreja ILIKE $${paramCount} OR codigo_totvs ILIKE $${paramCount} OR municipio ILIKE $${paramCount})`;
+        params.push(`%${search}%`);
+        paramCount++;
       }
 
-      const res = await pool.query(query, params);
-      return res.rows.map((row) => {
+      // Count query for total matching records
+      const countQuery = `SELECT COUNT(*) AS total FROM igrejas${whereClause}`;
+      const countRes = await pool.query(countQuery, params);
+      const total = parseInt(countRes.rows[0]?.total || '0', 10);
+
+      const selector = safeColumns ? safeColumns.join(', ') : '*';
+      let dataQuery = `SELECT ${selector} FROM igrejas${whereClause}`;
+
+      // Order by desc_igreja ONLY if it's selected/requested
+      if (!safeColumns || safeColumns.includes('desc_igreja')) {
+        dataQuery += ' ORDER BY desc_igreja ASC';
+      }
+
+      const queryParams = [...params];
+      if (limit !== undefined) {
+        const offset = (page - 1) * limit;
+        dataQuery += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+        queryParams.push(limit, offset);
+      }
+
+      const res = await pool.query(dataQuery, queryParams);
+      const data = res.rows.map((row) => {
         const item: Partial<Igreja> = {};
         if (row.id !== undefined) item.id = row.id;
         if (row.codigo_totvs !== undefined) item.codigo_totvs = row.codigo_totvs;
@@ -228,6 +259,8 @@ export async function getIgrejas(
         if (row.tipo_prebenda !== undefined) item.tipo_prebenda = row.tipo_prebenda;
         return item as Igreja;
       });
+
+      return { data, total };
     } catch (err) {
       console.error('Postgres error in getIgrejas:', err);
       throw err;
@@ -261,6 +294,24 @@ export async function getIgrejas(
       data = data.filter((item) => item.status === filters.status);
     }
   }
+  if (search) {
+    const s = search.toLowerCase();
+    data = data.filter(
+      (item) =>
+        (item.desc_igreja || '').toLowerCase().includes(s) ||
+        (item.codigo_totvs || '').toLowerCase().includes(s) ||
+        (item.municipio || '').toLowerCase().includes(s)
+    );
+  }
+
+  const total = data.length;
+
+  data.sort((a, b) => (a.desc_igreja || '').localeCompare(b.desc_igreja || ''));
+
+  if (limit !== undefined) {
+    const offset = (page - 1) * limit;
+    data = data.slice(offset, offset + limit);
+  }
 
   if (safeColumns) {
     data = data.map((item) => {
@@ -273,7 +324,7 @@ export async function getIgrejas(
     });
   }
 
-  return data.sort((a, b) => (a.desc_igreja || '').localeCompare(b.desc_igreja || ''));
+  return { data, total };
 }
 
 export interface IgrejaMap {

@@ -10,7 +10,8 @@ async function runTests() {
 
   // Test Case 1.1: Protection of Validated Churches (Status 'VALIDADO')
   console.log('Testing: Protection of Validated Churches');
-  const initialChurches = await getIgrejas();
+  const initialChurchesRes = await getIgrejas();
+  const initialChurches = initialChurchesRes.data;
   const c10001Initial = initialChurches.find(c => c.codigo_totvs === '10001');
   if (!c10001Initial) {
     throw new Error('Initial church 10001 not found.');
@@ -39,7 +40,8 @@ async function runTests() {
   console.log('Importing church 10001 with divergent address (isReclassificacao = false)...');
   await saveIgrejasBulk(newImportData);
 
-  const updatedChurches = await getIgrejas();
+  const updatedChurchesRes = await getIgrejas();
+  const updatedChurches = updatedChurchesRes.data;
   const c10001Updated = updatedChurches.find(c => c.codigo_totvs === '10001')!;
 
   console.log('10001 Updated Status:', c10001Updated.status);
@@ -95,7 +97,7 @@ async function runTests() {
 
   await saveIgrejasBulk([import10003]);
 
-  const c10003Updated = (await getIgrejas()).find(c => c.codigo_totvs === '10003')!;
+  const c10003Updated = (await getIgrejas()).data.find(c => c.codigo_totvs === '10003')!;
   console.log('10003 Parent:', c10003Updated.codigo_totvs_pai);
   console.log('10003 Address:', c10003Updated.endereco);
 
@@ -129,7 +131,7 @@ async function runTests() {
   };
   await saveIgrejasBulk([setup10002]);
 
-  const c10002Initial = (await getIgrejas()).find(c => c.codigo_totvs === '10002')!;
+  const c10002Initial = (await getIgrejas()).data.find(c => c.codigo_totvs === '10002')!;
   console.log('10002 Initial Status:', c10002Initial.status);
   console.log('10002 Initial Address:', c10002Initial.endereco);
   console.log('10002 Initial Parent:', c10002Initial.codigo_totvs_pai);
@@ -154,7 +156,7 @@ async function runTests() {
 
   await saveIgrejasBulk([import10002Identical], { isReclassificacao: true });
 
-  const c10002IdenticalRes = (await getIgrejas()).find(c => c.codigo_totvs === '10002')!;
+  const c10002IdenticalRes = (await getIgrejas()).data.find(c => c.codigo_totvs === '10002')!;
   console.log('10002 Status after Identical import:', c10002IdenticalRes.status);
   console.log('10002 Parent after Identical import:', c10002IdenticalRes.codigo_totvs_pai);
   console.log('10002 Address after Identical import:', c10002IdenticalRes.endereco);
@@ -188,7 +190,7 @@ async function runTests() {
 
   await saveIgrejasBulk([import10002Changed], { isReclassificacao: true });
 
-  const c10002ChangedRes = (await getIgrejas()).find(c => c.codigo_totvs === '10002')!;
+  const c10002ChangedRes = (await getIgrejas()).data.find(c => c.codigo_totvs === '10002')!;
   console.log('10002 Status after Changed import:', c10002ChangedRes.status);
   console.log('10002 Parent after Changed import:', c10002ChangedRes.codigo_totvs_pai);
   console.log('10002 Address after Changed import:', c10002ChangedRes.endereco);
@@ -245,7 +247,7 @@ async function runTests() {
   };
   await saveIgrejasBulk([import10004], { isReclassificacao: true });
 
-  const c10004Res = (await getIgrejas()).find(c => c.codigo_totvs === '10004')!;
+  const c10004Res = (await getIgrejas()).data.find(c => c.codigo_totvs === '10004')!;
   console.log('10004 Parent after filling lacuna:', c10004Res.codigo_totvs_pai);
   if (c10004Res.codigo_totvs_pai !== '10001') {
     throw new Error('FAIL: Parent should have been updated to 10001 since it was previously null.');
