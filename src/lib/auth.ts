@@ -114,3 +114,12 @@ export function verifySessionToken(token: string | undefined): boolean {
     return false;
   }
 }
+
+/**
+ * Extracts the email from a valid session token.
+ */
+export function getEmailFromSessionToken(token: string | undefined): string | null {
+  if (!token || !verifySessionToken(token)) return null;
+  const parts = token.split(':');
+  return parts[0] || null;
+}

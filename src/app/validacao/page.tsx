@@ -202,8 +202,20 @@ async function fetchGeocodeUnstructured(
 export default function ValidacaoPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'validation' | 'dashboard' | 'upload'>('validation');
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
   const [syncLoading, setSyncLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.role) {
+          setUserRole(data.role);
+        }
+      })
+      .catch((err) => console.error('Error fetching session role:', err));
+  }, []);
 
   const handleForceReloadDatabase = async () => {
     setSyncLoading(true);
@@ -942,42 +954,44 @@ export default function ValidacaoPage() {
                 🗺️ Mapa Geral
               </a>
 
-              {/* Item 2: Validação & Gestão Dropdown */}
-              <div className="relative group">
-                <button
-                  type="button"
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all ${
-                    activeTab === 'validation'
-                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
-                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  <span>📍 Validação & Gestão</span>
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </button>
-
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+              {/* Item 2: Validação & Gestão Dropdown (Hide for viewers) */}
+              {userRole !== 'viewer' && (
+                <div className="relative group">
                   <button
                     type="button"
-                    onClick={() => setActiveTab('validation')}
-                    className="w-full text-left px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg block"
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all ${
+                      activeTab === 'validation'
+                        ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                        : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                    }`}
                   >
-                    📍 Validação de Igrejas
+                    <span>📍 Validação & Gestão</span>
+                    <ChevronDown className="h-3 w-3 opacity-60" />
                   </button>
-                  <a
-                    href="/gestao"
-                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                  >
-                    👥 Gestão de Contatos
-                  </a>
-                  <a
-                    href="/coligacoes"
-                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                  >
-                    🌳 Coligações
-                  </a>
+
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('validation')}
+                      className="w-full text-left px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg block"
+                    >
+                      📍 Validação de Igrejas
+                    </button>
+                    <a
+                      href="/gestao"
+                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                    >
+                      👥 Gestão de Contatos
+                    </a>
+                    <a
+                      href="/coligacoes"
+                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                    >
+                      🌳 Coligações
+                    </a>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Item 3: Inteligência & BI Dropdown */}
               <div className="relative group">
@@ -1010,16 +1024,18 @@ export default function ValidacaoPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setActiveTab('upload')}
-                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
-                  activeTab === 'upload'
-                    ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
-                    : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <span>📥 Importar</span>
-              </button>
+              {userRole !== 'viewer' && (
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center space-x-1 ${
+                    activeTab === 'upload'
+                      ? 'bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold'
+                      : 'text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  <span>📥 Importar</span>
+                </button>
+              )}
             </div>
 
             {/* Right side compact actions */}

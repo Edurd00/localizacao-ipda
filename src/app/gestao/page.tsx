@@ -41,6 +41,7 @@ const PORTE_INFO: Record<string, { name: string; color: string; label: string }>
 export default function GestaoPage() {
   const router = useRouter();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -155,6 +156,8 @@ export default function GestaoPage() {
         if (!data.success || !data.authenticated) {
           toast.error('Acesso restrito. Faça login para gerenciar as igrejas.');
           window.location.href = '/validacao';
+        } else if (data.role) {
+          setUserRole(data.role);
         }
       })
       .catch((err) => {
@@ -621,37 +624,39 @@ export default function GestaoPage() {
               🗺️ Mapa Geral
             </a>
 
-            {/* Item 2: Validação & Gestão Dropdown */}
-            <div className="relative group">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
-              >
-                <span>📍 Validação & Gestão</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
-              </button>
+            {/* Item 2: Validação & Gestão Dropdown (Hide for viewers) */}
+            {userRole !== 'viewer' && (
+              <div className="relative group">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
+                >
+                  <span>📍 Validação & Gestão</span>
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
 
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
-                <a
-                  href="/validacao?tab=validation"
-                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                >
-                  📍 Validação de Igrejas
-                </a>
-                <a
-                  href="/gestao"
-                  className="block px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg"
-                >
-                  👥 Gestão de Contatos
-                </a>
-                <a
-                  href="/coligacoes"
-                  className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                >
-                  🌳 Coligações
-                </a>
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <a
+                    href="/validacao?tab=validation"
+                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                  >
+                    📍 Validação de Igrejas
+                  </a>
+                  <a
+                    href="/gestao"
+                    className="block px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg"
+                  >
+                    👥 Gestão de Contatos
+                  </a>
+                  <a
+                    href="/coligacoes"
+                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                  >
+                    🌳 Coligações
+                  </a>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Item 3: Inteligência & BI Dropdown */}
             <div className="relative group">
@@ -758,16 +763,18 @@ export default function GestaoPage() {
             <span className="text-xs font-bold text-zinc-500 bg-zinc-100 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-slate-700">
               {filteredIgrejas.length} {filteredIgrejas.length === 1 ? 'registro' : 'registros'}
             </span>
-            <button
-              onClick={() => {
-                setFileToImport(null);
-                setIsImportContactsModalOpen(true);
-              }}
-              className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all"
-            >
-              <Upload className="h-4 w-4" />
-              <span>📥 Importar Contatos CSV/Excel</span>
-            </button>
+            {userRole !== 'viewer' && (
+              <button
+                onClick={() => {
+                  setFileToImport(null);
+                  setIsImportContactsModalOpen(true);
+                }}
+                className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all"
+              >
+                <Upload className="h-4 w-4" />
+                <span>📥 Importar Contatos CSV/Excel</span>
+              </button>
+            )}
             <button
               onClick={openCreateModal}
               className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all"
