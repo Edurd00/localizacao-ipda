@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Building2, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Building2, MapPin, Loader2 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { toast } from 'sonner';
 import { PORTE_INFO, getPorte, getDescendantCount, formatLeadershipTenure } from './GeneralMapComponent';
@@ -44,6 +44,30 @@ export default function ChurchDetailModal({
   fetchTerrestrialRoute,
 }: ChurchDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'hierarquia'>('geral');
+  const [liderancaData, setLiderancaData] = useState<any>(null);
+  const [loadingLideranca, setLoadingLideranca] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (activeTab === 'lideranca' && ig?.codigo_totvs) {
+      setLoadingLideranca(true);
+      fetch('/api/igrejas/lideranca?totvs=' + encodeURIComponent(ig.codigo_totvs))
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success && resData.data) {
+            setLiderancaData(resData.data);
+          } else {
+            setLiderancaData(null);
+          }
+        })
+        .catch((err) => {
+          console.error('Error fetching leadership data:', err);
+          setLiderancaData(null);
+        })
+        .finally(() => {
+          setLoadingLideranca(false);
+        });
+    }
+  }, [activeTab, ig?.codigo_totvs]);
 
   const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
   const parentChurch = ig.codigo_totvs_pai
@@ -365,94 +389,101 @@ export default function ChurchDetailModal({
 
         {isAuthenticated && activeTab === 'lideranca' && (
           <div className="space-y-2">
-            {ig.dirigente_nome && (
-              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
-                      <span>👔</span> {ig.dirigente_nome}
-                    </p>
-                    <div className="flex items-center gap-1.5 my-1 flex-wrap">
-                      <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
-                      <span className="text-slate-300">•</span>
-                      {ig.tipo_prebenda === 'PREBENDADA' ? (
-                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                          💼 Prebendado
-                        </span>
-                      ) : (
-                        <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-medium">
-                          🤝 Voluntário
-                        </span>
-                      )}
+            {loadingLideranca ? (
+              <div className="flex items-center justify-center p-6 text-indigo-600 gap-2 font-medium">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Carregando dados de liderança...</span>
+              </div>
+            ) : liderancaData && (liderancaData.dirigente_nome || liderancaData.financeira_nome) ? (
+              <>
+                {liderancaData.dirigente_nome && (
+                  <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
+                          <span>👔</span> {liderancaData.dirigente_nome}
+                        </p>
+                        <div className="flex items-center gap-1.5 my-1 flex-wrap">
+                          <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
+                          <span className="text-slate-300">•</span>
+                          {liderancaData.tipo_prebenda === 'PREBENDADA' ? (
+                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                              💼 Prebendado
+                            </span>
+                          ) : (
+                            <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-medium">
+                              🤝 Voluntário
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {ig.dirigente_data_posse && (
-                  <p className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-150 font-bold mt-1.5">
-                    📅 {formatLeadershipTenure(ig.dirigente_data_posse)}
-                  </p>
-                )}
+                    {liderancaData.dirigente_data_posse && (
+                      <p className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-150 font-bold mt-1.5">
+                        📅 {formatLeadershipTenure(liderancaData.dirigente_data_posse)}
+                      </p>
+                    )}
 
-                {ig.dirigente_telefone && (
-                  <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
-                    <a
-                      href={`tel:${ig.dirigente_telefone.replace(/\D/g, '')}`}
-                      className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
-                      title="Clique para ligar"
-                    >
-                      <span>📞</span> {ig.dirigente_telefone}
-                    </a>
+                    {liderancaData.dirigente_telefone && (
+                      <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
+                        <a
+                          href={`tel:${liderancaData.dirigente_telefone.replace(/\D/g, '')}`}
+                          className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                          title="Clique para ligar"
+                        >
+                          <span>📞</span> {liderancaData.dirigente_telefone}
+                        </a>
 
-                    <a
-                      href={`https://wa.me/55${ig.dirigente_telefone.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors shrink-0"
-                    >
-                      <span>💬</span> WhatsApp
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {ig.financeira_nome && (
-              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
-                      <span>💰</span> {ig.financeira_nome}
-                    </p>
-                    <span className="text-[10px] text-slate-500 font-medium">Voluntária Financeira</span>
-                  </div>
-                </div>
-
-                {ig.financeira_telefone && (
-                  <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
-                    <a
-                      href={`tel:${ig.financeira_telefone.replace(/\D/g, '')}`}
-                      className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
-                      title="Clique para ligar"
-                    >
-                      <span>📞</span> {ig.financeira_telefone}
-                    </a>
-
-                    <a
-                      href={`https://wa.me/55${ig.financeira_telefone.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors shrink-0"
-                    >
-                      <span>💬</span> WhatsApp
-                    </a>
+                        <a
+                          href={`https://wa.me/55${liderancaData.dirigente_telefone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors shrink-0"
+                        >
+                          <span>💬</span> WhatsApp
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {!ig.dirigente_nome && !ig.financeira_nome && (
-              <p className="text-slate-400 italic text-xs p-2">Nenhum responsável cadastrado.</p>
+                {liderancaData.financeira_nome && (
+                  <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
+                          <span>💰</span> {liderancaData.financeira_nome}
+                        </p>
+                        <span className="text-[10px] text-slate-500 font-medium">Voluntária Financeira</span>
+                      </div>
+                    </div>
+
+                    {liderancaData.financeira_telefone && (
+                      <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
+                        <a
+                          href={`tel:${liderancaData.financeira_telefone.replace(/\D/g, '')}`}
+                          className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                          title="Clique para ligar"
+                        >
+                          <span>📞</span> {liderancaData.financeira_telefone}
+                        </a>
+
+                        <a
+                          href={`https://wa.me/55${liderancaData.financeira_telefone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2 py-0.5 rounded text-[10px] flex items-center gap-1 transition-colors shrink-0"
+                        >
+                          <span>💬</span> WhatsApp
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-slate-400 italic text-xs p-2 text-center">Informação indisponível.</p>
             )}
           </div>
         )}

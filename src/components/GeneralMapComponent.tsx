@@ -1724,20 +1724,19 @@ export default function GeneralMapComponent({
   const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
-    if (propIsAuthenticated !== undefined) {
-      setIsAuthenticated(propIsAuthenticated);
-      if (propIsAuthenticated === false) {
-        return;
-      }
-    }
     fetch('/api/auth/session')
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.authenticated) {
           setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(propIsAuthenticated ?? false);
         }
       })
-      .catch((err) => console.error('Error checking auth session:', err));
+      .catch((err) => {
+        console.error('Error checking auth session:', err);
+        setIsAuthenticated(propIsAuthenticated ?? false);
+      });
   }, [propIsAuthenticated]);
 
   // Comparison Module states

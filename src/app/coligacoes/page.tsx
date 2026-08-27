@@ -78,8 +78,20 @@ function updatePorteInDescription(desc: string, newPorte: string): string {
 export default function ColigacoesPage() {
   const [activeTab, setActiveTab] = useState<'tree' | 'import'>('tree');
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [states, setStates] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.role) {
+          setUserRole(data.role);
+        }
+      })
+      .catch((err) => console.error('Error fetching session role:', err));
+  }, []);
 
   // Search/Filter states
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -827,41 +839,43 @@ export default function ColigacoesPage() {
 
               {/* Grouped Administrative Navigation Dropdowns */}
               <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
-                {/* Item 2: Validação & Gestão Dropdown */}
-                <div className="relative group">
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
-                  >
-                    <span>📍 Validação & Gestão</span>
-                    <ChevronDown className="h-3 w-3 opacity-60" />
-                  </button>
-
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <a
-                      href="/validacao?tab=validation"
-                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                    >
-                      📍 Validação de Igrejas
-                    </a>
-                    <a
-                      href="/gestao"
-                      className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
-                    >
-                      👥 Gestão de Contatos
-                    </a>
+                {/* Item 2: Validação & Gestão Dropdown (Hide for viewers) */}
+                {userRole !== 'viewer' && (
+                  <div className="relative group">
                     <button
                       type="button"
-                      onClick={() => {
-                        setActiveTab('tree');
-                        setSelectedChurch(null);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg block"
+                      className="px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all bg-white dark:bg-slate-700 text-zinc-950 dark:text-white shadow-sm border border-zinc-200/50 dark:border-slate-650 font-bold"
                     >
-                      🌳 Coligações
+                      <span>📍 Validação & Gestão</span>
+                      <ChevronDown className="h-3 w-3 opacity-60" />
                     </button>
+
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-[9999] p-1 divide-y divide-zinc-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <a
+                        href="/validacao?tab=validation"
+                        className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                      >
+                        📍 Validação de Igrejas
+                      </a>
+                      <a
+                        href="/gestao"
+                        className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                      >
+                        👥 Gestão de Contatos
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('tree');
+                          setSelectedChurch(null);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 rounded-lg block"
+                      >
+                        🌳 Coligações
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Item 3: Inteligência & BI Dropdown */}
                 <div className="relative group">
@@ -913,21 +927,23 @@ export default function ColigacoesPage() {
             <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
             <span>Árvore Hierárquica</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('import');
-              setSelectedChurch(null);
-            }}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-150 flex items-center justify-center space-x-1.5 ${
-              activeTab === 'import'
-                ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200/50'
-                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
-            }`}
-          >
-            <Upload className="h-3.5 w-3.5 text-indigo-600" />
-            <span>Importação em Lotes</span>
-          </button>
+          {userRole !== 'viewer' && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('import');
+                setSelectedChurch(null);
+              }}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-150 flex items-center justify-center space-x-1.5 ${
+                activeTab === 'import'
+                  ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200/50'
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+              }`}
+            >
+              <Upload className="h-3.5 w-3.5 text-indigo-600" />
+              <span>Importação em Lotes</span>
+            </button>
+          )}
         </div>
 
         {activeTab === 'import' ? (

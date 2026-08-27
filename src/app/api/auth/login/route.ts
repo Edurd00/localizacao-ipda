@@ -6,25 +6,36 @@ import { generateSessionToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.ADMIN_PASSWORD_HASH) {
+    const adminPassword = process.env.ADMIN_PASSWORD_HASH;
+    const viewerPassword = process.env.VIEWER_PASSWORD_HASH;
+
+    if (!adminPassword && !viewerPassword) {
       return NextResponse.json(
-        { success: false, error: 'Servidor não configurado. ADMIN_PASSWORD_HASH ausente.' },
+        { success: false, error: 'Servidor não configurado. Variáveis de senha ausentes.' },
         { status: 500 }
       );
     }
 
     const { email, password } = await request.json();
 
-    const expectedEmail = process.env.ADMIN_EMAIL || 'gestaodedados@ipda.com.br';
-    const expectedPassword = process.env.ADMIN_PASSWORD_HASH;
+    const expectedAdminEmail = process.env.ADMIN_EMAIL || 'gestaodedados@ipda.com.br';
+    const expectedViewerEmail = process.env.VIEWER_EMAIL || 'viewer@ipda.com.br';
 
-    if (email === expectedEmail && password === expectedPassword) {
+    let authenticatedEmail: string | null = null;
+
+    if (adminPassword && email === expectedAdminEmail && password === adminPassword) {
+      authenticatedEmail = expectedAdminEmail;
+    } else if (viewerPassword && email === expectedViewerEmail && password === viewerPassword) {
+      authenticatedEmail = expectedViewerEmail;
+    }
+
+    if (authenticatedEmail) {
       const response = NextResponse.json({
         success: true,
         message: 'Autenticação realizada com sucesso!',
       });
 
-      const secureToken = generateSessionToken(email);
+      const secureToken = generateSessionToken(authenticatedEmail);
 
       // Set cookie for session token
       response.cookies.set('session_token', secureToken, {
