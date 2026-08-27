@@ -169,7 +169,7 @@ export default function GestaoPage() {
   const fetchIgrejasList = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/igrejas?status=ALL&estado=ALL&t=' + Date.now().toString());
+      const res = await fetch('/api/igrejas?limit=ALL');
       const data = await res.json();
       if (data.success) {
         setIgrejas(data.igrejas || []);

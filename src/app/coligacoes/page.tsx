@@ -133,7 +133,7 @@ export default function ColigacoesPage() {
   const fetchAllData = async (preserveSelectedCode?: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/coligacoes');
+      const res = await fetch('/api/coligacoes?limit=ALL');
       const data = await res.json();
       if (data.success) {
         setIgrejas(data.igrejas || []);

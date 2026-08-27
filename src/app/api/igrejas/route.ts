@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400;
 import { getIgrejas, getDistinctStates } from '@/lib/db';
 import { verifySessionToken } from '@/lib/auth';
 
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || searchParams.get('q') || '';
 
     const page = pageParam ? parseInt(pageParam, 10) || 1 : 1;
-    const limit = limitParam ? parseInt(limitParam, 10) || 100 : 100;
+    const limit = limitParam === 'ALL' || !limitParam ? 'ALL' : (parseInt(limitParam, 10) || 'ALL');
 
     const [result, states] = await Promise.all([
       getIgrejas(
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate',
         },
       }
     );

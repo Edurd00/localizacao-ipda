@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400;
 import { getIgrejas, getDistinctStates } from '@/lib/db';
 
 export async function GET() {
@@ -16,11 +16,20 @@ export async function GET() {
       'estado'
     ]);
     const states = await getDistinctStates();
-    return NextResponse.json({
-      success: true,
-      igrejas: igrejasRes.data,
-      states,
-    });
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        igrejas: igrejasRes.data,
+        states,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate',
+        },
+      }
+    );
   } catch (err: unknown) {
     console.error('API Error in GET /api/coligacoes:', err);
     const errMsg = err instanceof Error ? err.message : 'Unknown database error';
