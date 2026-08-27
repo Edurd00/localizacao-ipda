@@ -42,9 +42,12 @@ export async function POST(request: Request) {
     }
 
     try {
+      revalidatePath('/api/coligacoes');
+      revalidatePath('/api/igrejas');
+      revalidatePath('/api/igrejas/validadas');
       revalidatePath('/api/igrejas/dashboard');
     } catch (revalErr) {
-      console.warn('Dashboard revalidation failed:', revalErr);
+      console.warn('Revalidation failed:', revalErr);
     }
 
     return NextResponse.json({

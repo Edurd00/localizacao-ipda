@@ -34,8 +34,10 @@ export async function POST(request: Request) {
 
     // Trigger revalidation for dashboard route and public map cache
     try {
-      revalidatePath('/api/igrejas/dashboard');
+      revalidatePath('/api/coligacoes');
+      revalidatePath('/api/igrejas');
       revalidatePath('/api/igrejas/validadas');
+      revalidatePath('/api/igrejas/dashboard');
     } catch (revalErr) {
       console.warn('Revalidation failed (non-fatal):', revalErr);
     }
