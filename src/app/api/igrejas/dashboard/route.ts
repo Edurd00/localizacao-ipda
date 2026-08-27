@@ -9,11 +9,10 @@ export async function GET() {
     // Force revalidation for the dashboard API route
     revalidatePath('/api/igrejas/dashboard');
 
-    const [igrejasResult, statesList] = await Promise.all([
+    const [igrejas, statesList] = await Promise.all([
       getIgrejas(),
       getDistinctStates(),
     ]);
-    const igrejas = igrejasResult.data;
 
     let total = 0;
     let validadas = 0;
