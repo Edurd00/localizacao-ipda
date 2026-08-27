@@ -154,7 +154,7 @@ export async function getIgrejas(
     status?: string;
     porte?: string;
     page?: number;
-    limit?: number;
+    limit?: number | string;
     search?: string;
   },
   columns?: string[]
@@ -163,7 +163,7 @@ export async function getIgrejas(
   const safeColumns = getSafeColumns(columns);
 
   const page = filters?.page && filters.page > 0 ? filters.page : 1;
-  const limit = filters?.limit && filters.limit > 0 ? filters.limit : undefined;
+  const limit = filters?.limit && filters.limit !== 'ALL' && !isNaN(Number(filters.limit)) && Number(filters.limit) > 0 ? Number(filters.limit) : undefined;
   const search = filters?.search?.trim() || '';
 
   if (pool) {
