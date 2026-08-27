@@ -81,6 +81,7 @@ export default function ColigacoesPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [states, setStates] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   useEffect(() => {
     fetch('/api/auth/session')
@@ -138,7 +139,8 @@ export default function ColigacoesPage() {
 
   // Load all churches on mount
   const fetchAllData = async (preserveSelectedCode?: string) => {
-    setLoading(true);
+    if (!igrejas.length) setLoading(true);
+    else setIsSyncing(true);
     try {
       const res = await fetch('/api/coligacoes?limit=ALL');
       const data = await res.json();
@@ -162,6 +164,7 @@ export default function ColigacoesPage() {
       toast.error('Erro de conexão ao carregar igrejas.');
     } finally {
       setLoading(false);
+      setIsSyncing(false);
     }
   };
 
