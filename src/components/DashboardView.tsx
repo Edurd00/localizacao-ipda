@@ -75,31 +75,19 @@ export default function DashboardView({
   const { data: dashboardData, isLoading: dashboardLoading } = useSWR(
     '/api/igrejas/dashboard',
     fetcher,
-    { revalidateOnFocus: false, refreshInterval: 300000 }
+    { revalidateOnFocus: false, refreshInterval: 60000 }
   );
 
-  const summary = dashboardData?.summary || {
-    total: 0,
-    validadas: 0,
-    pendentes: 0,
-    duvidas: 0,
-    revisoes: 0,
-    validadasPct: '0.0',
-    pendentesPct: '0.0',
-    duvidasPct: '0.0',
-    revisoesPct: '0.0',
-  };
+  const totalCount = dashboardData?.total || 0;
+  const validadasCount = dashboardData?.validadas || 0;
+  const pendentesCount = dashboardData?.pendentes || 0;
+  const duvidasCount = dashboardData?.duvidas || 0;
+  const revisoesCount = dashboardData?.revisoes || 0;
 
-  const totalCount = summary.total;
-  const validadasCount = summary.validadas;
-  const pendentesCount = summary.pendentes;
-  const duvidasCount = summary.duvidas;
-  const revisoesCount = summary.revisoes;
-
-  const validadasPct = summary.validadasPct;
-  const pendentesPct = summary.pendentesPct;
-  const duvidasPct = summary.duvidasPct;
-  const revisoesPct = summary.revisoesPct;
+  const validadasPct = totalCount > 0 ? ((validadasCount / totalCount) * 100).toFixed(1) : '0.0';
+  const pendentesPct = totalCount > 0 ? ((pendentesCount / totalCount) * 100).toFixed(1) : '0.0';
+  const duvidasPct = totalCount > 0 ? ((duvidasCount / totalCount) * 100).toFixed(1) : '0.0';
+  const revisoesPct = totalCount > 0 ? ((revisoesCount / totalCount) * 100).toFixed(1) : '0.0';
 
   const stateMetrics: Array<{
     uf: string;
@@ -108,13 +96,12 @@ export default function DashboardView({
     pendentes: number;
     duvidas: number;
     revisoes: number;
-  }> = dashboardData?.por_estado || [];
+  }> = dashboardData?.stateMetrics || [];
 
   const validatorMetrics: Array<{
-    name: string;
-    total: number;
-    lastAction: string;
-  }> = dashboardData?.por_validador || [];
+    nome: string;
+    count: number;
+  }> = dashboardData?.validatorMetrics || [];
 
   const filteredStateMetrics = useMemo(() => {
     if (!filterStateSearch.trim()) return stateMetrics;
@@ -438,8 +425,9 @@ export default function DashboardView({
             <tbody className="divide-y divide-zinc-100">
               {dashboardLoading ? (
                 <tr>
-                  <td colSpan={3} className="p-6 text-center text-zinc-400 italic">
-                    Carregando produtividade dos validadores...
+                  <td colSpan={3} className="p-6 text-center text-zinc-400 italic flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                    <span>Carregando produtividade dos validadores...</span>
                   </td>
                 </tr>
               ) : validatorMetrics.length === 0 ? (
@@ -450,33 +438,27 @@ export default function DashboardView({
                 </tr>
               ) : (
                 validatorMetrics.map((val) => {
-                  const percentage = validadasCount > 0 ? ((val.total / validadasCount) * 100).toFixed(1) : '0.0';
-                  const initials = getInitials(val.name);
-                  const avatarBg = getAvatarBgColor(val.name);
+                  const percentage = validadasCount > 0 ? ((val.count / validadasCount) * 100).toFixed(1) : '0.0';
+                  const initials = getInitials(val.nome);
+                  const avatarBg = getAvatarBgColor(val.nome);
                   return (
-                    <tr key={val.name} className="hover:bg-zinc-50 transition-colors">
+                    <tr key={val.nome} className="hover:bg-zinc-50 transition-colors">
                       <td className="p-3 font-semibold text-zinc-900 flex items-center space-x-2">
                         <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-inner ${avatarBg}`}>
                           {initials}
                         </span>
-                        <span>{val.name}</span>
+                        <span>{val.nome}</span>
                       </td>
                       <td className="p-3 text-center font-mono">
                         <div className="flex items-center justify-center space-x-2">
-                          <span className="font-bold text-zinc-800">{val.total.toLocaleString('pt-BR')}</span>
+                          <span className="font-bold text-zinc-800">{val.count.toLocaleString('pt-BR')}</span>
                           <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-150 font-bold">
                             {percentage}%
                           </span>
                         </div>
                       </td>
                       <td className="p-3 text-right font-medium text-zinc-500 font-mono">
-                        {val.lastAction ? new Date(val.lastAction).toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        }) : 'N/A'}
+                        Concluído
                       </td>
                     </tr>
                   );

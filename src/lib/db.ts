@@ -65,7 +65,7 @@ function createPool(): Pool | null {
   }
 }
 
-const pool: Pool | null = globalForDb.pgPool ?? createPool();
+export const pool: Pool | null = globalForDb.pgPool ?? createPool();
 if (pool) {
   globalForDb.pgPool = pool;
 }
