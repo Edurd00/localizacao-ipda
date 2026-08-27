@@ -153,16 +153,17 @@ export default function GestaoPage() {
     fetch('/api/auth/session')
       .then((res) => res.json())
       .then((data) => {
-        if (!data.success || !data.authenticated) {
-          toast.error('Acesso restrito. Faça login para gerenciar as igrejas.');
-          window.location.href = '/validacao';
+        if (!data.authenticated) {
+          window.location.href = '/login';
+        } else if (data.role === 'viewer') {
+          window.location.href = '/mapa-geral';
         } else if (data.role) {
           setUserRole(data.role);
         }
       })
       .catch((err) => {
         console.error(err);
-        window.location.href = '/validacao';
+        window.location.href = '/login';
       });
   }, []);
 

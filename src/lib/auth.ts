@@ -79,39 +79,60 @@ function sha256(ascii: string): string {
 }
 
 /**
- * Generates a cryptographically signed, tamper-proof session token.
+ * Generates a cryptographically signed, tamper-proof session token embedding the user role.
  */
-export function generateSessionToken(email: string): string {
+export function generateSessionToken(email: string, role: string = 'viewer'): string {
   const expiresAt = Date.now() + 1000 * 60 * 60 * 24; // 1 day
-  const payload = `${email}:${expiresAt}`;
+  const payload = `${email}:${role}:${expiresAt}`;
   const signature = sha256(`${payload}:${SECRET_KEY}`);
   return `${payload}:${signature}`;
 }
 
 /**
- * Validates a signed session token.
+ * Validates a signed session token and returns session data { email, role } if valid.
  */
-export function verifySessionToken(token: string | undefined): boolean {
-  if (!token) return false;
+export function verifySessionToken(token: string | undefined): { email: string; role: string } | null {
+  if (!token) return null;
   try {
     const parts = token.split(':');
-    if (parts.length !== 3) return false;
-    const [email, expiresAtStr, signature] = parts;
-    const expiresAt = parseInt(expiresAtStr, 10);
+    if (parts.length === 4) {
+      const [email, role, expiresAtStr, signature] = parts;
+      const expiresAt = parseInt(expiresAtStr, 10);
 
-    // Check expiration
-    if (Date.now() > expiresAt) {
-      return false;
+      // Check expiration
+      if (Date.now() > expiresAt) {
+        return null;
+      }
+
+      // Verify signature
+      const payload = `${email}:${role}:${expiresAt}`;
+      const expectedSignature = sha256(`${payload}:${SECRET_KEY}`);
+
+      if (signature === expectedSignature) {
+        return { email, role };
+      }
+    } else if (parts.length === 3) {
+      // Legacy token format fallback
+      const [email, expiresAtStr, signature] = parts;
+      const expiresAt = parseInt(expiresAtStr, 10);
+
+      if (Date.now() > expiresAt) {
+        return null;
+      }
+
+      const payload = `${email}:${expiresAt}`;
+      const expectedSignature = sha256(`${payload}:${SECRET_KEY}`);
+
+      if (signature === expectedSignature) {
+        const adminEmail = process.env.ADMIN_EMAIL || 'gestaodedados@ipda.com.br';
+        const role = email === adminEmail ? 'admin' : 'viewer';
+        return { email, role };
+      }
     }
-
-    // Verify signature
-    const payload = `${email}:${expiresAt}`;
-    const expectedSignature = sha256(`${payload}:${SECRET_KEY}`);
-
-    return signature === expectedSignature;
+    return null;
   } catch (err) {
     console.error('Session verification failed:', err);
-    return false;
+    return null;
   }
 }
 
@@ -119,7 +140,6 @@ export function verifySessionToken(token: string | undefined): boolean {
  * Extracts the email from a valid session token.
  */
 export function getEmailFromSessionToken(token: string | undefined): string | null {
-  if (!token || !verifySessionToken(token)) return null;
-  const parts = token.split(':');
-  return parts[0] || null;
+  const session = verifySessionToken(token);
+  return session ? session.email : null;
 }

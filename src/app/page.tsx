@@ -1,14 +1,27 @@
-// Força o Next.js a sempre executar o renderizador em tempo de requisição
-export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-export const revalidate = 0;
+'use client';
 
+import { useState, useEffect } from 'react';
 import GeneralMapWrapper from '@/components/GeneralMapWrapper';
 
 export default function LandingPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+          setUserRole(data.role);
+        }
+      })
+      .catch((err) => console.error('Error fetching session:', err));
+  }, []);
+
   return (
     <main className="w-full h-screen overflow-hidden">
-      <GeneralMapWrapper isAuthenticated={false} />
+      <GeneralMapWrapper isAuthenticated={isAuthenticated} userRole={userRole} />
     </main>
   );
 }

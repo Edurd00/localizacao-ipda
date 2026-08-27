@@ -17,10 +17,14 @@ export function proxy(request: NextRequest) {
   );
 
   if (isProtected) {
-    const isValid = verifySessionToken(token?.value);
-    if (!isValid) {
+    const sessionData = verifySessionToken(token?.value);
+    if (!sessionData) {
       const loginUrl = new URL('/login', request.url);
       return NextResponse.redirect(loginUrl);
+    }
+    if (sessionData.role === 'viewer') {
+      const mapaUrl = new URL('/mapa-geral', request.url);
+      return NextResponse.redirect(mapaUrl);
     }
   }
 
