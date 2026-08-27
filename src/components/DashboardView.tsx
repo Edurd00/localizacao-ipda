@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import useSWR from 'swr';
 import { Igreja } from '@/lib/db';
 import {
   BarChart3,
@@ -15,12 +16,12 @@ import {
   Zap,
   Loader2,
   ArrowRight,
-  Filter,
   User,
-  RefreshCw,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function getInitials(name: string): string {
   const clean = (name || '').trim();
@@ -60,116 +61,47 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({
-  igrejas,
-  states,
   onSelectStateAndSwitch,
   onSelectStatusAndSwitch,
   onBatchAutoGeocode,
   batchLoading,
   batchProgress,
-  onSyncPublicMap,
-  syncLoading = false,
 }: DashboardViewProps) {
   const [filterStateSearch, setFilterStateSearch] = useState('');
   const [exportFilter, setExportFilter] = useState<'ALL' | 'VALIDADO' | 'PENDENTE' | 'DUVIDA' | 'PENDENTE_REVISAO'>('VALIDADO');
+  const [exportLoading, setExportLoading] = useState(false);
 
-  // Categorize each church item according to validation flow rules
-  const activeIgrejasWithCategory = useMemo(() => {
-    return igrejas
-      .filter((ig) => ig.status !== 'DESATIVADO')
-      .map((ig: any) => {
-        const dataValidacao = ig.data_validacao || ig.validado_em;
-        const isValidada = Boolean(dataValidacao) || ig.status === 'VALIDADO';
+  // Fetch server-aggregated metrics via SWR
+  const { data: dashboardData, isLoading: dashboardLoading } = useSWR(
+    '/api/igrejas/dashboard',
+    fetcher,
+    { revalidateOnFocus: false, refreshInterval: 60000 }
+  );
 
-        const obsDuvidaText =
-          (ig.observacao_duvida && String(ig.observacao_duvida).trim()) ||
-          (ig.observacao && String(ig.observacao).trim()) ||
-          (ig.observacoes && String(ig.observacoes).trim()) ||
-          (ig.duvida && String(ig.duvida).trim());
-
-        const hasDuvidaTextOrStatus = Boolean(obsDuvidaText) || ig.status === 'DUVIDA';
-        const isRevisao = ig.status === 'PENDENTE_REVISAO' || ig.status === 'REVISAO_ENDERECO';
-
-        let category: 'VALIDADO' | 'DUVIDA' | 'PENDENTE_REVISAO' | 'PENDENTE' = 'PENDENTE';
-        if (isValidada) {
-          category = 'VALIDADO';
-        } else if (hasDuvidaTextOrStatus) {
-          category = 'DUVIDA';
-        } else if (isRevisao) {
-          category = 'PENDENTE_REVISAO';
-        } else {
-          category = 'PENDENTE';
-        }
-
-        return { church: ig, category };
-      });
-  }, [igrejas]);
-
-  // Overall KPIs calculation
-  const totalCount = activeIgrejasWithCategory.length;
-  const validadasCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'VALIDADO').length, [activeIgrejasWithCategory]);
-  const pendentesCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'PENDENTE').length, [activeIgrejasWithCategory]);
-  const duvidasCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'DUVIDA').length, [activeIgrejasWithCategory]);
-  const revisoesCount = useMemo(() => activeIgrejasWithCategory.filter((item) => item.category === 'PENDENTE_REVISAO').length, [activeIgrejasWithCategory]);
+  const totalCount = dashboardData?.total || 0;
+  const validadasCount = dashboardData?.validadas || 0;
+  const pendentesCount = dashboardData?.pendentes || 0;
+  const duvidasCount = dashboardData?.duvidas || 0;
+  const revisoesCount = dashboardData?.revisoes || 0;
 
   const validadasPct = totalCount > 0 ? ((validadasCount / totalCount) * 100).toFixed(1) : '0.0';
   const pendentesPct = totalCount > 0 ? ((pendentesCount / totalCount) * 100).toFixed(1) : '0.0';
   const duvidasPct = totalCount > 0 ? ((duvidasCount / totalCount) * 100).toFixed(1) : '0.0';
   const revisoesPct = totalCount > 0 ? ((revisoesCount / totalCount) * 100).toFixed(1) : '0.0';
 
-  // Validator Metrics Calculation
-  const validatorMetrics = useMemo(() => {
-    const map = new Map<string, { name: string; total: number; lastAction: string }>();
+  const stateMetrics: Array<{
+    uf: string;
+    total: number;
+    validadas: number;
+    pendentes: number;
+    duvidas: number;
+    revisoes: number;
+  }> = dashboardData?.stateMetrics || [];
 
-    igrejas.forEach((ig) => {
-      // Group by signature, prioritizing validado_por, falling back to usuario_validador
-      const validator = ig.validado_por || ig.usuario_validador;
-      if (validator && (ig.status as string) === 'VALIDADO') {
-        const valName = validator.trim();
-        if (!map.has(valName)) {
-          map.set(valName, { name: valName, total: 0, lastAction: '' });
-        }
-        const item = map.get(valName)!;
-        item.total += 1;
-
-        const dateStr = ig.validado_em || ig.updated_at;
-        if (dateStr) {
-          if (!item.lastAction || new Date(dateStr) > new Date(item.lastAction)) {
-            item.lastAction = dateStr;
-          }
-        }
-      }
-    });
-
-    const list = Array.from(map.values());
-    list.sort((a, b) => b.total - a.total);
-    return list;
-  }, [igrejas]);
-
-  // Per State Metrics Calculation
-  const stateMetrics = useMemo(() => {
-    const map = new Map<
-      string,
-      { uf: string; total: number; validadas: number; pendentes: number; duvidas: number; revisoes: number }
-    >();
-
-    activeIgrejasWithCategory.forEach(({ church: ig, category }) => {
-      const uf = ig.estado || 'Outros';
-      if (!map.has(uf)) {
-        map.set(uf, { uf, total: 0, validadas: 0, pendentes: 0, duvidas: 0, revisoes: 0 });
-      }
-      const item = map.get(uf)!;
-      item.total += 1;
-      if (category === 'VALIDADO') item.validadas += 1;
-      else if (category === 'DUVIDA') item.duvidas += 1;
-      else if (category === 'PENDENTE_REVISAO') item.revisoes += 1;
-      else item.pendentes += 1;
-    });
-
-    const list = Array.from(map.values());
-    list.sort((a, b) => b.total - a.total);
-    return list;
-  }, [activeIgrejasWithCategory]);
+  const validatorMetrics: Array<{
+    nome: string;
+    count: number;
+  }> = dashboardData?.validatorMetrics || [];
 
   const filteredStateMetrics = useMemo(() => {
     if (!filterStateSearch.trim()) return stateMetrics;
@@ -177,53 +109,60 @@ export default function DashboardView({
     return stateMetrics.filter((s) => String(s.uf || '').toLowerCase().includes(term));
   }, [stateMetrics, filterStateSearch]);
 
-  // Export to Excel handler
-  const handleExportExcel = () => {
-    let listToExport = igrejas;
-    let fileNameSuffix = 'todas';
+  // On-demand export to Excel handler (fetching full list from server)
+  const handleExportExcel = async () => {
+    if (exportLoading) return;
+    setExportLoading(true);
+    const toastId = toast.loading('Buscando dados no servidor e gerando relatório Excel...');
 
-    if (exportFilter === 'VALIDADO') {
-      listToExport = igrejas.filter((i) => (i.status as string) === 'VALIDADO');
-      fileNameSuffix = 'validadas';
-    } else if (exportFilter === 'PENDENTE') {
-      listToExport = igrejas.filter((i) => (i.status as string) === 'PENDENTE');
-      fileNameSuffix = 'pendentes';
-    } else if (exportFilter === 'PENDENTE_REVISAO') {
-      listToExport = igrejas.filter((i) => (i.status as string) === 'PENDENTE_REVISAO');
-      fileNameSuffix = 'revisoes';
-    } else if (exportFilter === 'DUVIDA') {
-      listToExport = igrejas.filter((i) => (i.status as string) === 'DUVIDA');
-      fileNameSuffix = 'duvidas';
+    try {
+      const statusParam = exportFilter === 'ALL' ? 'ALL' : exportFilter;
+      const res = await fetch(`/api/igrejas?limit=20000&status=${statusParam}`);
+      const json = await res.json();
+
+      if (!json.success || !json.igrejas || json.igrejas.length === 0) {
+        toast.error('Nenhum registro encontrado para exportar com o filtro selecionado.', { id: toastId });
+        setExportLoading(false);
+        return;
+      }
+
+      const listToExport: Igreja[] = json.igrejas;
+      let fileNameSuffix = 'todas';
+      if (exportFilter === 'VALIDADO') fileNameSuffix = 'validadas';
+      else if (exportFilter === 'PENDENTE') fileNameSuffix = 'pendentes';
+      else if (exportFilter === 'PENDENTE_REVISAO') fileNameSuffix = 'revisoes';
+      else if (exportFilter === 'DUVIDA') fileNameSuffix = 'duvidas';
+
+      const rows = listToExport.map((ig) => ({
+        'Código TOTVS': ig.codigo_totvs,
+        'Descrição Igreja': ig.desc_igreja,
+        'Tipo Imóvel': ig.tipo_imovel || '',
+        'Endereço': ig.endereco || '',
+        'Bairro': ig.bairro || '',
+        'Município': ig.municipio || '',
+        'Estado (UF)': ig.estado || '',
+        'CEP': ig.cep || '',
+        'Latitude': ig.latitude !== null ? ig.latitude : '',
+        'Longitude': ig.longitude !== null ? ig.longitude : '',
+        'Status': ig.status,
+        'Operador Validador': ig.usuario_validador || ig.validado_por || '',
+        'Link Google Maps': ig.link_google_maps || (ig.latitude ? `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}` : ''),
+        'Última Atualização': ig.updated_at || '',
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Igrejas IPDA');
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `Localizacao_IPDA_Relatorio_${fileNameSuffix}_${dateStr}.xlsx`);
+      toast.success(`Relatório (${rows.length} igrejas) exportado com sucesso!`, { id: toastId });
+    } catch (err) {
+      console.error('Error exporting excel:', err);
+      toast.error('Falha ao exportar relatório Excel.', { id: toastId });
+    } finally {
+      setExportLoading(false);
     }
-
-    if (listToExport.length === 0) {
-      toast.error('Nenhum registro encontrado para exportar com o filtro selecionado.');
-      return;
-    }
-
-    const rows = listToExport.map((ig) => ({
-      'Código TOTVS': ig.codigo_totvs,
-      'Descrição Igreja': ig.desc_igreja,
-      'Tipo Imóvel': ig.tipo_imovel || '',
-      'Endereço': ig.endereco || '',
-      'Bairro': ig.bairro || '',
-      'Município': ig.municipio || '',
-      'Estado (UF)': ig.estado || '',
-      'CEP': ig.cep || '',
-      'Latitude': ig.latitude !== null ? ig.latitude : '',
-      'Longitude': ig.longitude !== null ? ig.longitude : '',
-      'Status': ig.status,
-      'Operador Validador': ig.usuario_validador || '',
-      'Link Google Maps': ig.link_google_maps || (ig.latitude ? `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}` : ''),
-      'Última Atualização': ig.updated_at || '',
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Igrejas IPDA');
-
-    const dateStr = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `Localizacao_IPDA_Relatorio_${fileNameSuffix}_${dateStr}.xlsx`);
   };
 
   return (
@@ -266,9 +205,14 @@ export default function DashboardView({
           <button
             type="button"
             onClick={handleExportExcel}
-            className="px-4 py-2.5 bg-transparent hover:bg-white/10 text-white font-semibold text-xs rounded-xl border border-white/30 shadow flex items-center space-x-2 transition-all shrink-0"
+            disabled={exportLoading}
+            className="px-4 py-2.5 bg-transparent hover:bg-white/10 text-white font-semibold text-xs rounded-xl border border-white/30 shadow flex items-center space-x-2 transition-all shrink-0 disabled:opacity-50"
           >
-            <Download className="h-4 w-4" />
+            {exportLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             <span>Exportar Excel</span>
           </button>
         </div>
@@ -284,7 +228,9 @@ export default function DashboardView({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Total de Igrejas</p>
-              <h3 className="text-3xl font-black text-indigo-700 mt-1">{totalCount.toLocaleString('pt-BR')}</h3>
+              <h3 className="text-3xl font-black text-indigo-700 mt-1">
+                {dashboardLoading ? '...' : totalCount.toLocaleString('pt-BR')}
+              </h3>
             </div>
             <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform">
               <Building2 className="h-6 w-6" />
@@ -308,7 +254,9 @@ export default function DashboardView({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Igrejas Validadas</p>
-              <h3 className="text-3xl font-black text-emerald-700 mt-1">{validadasCount.toLocaleString('pt-BR')}</h3>
+              <h3 className="text-3xl font-black text-emerald-700 mt-1">
+                {dashboardLoading ? '...' : validadasCount.toLocaleString('pt-BR')}
+              </h3>
             </div>
             <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
               <CheckCircle2 className="h-6 w-6" />
@@ -332,7 +280,9 @@ export default function DashboardView({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Pendentes de Validação</p>
-              <h3 className="text-3xl font-black text-amber-700 mt-1">{pendentesCount.toLocaleString('pt-BR')}</h3>
+              <h3 className="text-3xl font-black text-amber-700 mt-1">
+                {dashboardLoading ? '...' : pendentesCount.toLocaleString('pt-BR')}
+              </h3>
             </div>
             <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
               <Clock className="h-6 w-6" />
@@ -356,7 +306,9 @@ export default function DashboardView({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Com Dúvida / Revisar</p>
-              <h3 className="text-3xl font-black text-rose-700 mt-1">{duvidasCount.toLocaleString('pt-BR')}</h3>
+              <h3 className="text-3xl font-black text-rose-700 mt-1">
+                {dashboardLoading ? '...' : duvidasCount.toLocaleString('pt-BR')}
+              </h3>
             </div>
             <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl group-hover:scale-110 transition-transform">
               <HelpCircle className="h-6 w-6" />
@@ -380,7 +332,9 @@ export default function DashboardView({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Revisões Pendentes</p>
-              <h3 className="text-3xl font-black text-purple-700 mt-1">{revisoesCount.toLocaleString('pt-BR')}</h3>
+              <h3 className="text-3xl font-black text-purple-700 mt-1">
+                {dashboardLoading ? '...' : revisoesCount.toLocaleString('pt-BR')}
+              </h3>
             </div>
             <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
               <Clock className="h-6 w-6" />
@@ -469,7 +423,14 @@ export default function DashboardView({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {validatorMetrics.length === 0 ? (
+              {dashboardLoading ? (
+                <tr>
+                  <td colSpan={3} className="p-6 text-center text-zinc-400 italic flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                    <span>Carregando produtividade dos validadores...</span>
+                  </td>
+                </tr>
+              ) : validatorMetrics.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="p-6 text-center text-zinc-400 italic">
                     Nenhuma validação registrada por assinatura até o momento.
@@ -477,33 +438,27 @@ export default function DashboardView({
                 </tr>
               ) : (
                 validatorMetrics.map((val) => {
-                  const percentage = validadasCount > 0 ? ((val.total / validadasCount) * 100).toFixed(1) : '0.0';
-                  const initials = getInitials(val.name);
-                  const avatarBg = getAvatarBgColor(val.name);
+                  const percentage = validadasCount > 0 ? ((val.count / validadasCount) * 100).toFixed(1) : '0.0';
+                  const initials = getInitials(val.nome);
+                  const avatarBg = getAvatarBgColor(val.nome);
                   return (
-                    <tr key={val.name} className="hover:bg-zinc-50 transition-colors">
+                    <tr key={val.nome} className="hover:bg-zinc-50 transition-colors">
                       <td className="p-3 font-semibold text-zinc-900 flex items-center space-x-2">
                         <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-inner ${avatarBg}`}>
                           {initials}
                         </span>
-                        <span>{val.name}</span>
+                        <span>{val.nome}</span>
                       </td>
                       <td className="p-3 text-center font-mono">
                         <div className="flex items-center justify-center space-x-2">
-                          <span className="font-bold text-zinc-800">{val.total.toLocaleString('pt-BR')}</span>
+                          <span className="font-bold text-zinc-800">{val.count.toLocaleString('pt-BR')}</span>
                           <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-150 font-bold">
                             {percentage}%
                           </span>
                         </div>
                       </td>
                       <td className="p-3 text-right font-medium text-zinc-500 font-mono">
-                        {val.lastAction ? new Date(val.lastAction).toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        }) : 'N/A'}
+                        Concluído
                       </td>
                     </tr>
                   );
@@ -574,7 +529,13 @@ export default function DashboardView({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {filteredStateMetrics.length === 0 ? (
+              {dashboardLoading ? (
+                <tr>
+                  <td colSpan={8} className="p-6 text-center text-zinc-400 italic">
+                    Carregando dados por estado...
+                  </td>
+                </tr>
+              ) : filteredStateMetrics.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-6 text-center text-zinc-400 italic">
                     Nenhum estado encontrado com o filtro informado.

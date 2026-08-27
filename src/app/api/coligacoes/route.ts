@@ -5,7 +5,7 @@ import { getIgrejas, getDistinctStates } from '@/lib/db';
 
 export async function GET() {
   try {
-    const igrejas = await getIgrejas(undefined, [
+    const igrejasRes = await getIgrejas(undefined, [
       'id',
       'codigo_totvs',
       'codigo_totvs_pai',
@@ -18,7 +18,7 @@ export async function GET() {
     const states = await getDistinctStates();
     return NextResponse.json({
       success: true,
-      igrejas,
+      igrejas: igrejasRes.data,
       states,
     });
   } catch (err: unknown) {

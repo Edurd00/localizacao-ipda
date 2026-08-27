@@ -267,6 +267,11 @@ export default function ValidacaoPage() {
   const [states, setStates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
+
   // Quick Search Bar state
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -312,6 +317,7 @@ export default function ValidacaoPage() {
 
   const handleRegiaoChange = (val: string) => {
     setFilterRegiao(val);
+    setCurrentPage(1);
     if (val !== 'ALL') {
       const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[val] || [];
       if (filterEstado !== 'ALL' && !allowedUFs.includes(filterEstado)) {
@@ -362,10 +368,10 @@ export default function ValidacaoPage() {
     }
   };
 
-  // Reset currentIndex whenever search query or filters change
+  // Reset currentIndex whenever search query, page or filters change
   useEffect(() => {
     setCurrentIndex(0);
-  }, [searchQuery, filterRegiao, filterEstado, filterStatus, filterPorte]);
+  }, [searchQuery, currentPage, filterRegiao, filterEstado, filterStatus, filterPorte]);
 
   // Load operator name from localStorage on mount
   useEffect(() => {
@@ -438,37 +444,39 @@ export default function ValidacaoPage() {
     }
   };
 
-  // Fetch data from API based on current filters
+  // Fetch data from API based on current filters and pagination
   const fetchIgrejas = useCallback(async (preserveIndex = false, forceSelectCode?: string) => {
     setLoading(true);
     try {
       const query = new URLSearchParams();
-      // For api query, if a Region is selected, we fetch all, then filter client-side. Or if filterEstado is selected, use that.
       if (filterEstado && filterEstado !== 'ALL') {
         query.set('estado', filterEstado);
-      } else if (filterRegiao && filterRegiao !== 'ALL') {
-        // Fetch all, then client-side filter
       }
       if (filterStatus && filterStatus !== 'ALL') {
         query.set('status', filterStatus);
       }
+      if (filterPorte && filterPorte !== 'ALL') {
+        query.set('porte', filterPorte);
+      }
+      if (searchQuery.trim()) {
+        query.set('q', searchQuery.trim());
+      }
+      query.set('page', String(currentPage));
+      query.set('limit', '100');
       query.set('t', Date.now().toString());
 
       const res = await fetch(`/api/igrejas?${query.toString()}`);
       const data = await res.json();
 
       if (data.success) {
-        let list: Igreja[] = data.igrejas || [];
+        const list: Igreja[] = data.igrejas || [];
+        const total = typeof data.total === 'number' ? data.total : list.length;
+        const calcPages = Math.max(1, Math.ceil(total / 100));
 
-        // Client-side Region filtering on fetched list
-        if (filterRegiao && filterRegiao !== 'ALL') {
-          const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
-          list = list.filter((ig) => allowedUFs.includes(ig.estado));
-        }
-
+        setTotalPages(calcPages);
+        setTotalItems(total);
         setIgrejas(list);
 
-        // Filter states list by allowed region states if a region is active
         let availableStates = data.states || [];
         if (filterRegiao && filterRegiao !== 'ALL') {
           const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
@@ -477,37 +485,17 @@ export default function ValidacaoPage() {
         setStates(availableStates);
 
         if (list.length > 0) {
-          // Compute the filtered list of churches using current filters (Região, Estado, Porte)
-          const newFiltered = list.filter((ig) => {
-            if (filterRegiao && filterRegiao !== 'ALL') {
-              const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
-              if (!allowedUFs.includes(ig.estado)) return false;
-            }
-            if (filterEstado && filterEstado !== 'ALL' && ig.estado !== filterEstado) {
-              return false;
-            }
-            const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
-            if (filterPorte !== 'ALL' && porte !== filterPorte) {
-              return false;
-            }
-            return true;
-          });
-
-          if (newFiltered.length > 0) {
-            if (forceSelectCode) {
-              const idx = newFiltered.findIndex((ig: Igreja) => ig.codigo_totvs === forceSelectCode);
-              setCurrentIndex(idx !== -1 ? idx : 0);
-            } else if (preserveIndex) {
-              setCurrentIndex((prev) => {
-                const safeIndex = Math.min(prev, newFiltered.length - 1);
-                return Math.max(0, safeIndex);
-              });
-            } else {
-              const firstPendingIdx = newFiltered.findIndex((ig: Igreja) => ig.status === 'PENDENTE');
-              setCurrentIndex(firstPendingIdx !== -1 ? firstPendingIdx : 0);
-            }
+          if (forceSelectCode) {
+            const idx = list.findIndex((ig: Igreja) => ig.codigo_totvs === forceSelectCode);
+            setCurrentIndex(idx !== -1 ? idx : 0);
+          } else if (preserveIndex) {
+            setCurrentIndex((prev) => {
+              const safeIndex = Math.min(prev, list.length - 1);
+              return Math.max(0, safeIndex);
+            });
           } else {
-            setCurrentIndex(-1);
+            const firstPendingIdx = list.findIndex((ig: Igreja) => ig.status === 'PENDENTE');
+            setCurrentIndex(firstPendingIdx !== -1 ? firstPendingIdx : 0);
           }
         } else {
           setCurrentIndex(-1);
@@ -519,69 +507,24 @@ export default function ValidacaoPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterRegiao, filterEstado, filterStatus, filterPorte]);
+  }, [filterRegiao, filterEstado, filterStatus, filterPorte, searchQuery, currentPage]);
 
   // Initial fetch and fetch on filter change
   useEffect(() => {
     fetchIgrejas();
   }, [fetchIgrejas]);
 
-  // Compute filtered churches list in-realtime
-  const filteredIgrejasList = React.useMemo(() => {
-    return igrejas.filter((ig) => {
-      if (filterRegiao && filterRegiao !== 'ALL') {
-        const allowedUFs = REGIAO_GEOGRAFICA_MAPPING[filterRegiao] || [];
-        if (!allowedUFs.includes(ig.estado)) return false;
-      }
-      if (filterEstado && filterEstado !== 'ALL' && ig.estado !== filterEstado) {
-        return false;
-      }
-      const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
-      if (filterPorte !== 'ALL' && porte !== filterPorte) return false;
-
-      // Real-time search query filtering
-      const term = searchQuery.trim().toLowerCase();
-      if (term !== '') {
-        const matchesSearch =
-          String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
-          String(ig.desc_igreja || '').toLowerCase().includes(term) ||
-          String(ig.municipio || '').toLowerCase().includes(term) ||
-          String(ig.bairro || '').toLowerCase().includes(term) ||
-          String(ig.endereco || '').toLowerCase().includes(term);
-
-        if (!matchesSearch) return false;
-      }
-
-      return true;
-    });
-  }, [igrejas, filterRegiao, filterEstado, filterPorte, searchQuery]);
+  // Direct reference to the server-filtered and paginated church list
+  const filteredIgrejasList = igrejas;
 
   // Current church being validated
   const currentIgreja = filteredIgrejasList[currentIndex];
   const isLocked = currentIgreja?.status === 'VALIDADO' && !isRevalidating;
 
-  // Quick search handler
+  // Quick search handler - resets to page 1 and triggers server search
   const handleSearchChurch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const term = searchQuery.trim().toLowerCase();
-    if (!term) return;
-
-    const idx = filteredIgrejasList.findIndex(
-      (ig) =>
-        String(ig.codigo_totvs || '').toLowerCase() === term ||
-        String(ig.codigo_totvs || '').toLowerCase().includes(term) ||
-        String(ig.desc_igreja || '').toLowerCase().includes(term) ||
-        String(ig.endereco || '').toLowerCase().includes(term) ||
-        String(ig.municipio || '').toLowerCase().includes(term)
-    );
-
-    if (idx !== -1) {
-      setCurrentIndex(idx);
-      setActiveTab('validation');
-      toast.success(`Igreja localizada: ${filteredIgrejasList[idx].desc_igreja} (Código ${filteredIgrejasList[idx].codigo_totvs})`);
-    } else {
-      toast.error(`Igreja com código TOTVS ou termo "${searchQuery}" não foi localizada nos filtros atuais.`);
-    }
+    setCurrentPage(1);
   };
 
   // Geocoding helper for single church object with POI variations & UF Lock
@@ -1167,13 +1110,19 @@ export default function ValidacaoPage() {
                   type="text"
                   placeholder="Buscar por TOTVS, Nome ou Rua..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-8 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-colors duration-200"
                 />
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCurrentPage(1);
+                    }}
                     className="absolute right-2.5 top-3 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5 flex items-center justify-center"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -1184,7 +1133,10 @@ export default function ValidacaoPage() {
               {/* State selector */}
               <select
                 value={filterEstado}
-                onChange={(e) => setFilterEstado(e.target.value)}
+                onChange={(e) => {
+                  setFilterEstado(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-32 transition-colors duration-200"
               >
                 <option value="ALL">Todos Estados</option>
@@ -1198,7 +1150,10 @@ export default function ValidacaoPage() {
               {/* Status selector */}
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-36 transition-colors duration-200"
               >
                 <option value="ALL">Todos Status</option>
@@ -1212,7 +1167,10 @@ export default function ValidacaoPage() {
               {/* Porte selector */}
               <select
                 value={filterPorte}
-                onChange={(e) => setFilterPorte(e.target.value)}
+                onChange={(e) => {
+                  setFilterPorte(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-44 transition-colors duration-200"
               >
                 <option value="ALL">Todos os Portes</option>
@@ -1248,8 +1206,46 @@ export default function ValidacaoPage() {
                 </button>
 
                 <div className="bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-300 px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700">
-                  {filteredIgrejasList.length} {filteredIgrejasList.length === 1 ? 'igreja' : 'igrejas'}
+                  {totalItems} {totalItems === 1 ? 'igreja' : 'igrejas'}
                 </div>
+              </div>
+            </div>
+
+            {/* Pagination Controls Bar */}
+            <div className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm text-xs text-slate-700 dark:text-slate-300">
+              <div className="font-semibold text-slate-600 dark:text-slate-400">
+                Página <span className="text-indigo-600 font-bold">{currentPage}</span> de <span className="font-bold">{totalPages}</span>
+                {totalItems > 0 && <span className="ml-2 text-slate-500 font-normal">({totalItems} registros total)</span>}
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentPage > 1) {
+                      setCurrentPage((prev) => prev - 1);
+                      setCurrentIndex(0);
+                    }
+                  }}
+                  disabled={currentPage <= 1 || loading}
+                  className="px-3 py-1.5 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-semibold rounded-lg text-slate-700 dark:text-slate-200 flex items-center gap-1 transition-all"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>Anterior</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentPage < totalPages) {
+                      setCurrentPage((prev) => prev + 1);
+                      setCurrentIndex(0);
+                    }
+                  }}
+                  disabled={currentPage >= totalPages || loading}
+                  className="px-3 py-1.5 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-semibold rounded-lg text-slate-700 dark:text-slate-200 flex items-center gap-1 transition-all"
+                >
+                  <span>Próxima</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
 

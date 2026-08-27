@@ -5,7 +5,7 @@ export const revalidate = 86400;
 
 export async function GET() {
   try {
-    const dados = await getIgrejas({ status: 'VALIDADO' }, [
+    const dadosRes = await getIgrejas({ status: 'VALIDADO' }, [
       'codigo_totvs',
       'desc_igreja',
       'latitude',
@@ -27,7 +27,7 @@ export async function GET() {
       'financeira_telefone',
       'tipo_prebenda',
     ]);
-    return NextResponse.json(dados);
+    return NextResponse.json(dadosRes.data);
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('Dynamic server usage')) {
       throw error;
