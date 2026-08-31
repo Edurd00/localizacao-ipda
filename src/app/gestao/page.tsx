@@ -172,13 +172,27 @@ export default function GestaoPage() {
     if (!igrejas.length) setLoading(true);
     else setIsSyncing(true);
     try {
-      const res = await fetch('/api/igrejas?limit=ALL');
-      const data = await res.json();
-      if (data.success) {
-        setIgrejas(data.igrejas || []);
-      } else {
-        toast.error('Erro ao carregar lista de igrejas.');
-      }
+      let page = 1;
+      const limit = 100;
+      let totalPages = 1;
+      let allIgrejas: Igreja[] = [];
+
+      do {
+        const res = await fetch(`/api/admin/igrejas-completas?page=${page}&limit=${limit}`);
+        const data = await res.json();
+        if (data.success) {
+          allIgrejas = [...allIgrejas, ...(data.igrejas || [])];
+          if (data.total) {
+            totalPages = Math.ceil(data.total / limit);
+          }
+          page++;
+        } else {
+          toast.error('Erro ao carregar lista de igrejas.');
+          break;
+        }
+      } while (page <= totalPages);
+
+      setIgrejas(allIgrejas);
     } catch (err) {
       console.error(err);
       toast.error('Erro de conexão ao carregar as igrejas.');
