@@ -43,7 +43,7 @@ export default function ChurchDetailModal({
   handleTraceConnectionMesh,
   fetchTerrestrialRoute,
 }: ChurchDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'hierarquia' | 'historico'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'historico'>('geral');
   const [liderancaData, setLiderancaData] = useState<any>(null);
   const [loadingLideranca, setLoadingLideranca] = useState<boolean>(false);
   const [historicoData, setHistoricoData] = useState<any[]>([]);
@@ -155,17 +155,6 @@ export default function ChurchDetailModal({
             👥 Liderança
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setActiveTab('hierarquia')}
-          className={`flex-1 py-1.5 text-center text-xs font-bold border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'hierarquia'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          🔗 Hierarquia
-        </button>
         {isAuthenticated && (
           <button
             type="button"
@@ -422,6 +411,24 @@ export default function ChurchDetailModal({
                 <span>🗺️</span>
                 <span>Abrir no Google Maps ↗</span>
               </a>
+
+              {/* Bloco de Coligação (Igreja Mãe / Pai) reestruturado ao final da aba Geral */}
+              <hr className="my-4 border-zinc-200 dark:border-slate-700" />
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 rounded-xl space-y-1">
+                <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider block">Coligada a:</span>
+                {ig.codigo_totvs_pai ? (
+                  <>
+                    <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                      {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      Código TOTVS: {ig.codigo_totvs_pai}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-slate-400 italic text-xs">Sede Raiz (Sem coligação superior).</p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -527,45 +534,6 @@ export default function ChurchDetailModal({
           </div>
         )}
 
-        {activeTab === 'hierarquia' && (
-          <div className="space-y-2 text-xs text-slate-600">
-            {ig.codigo_totvs_pai ? (
-              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
-                <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider block">Coligada a:</span>
-                <p className="font-bold text-slate-800 text-xs">
-                  {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
-                </p>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  Código TOTVS: {ig.codigo_totvs_pai}
-                </p>
-              </div>
-            ) : (
-              <p className="text-slate-400 italic text-xs p-2">Sede Raiz (Sem coligação superior).</p>
-            )}
-
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1 text-[11px]">
-              <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider block">Histórico de Validação:</span>
-              {((ig as any).validado_em || ig.updated_at) ? (
-                <p className="text-slate-700">
-                  <span className="font-semibold text-slate-500">Data:</span>{' '}
-                  {new Date((ig as any).validado_em || ig.updated_at!).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              ) : null}
-              {(ig.usuario_validador || (ig as any).validado_por) ? (
-                <p className="text-slate-700">
-                  <span className="font-semibold text-slate-500">Validador:</span>{' '}
-                  {ig.usuario_validador || (ig as any).validado_por}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        )}
 
         {isAuthenticated && activeTab === 'historico' && (
           <div className="space-y-3 py-1">
