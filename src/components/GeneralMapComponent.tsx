@@ -13,6 +13,7 @@ import {
   Building2,
   ExternalLink,
   MapPin,
+  Globe,
   X,
   RefreshCw,
   SlidersHorizontal,
@@ -2366,7 +2367,9 @@ export default function GeneralMapComponent({
         {/* Left Section: Logo & Counter */}
         <div className="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
           <div className="flex items-center space-x-2">
-            <img src="/img/logo.png" alt="GeoManager Enterprise" className="h-10 w-auto object-contain" />
+            <div className="bg-indigo-600 p-2 rounded-lg shadow-xs">
+              <Globe className="h-5 w-5 text-white" />
+            </div>
             <div>
               <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight uppercase">
                 GeoManager Enterprise

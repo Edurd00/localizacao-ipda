@@ -14,6 +14,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import type { Igreja } from '@/lib/db';
 import { normalizeUF, isResultInState } from '@/lib/geocoding';
 import {
+  Globe,
   Filter,
   Check,
   AlertTriangle,
@@ -927,11 +928,14 @@ export default function ValidacaoPage() {
           <div className="flex justify-between items-center h-full w-full">
             {/* Logo & Branding */}
             <div className="flex items-center space-x-3 shrink-0">
-              <img
-                src="/img/logo.png"
-                alt="GeoManager Enterprise"
-                className="h-10 w-auto object-contain shadow-sm"
-              />
+              <div className="flex items-center gap-2">
+                <div className="bg-indigo-600 p-1.5 rounded-lg">
+                  <Globe className="h-5 w-5 text-white" />
+                </div>
+                <span className="font-bold text-lg tracking-tight text-slate-800 dark:text-slate-100">
+                  GeoManager
+                </span>
+              </div>
               <div className="hidden sm:block">
                 <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
                   GeoManager Enterprise <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">12K</span>

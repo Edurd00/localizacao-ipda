@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState } from 'react';
 import { Toaster, toast } from 'sonner';
-import { ArrowLeft, Lock, Mail, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Lock, Mail, Loader2, Sparkles, Globe } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -70,13 +70,16 @@ export default function LoginPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <img
-            src="/img/logo.png"
-            alt="GeoManager Enterprise"
-            className="h-16 w-auto object-contain shadow-md"
-          />
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-600 p-2.5 rounded-xl shadow-md">
+              <Globe className="h-7 w-7 text-white" />
+            </div>
+            <span className="font-bold text-2xl tracking-tight text-slate-800 dark:text-slate-100">
+              GeoManager
+            </span>
+          </div>
         </div>
-        <h2 className="mt-6 text-center text-2xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
+        <h2 className="mt-4 text-center text-xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
           Painel GeoManager Enterprise <Sparkles className="h-5 w-5 text-amber-500 fill-amber-500 animate-pulse" />
         </h2>
         <p className="mt-1 text-center text-xs text-zinc-500 font-semibold uppercase tracking-wider">

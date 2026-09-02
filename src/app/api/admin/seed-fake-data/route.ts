@@ -106,9 +106,10 @@ export async function GET() {
       // Escolhe uma cidade base aleatória
       const base = anchorCities[Math.floor(Math.random() * anchorCities.length)];
 
-      // Aplica um desvio (offset) aleatório de até ~150km (aprox 1.5 graus)
-      const latOffset = (Math.random() - 0.5) * 3;
-      const lngOffset = (Math.random() - 0.5) * 3;
+      // Latitude pode variar para Norte/Sul
+      const latOffset = (Math.random() - 0.5) * 2;
+      // Longitude deve SEMPRE subtrair (empurrar para o Oeste/Interior) para evitar o mar
+      const lngOffset = -(Math.random() * 3);
 
       const finalLat = parseFloat((base.lat + latOffset).toFixed(6));
       const finalLng = parseFloat((base.lng + lngOffset).toFixed(6));

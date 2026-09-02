@@ -6,6 +6,7 @@ import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'sonner';
 import {
+  Globe,
   Search,
   Plus,
   Edit,
@@ -626,7 +627,14 @@ export default function GestaoPage() {
       <header className="relative z-[9999] h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 shadow-xs flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex justify-between items-center">
           <div className="flex items-center space-x-3 shrink-0">
-            <img src="/img/logo.png" alt="GeoManager Enterprise" className="h-10 w-auto object-contain shadow-sm" />
+            <div className="flex items-center gap-2">
+              <div className="bg-indigo-600 p-1.5 rounded-lg">
+                <Globe className="h-5 w-5 text-white" />
+              </div>
+              <span className="font-bold text-lg tracking-tight text-slate-800 dark:text-slate-100">
+                GeoManager
+              </span>
+            </div>
             <div className="hidden sm:block">
               <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
                 GeoManager Enterprise <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">GESTÃO</span>
