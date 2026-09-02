@@ -588,9 +588,32 @@ export default function ChurchDetailModal({
                       })
                     : '---';
 
+                  const fieldDictionary: Record<string, string> = {
+                    qtd_membros: 'Nº de Membros',
+                    qtd_jovens: 'Nº de Jovens',
+                    dirigente_nome: 'Dirigente',
+                    dirigente_email: 'E-mail do Dirigente',
+                    dirigente_telefone: 'Telefone do Dirigente',
+                    dirigente_data_posse: 'Data de Posse do Dirigente',
+                    financeira_nome: 'Responsável Financeiro',
+                    financeira_email: 'E-mail da Financeira',
+                    financeira_telefone: 'Telefone da Financeira',
+                    tipo_prebenda: 'Tipo de Prebenda',
+                    desc_igreja: 'Nome da Igreja',
+                    porte: 'Porte',
+                    endereco: 'Endereço',
+                    bairro: 'Bairro',
+                    municipio: 'Município',
+                    estado: 'Estado (UF)',
+                    cep: 'CEP',
+                    status: 'Status',
+                    codigo_totvs_pai: 'Sede Coligada (Pai)',
+                    reorganizar_filhas_para: 'Transferência de Filhas'
+                  };
+
                   const modifiedKeys = item.detalhes && typeof item.detalhes === 'object'
-                    ? Object.keys(item.detalhes).join(', ')
-                    : '';
+                    ? Object.keys(item.detalhes).map((k) => fieldDictionary[k] || k)
+                    : [];
 
                   return (
                     <div key={item.id || index} className="relative group">
@@ -609,9 +632,9 @@ export default function ChurchDetailModal({
                           👤 <strong className="font-bold text-zinc-950">{item.usuario_nome || 'Usuário'}</strong> realizou uma alteração
                         </p>
 
-                        {modifiedKeys && (
-                          <p className="text-[10px] text-zinc-500 font-mono bg-zinc-50 p-1.5 rounded border border-zinc-150">
-                            Campos modificados: <span className="font-semibold text-zinc-700">{modifiedKeys}</span>
+                        {modifiedKeys.length > 0 && (
+                          <p className="text-xs text-zinc-800 dark:text-slate-200 mt-1">
+                            Atualizou: <span className="font-semibold">{modifiedKeys.join(', ')}</span>
                           </p>
                         )}
                       </div>

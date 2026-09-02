@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import { reassignIgrejaChildren, saveIgrejaSingle, registrarHistorico, Igreja } from '@/lib/db';
+import { reassignIgrejaChildren, saveIgrejaSingle, registrarHistorico, getIgrejas, Igreja } from '@/lib/db';
 import { verifySessionToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -42,24 +42,46 @@ export async function POST(request: Request) {
       update.porte = porte;
     }
 
+    // Fetch existing record to perform Smart Diff
+    const currentChurchRes = await getIgrejas({ search: codigo_totvs });
+    const currentChurch = currentChurchRes.data.find(
+      (item) => item.codigo_totvs === codigo_totvs
+    ) || currentChurchRes.data[0];
+
+    const changedFields: Record<string, any> = {};
+    if (currentChurch) {
+      Object.keys(update).forEach((key) => {
+        const newVal = (update as any)[key];
+        const oldVal = (currentChurch as any)[key];
+
+        const normNew = newVal === null || newVal === undefined ? '' : String(newVal).trim();
+        const normOld = oldVal === null || oldVal === undefined ? '' : String(oldVal).trim();
+
+        if (normNew !== normOld) {
+          changedFields[key] = newVal;
+        }
+      });
+    } else {
+      Object.assign(changedFields, update);
+    }
+
+    if (reorganizar_filhas_para) {
+      changedFields.reorganizar_filhas_para = reorganizar_filhas_para;
+    }
+
     // 3. Save the main church
     if (Object.keys(update).length > 0) {
       await saveIgrejaSingle(codigo_totvs, update);
     }
 
-    // 4. Record audit log entry
-    if (sessionUser) {
-      const historyDetails: Record<string, any> = { ...update };
-      if (reorganizar_filhas_para) {
-        historyDetails.reorganizar_filhas_para = reorganizar_filhas_para;
-      }
-
+    // 4. Record audit log entry only if changes were detected
+    if (sessionUser && Object.keys(changedFields).length > 0) {
       await registrarHistorico(
         codigo_totvs,
         sessionUser.nome,
         sessionUser.email,
         'ALTERACAO_COLIGACAO',
-        historyDetails
+        changedFields
       );
     }
 
