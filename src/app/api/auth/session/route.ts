@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { verifySessionToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
-import { cookies } from 'next/headers';
-import { verifySessionToken, getEmailFromSessionToken } from '@/lib/auth';
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -15,6 +15,8 @@ export async function GET() {
       authenticated: false,
       isAuthenticated: false,
       role: null,
+      nome: null,
+      email: null,
     });
   }
 
@@ -23,6 +25,7 @@ export async function GET() {
     authenticated: true,
     isAuthenticated: true,
     role: sessionData.role,
+    nome: sessionData.nome,
     email: sessionData.email,
   });
 }

@@ -42,6 +42,7 @@ export default function GestaoPage() {
   const router = useRouter();
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -160,6 +161,7 @@ export default function GestaoPage() {
           window.location.href = '/mapa-geral';
         } else if (data.role) {
           setUserRole(data.role);
+          if (data.nome) setUserName(data.nome);
         }
       })
       .catch((err) => {
@@ -704,6 +706,12 @@ export default function GestaoPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {userName && (
+              <span className="text-xs font-semibold text-zinc-700 dark:text-slate-200 hidden sm:inline-block bg-zinc-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-slate-700">
+                Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
+              </span>
+            )}
+
             <button
               onClick={handleSyncPublicMap}
               disabled={syncLoading}
