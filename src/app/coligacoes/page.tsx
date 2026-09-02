@@ -79,6 +79,7 @@ export default function ColigacoesPage() {
   const [activeTab, setActiveTab] = useState<'tree' | 'import'>('tree');
   const [igrejas, setIgrejas] = useState<Igreja[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [states, setStates] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -93,6 +94,7 @@ export default function ColigacoesPage() {
           window.location.href = '/mapa-geral';
         } else if (data.success && data.role) {
           setUserRole(data.role);
+          if (data.nome) setUserName(data.nome);
         }
       })
       .catch((err) => {
@@ -837,6 +839,11 @@ export default function ColigacoesPage() {
 
             {/* Unified Navigation Layout */}
             <div className="flex flex-wrap items-center gap-3 shrink-0 mt-3 sm:mt-0">
+              {userName && (
+                <span className="text-xs font-semibold text-zinc-700 dark:text-slate-200 hidden sm:inline-block bg-zinc-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-slate-700">
+                  Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
+                </span>
+              )}
               {/* Block 1: Visualização */}
               <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 items-center">
                 <a

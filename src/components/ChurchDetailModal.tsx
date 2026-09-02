@@ -43,11 +43,13 @@ export default function ChurchDetailModal({
   handleTraceConnectionMesh,
   fetchTerrestrialRoute,
 }: ChurchDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'hierarquia'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'hierarquia' | 'historico'>('geral');
   const [liderancaData, setLiderancaData] = useState<any>(null);
   const [loadingLideranca, setLoadingLideranca] = useState<boolean>(false);
+  const [historicoData, setHistoricoData] = useState<any[]>([]);
+  const [loadingHistorico, setLoadingHistorico] = useState<boolean>(false);
 
-  // Fetch leadership data dynamically in real time for authenticated users (Admin or Viewer) to prevent leakage in public CDN cache
+  // Fetch leadership data dynamically in real time for authenticated users
   useEffect(() => {
     if (activeTab === 'lideranca' && ig?.codigo_totvs) {
       setLoadingLideranca(true);
@@ -66,6 +68,29 @@ export default function ChurchDetailModal({
         })
         .finally(() => {
           setLoadingLideranca(false);
+        });
+    }
+  }, [activeTab, ig?.codigo_totvs]);
+
+  // Fetch audit history dynamically when history tab is selected
+  useEffect(() => {
+    if (activeTab === 'historico' && ig?.codigo_totvs) {
+      setLoadingHistorico(true);
+      fetch('/api/igrejas/historico?totvs=' + encodeURIComponent(ig.codigo_totvs))
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success && Array.isArray(resData.data)) {
+            setHistoricoData(resData.data);
+          } else {
+            setHistoricoData([]);
+          }
+        })
+        .catch((err) => {
+          console.error('Error fetching history data:', err);
+          setHistoricoData([]);
+        })
+        .finally(() => {
+          setLoadingHistorico(false);
         });
     }
   }, [activeTab, ig?.codigo_totvs]);
@@ -141,6 +166,19 @@ export default function ChurchDetailModal({
         >
           🔗 Hierarquia
         </button>
+        {isAuthenticated && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('historico')}
+            className={`flex-1 py-1.5 text-center text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'historico'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            🕒 Histórico
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
@@ -526,6 +564,66 @@ export default function ChurchDetailModal({
                 </p>
               ) : null}
             </div>
+          </div>
+        )}
+
+        {isAuthenticated && activeTab === 'historico' && (
+          <div className="space-y-3 py-1">
+            {loadingHistorico ? (
+              <div className="flex items-center justify-center p-6 text-indigo-600 gap-2 font-medium">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Carregando histórico de alterações...</span>
+              </div>
+            ) : historicoData && historicoData.length > 0 ? (
+              <div className="border-l-2 border-zinc-200 ml-2 pl-4 space-y-4 my-2 max-h-[280px] overflow-y-auto pr-1">
+                {historicoData.map((item, index) => {
+                  const dateFormatted = item.criado_em
+                    ? new Date(item.criado_em).toLocaleString('pt-BR', {
+                        timeZone: 'America/Sao_Paulo',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '---';
+
+                  const modifiedKeys = item.detalhes && typeof item.detalhes === 'object'
+                    ? Object.keys(item.detalhes).join(', ')
+                    : '';
+
+                  return (
+                    <div key={item.id || index} className="relative group">
+                      {/* Timeline Node Dot */}
+                      <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-indigo-600 border-2 border-white shadow-xs" />
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-1 text-[10px] text-zinc-500 font-mono">
+                          <span>{dateFormatted}</span>
+                          <span className="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded uppercase border border-indigo-150">
+                            {item.acao || 'ALTERAÇÃO'}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-zinc-800 leading-snug">
+                          👤 <strong className="font-bold text-zinc-950">{item.usuario_nome || 'Usuário'}</strong> realizou uma alteração
+                        </p>
+
+                        {modifiedKeys && (
+                          <p className="text-[10px] text-zinc-500 font-mono bg-zinc-50 p-1.5 rounded border border-zinc-150">
+                            Campos modificados: <span className="font-semibold text-zinc-700">{modifiedKeys}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-slate-400 italic text-xs p-4 text-center">
+                Nenhuma alteração registrada ainda.
+              </p>
+            )}
           </div>
         )}
       </div>

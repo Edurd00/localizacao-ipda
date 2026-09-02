@@ -38,6 +38,91 @@ export interface Igreja {
   tipo_prebenda?: string | null;
 }
 
+export interface HistoricoIgreja {
+  id?: string;
+  codigo_totvs: string;
+  usuario_nome: string;
+  usuario_email: string;
+  acao: string;
+  detalhes?: any;
+  criado_em?: string;
+}
+
+// In-Memory fallback storage for audit history
+const memoryHistorico: HistoricoIgreja[] = [];
+
+export async function registrarHistorico(
+  totvs: string,
+  nome: string,
+  email: string,
+  acao: string,
+  detalhes?: any
+): Promise<void> {
+  await ensurePostgresTable();
+  if (pool) {
+    try {
+      const query = `
+        INSERT INTO historico_igrejas (codigo_totvs, usuario_nome, usuario_email, acao, detalhes)
+        VALUES ($1, $2, $3, $4, $5)
+      `;
+      await pool.query(query, [
+        totvs,
+        nome || 'Usuário',
+        email || '',
+        acao,
+        detalhes ? JSON.stringify(detalhes) : null,
+      ]);
+      return;
+    } catch (err) {
+      console.error('Postgres error in registrarHistorico:', err);
+    }
+  }
+
+  // Fallback in-memory insertion
+  memoryHistorico.push({
+    id: `hist_${Date.now()}_${Math.random()}`,
+    codigo_totvs: totvs,
+    usuario_nome: nome || 'Usuário',
+    usuario_email: email || '',
+    acao,
+    detalhes: detalhes || null,
+    criado_em: new Date().toISOString(),
+  });
+}
+
+export async function getHistoricoIgreja(totvs: string, limit: number = 15): Promise<HistoricoIgreja[]> {
+  await ensurePostgresTable();
+  if (pool) {
+    try {
+      const query = `
+        SELECT id, codigo_totvs, usuario_nome, usuario_email, acao, detalhes, criado_em
+        FROM historico_igrejas
+        WHERE codigo_totvs = $1
+        ORDER BY criado_em DESC
+        LIMIT $2
+      `;
+      const res = await pool.query(query, [totvs, limit]);
+      return res.rows.map((row) => ({
+        id: row.id,
+        codigo_totvs: row.codigo_totvs,
+        usuario_nome: row.usuario_nome,
+        usuario_email: row.usuario_email,
+        acao: row.acao,
+        detalhes: typeof row.detalhes === 'string' ? JSON.parse(row.detalhes) : row.detalhes,
+        criado_em: row.criado_em,
+      }));
+    } catch (err) {
+      console.error('Postgres error in getHistoricoIgreja:', err);
+      return [];
+    }
+  }
+
+  return memoryHistorico
+    .filter((h) => h.codigo_totvs === totvs)
+    .sort((a, b) => new Date(b.criado_em || 0).getTime() - new Date(a.criado_em || 0).getTime())
+    .slice(0, limit);
+}
+
 // Global singleton pattern for pg Pool in serverless environments
 const globalForDb = globalThis as unknown as {
   pgPool: Pool | undefined;

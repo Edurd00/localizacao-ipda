@@ -1718,6 +1718,7 @@ export default function GeneralMapComponent({
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(propIsAuthenticated ?? false);
   const [userRole, setUserRole] = useState<string | null>(propUserRole ?? null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   // Transfer Confirmation state
   const [showTransferConfirm, setShowTransferConfirm] = useState(false);
@@ -1733,6 +1734,7 @@ export default function GeneralMapComponent({
         if (data.success && data.authenticated) {
           setIsAuthenticated(true);
           setUserRole(data.role);
+          if (data.nome) setUserName(data.nome);
         } else {
           setIsAuthenticated(propIsAuthenticated ?? false);
           setUserRole(propUserRole ?? null);
@@ -2422,10 +2424,12 @@ export default function GeneralMapComponent({
             <a
               href="/validacao"
               className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
-              title="Acessar Painel de Validação"
+              title={`Acessar Painel de Validação (${userName || 'Admin'})`}
             >
               <Lock className="h-3.5 w-3.5 text-white" />
-              <span className="text-xs font-bold hidden sm:inline">Painel Admin</span>
+              <span className="text-xs font-bold hidden sm:inline">
+                {userName ? `Olá, ${userName.split(' ')[0]}` : 'Painel Admin'}
+              </span>
             </a>
           ) : isAuthenticated && userRole === 'viewer' ? (
             <button

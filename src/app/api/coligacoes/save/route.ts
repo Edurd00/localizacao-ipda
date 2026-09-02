@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 import { revalidatePath } from 'next/cache';
-import { reassignIgrejaChildren, saveIgrejaSingle, Igreja } from '@/lib/db';
+import { cookies } from 'next/headers';
+import { reassignIgrejaChildren, saveIgrejaSingle, registrarHistorico, Igreja } from '@/lib/db';
+import { verifySessionToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session_token')?.value;
+  const sessionUser = verifySessionToken(token);
+
   try {
     const body = await request.json();
     const { codigo_totvs, codigo_totvs_pai, desc_igreja, status, porte, reorganizar_filhas_para } = body;
@@ -39,6 +45,22 @@ export async function POST(request: Request) {
     // 3. Save the main church
     if (Object.keys(update).length > 0) {
       await saveIgrejaSingle(codigo_totvs, update);
+    }
+
+    // 4. Record audit log entry
+    if (sessionUser) {
+      const historyDetails: Record<string, any> = { ...update };
+      if (reorganizar_filhas_para) {
+        historyDetails.reorganizar_filhas_para = reorganizar_filhas_para;
+      }
+
+      await registrarHistorico(
+        codigo_totvs,
+        sessionUser.nome,
+        sessionUser.email,
+        'ALTERACAO_COLIGACAO',
+        historyDetails
+      );
     }
 
     try {

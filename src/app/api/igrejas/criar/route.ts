@@ -1,11 +1,27 @@
 import { NextResponse } from 'next/server';
-import { criarIgrejaSingle, getIgrejas } from '@/lib/db';
+import { cookies } from 'next/headers';
+import { criarIgrejaSingle, registrarHistorico } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { verifySessionToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+async function checkAuth() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session_token');
+  return verifySessionToken(token?.value);
+}
+
 export async function POST(request: Request) {
   try {
+    const user = await checkAuth();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Acesso não autorizado. Faça login novamente.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
       codigo_totvs,
@@ -78,6 +94,15 @@ export async function POST(request: Request) {
       qtd_jovens: qtd_jovens !== undefined && qtd_jovens !== '' ? Number(qtd_jovens) : null,
       tipo_prebenda: tipo_prebenda || 'NAO_PREBENDADA'
     });
+
+    // Record audit history entry
+    await registrarHistorico(
+      codigo_totvs,
+      user.nome,
+      user.email,
+      'CRIACAO_IGREJA',
+      { porte: porte || 'LOCAL', estado: estado || '' }
+    );
 
     // On-demand revalidation to ensure changes appear instantly on Map and Tree
     try {

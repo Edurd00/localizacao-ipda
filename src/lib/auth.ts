@@ -23,7 +23,7 @@ function sha256(ascii: string): string {
 
   const words: number[] = [];
   const asciiLength = ascii.length;
-  let wordsLength = ((asciiLength + 8) >> 6) + 1;
+  const wordsLength = ((asciiLength + 8) >> 6) + 1;
   const wordCount = wordsLength * 16;
   for (let i = 0; i < wordCount; i++) {
     words[i] = 0;
@@ -78,41 +78,87 @@ function sha256(ascii: string): string {
   return finalHex;
 }
 
-/**
- * Generates a cryptographically signed, tamper-proof session token embedding the user role.
- */
-export function generateSessionToken(email: string, role: string = 'viewer'): string {
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24; // 1 day
-  const payload = `${email}:${role}:${expiresAt}`;
-  const signature = sha256(`${payload}:${SECRET_KEY}`);
-  return `${payload}:${signature}`;
+export interface SessionData {
+  email: string;
+  role: string;
+  nome: string;
 }
 
 /**
- * Validates a signed session token and returns session data { email, role } if valid.
+ * Fallback name helper for legacy session tokens or default roles.
  */
-export function verifySessionToken(token: string | undefined): { email: string; role: string } | null {
+function getFallbackName(email: string, role: string): string {
+  if (role === 'viewer') return 'Usuário de Leitura';
+  if (email.toLowerCase().includes('caio')) return 'Caio Rodrigues';
+  if (email.toLowerCase().includes('luiz')) return 'Luiz Eduardo';
+  if (email.toLowerCase().includes('christian')) return 'Christian Azevedo';
+  if (email.toLowerCase().includes('guilherme')) return 'Guilherme Almeida';
+  if (email.toLowerCase().includes('flaviane')) return 'Flaviane Marvilla';
+  if (email.toLowerCase().includes('fernanda')) return 'Fernanda Brito';
+  if (email.toLowerCase().includes('mayara')) return 'Mayara Ruany';
+  return role === 'admin' ? 'Caio Rodrigues' : 'Usuário';
+}
+
+/**
+ * Generates a cryptographically signed, tamper-proof session token embedding email, role, and nome.
+ */
+export function generateSessionToken(email: string, role: string = 'viewer', nome: string = 'Usuário'): string {
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24; // 1 day
+  // Encoding payload in Base64 or pipe concatenated format to avoid issues with colons/special chars in names
+  const payloadData = JSON.stringify({ email, role, nome, expiresAt });
+  const payloadBase64 = Buffer.from(payloadData).toString('base64url');
+  const signature = sha256(`${payloadBase64}:${SECRET_KEY}`);
+  return `${payloadBase64}.${signature}`;
+}
+
+/**
+ * Validates a signed session token and returns session data { email, role, nome } if valid.
+ */
+export function verifySessionToken(token: string | undefined): SessionData | null {
   if (!token) return null;
   try {
+    // New JSON/Base64 payload format: payloadBase64.signature
+    if (token.includes('.')) {
+      const parts = token.split('.');
+      if (parts.length === 2) {
+        const [payloadBase64, signature] = parts;
+        const expectedSignature = sha256(`${payloadBase64}:${SECRET_KEY}`);
+        if (signature !== expectedSignature) {
+          return null;
+        }
+
+        const decodedStr = Buffer.from(payloadBase64, 'base64url').toString('utf-8');
+        const parsed = JSON.parse(decodedStr);
+
+        if (Date.now() > parsed.expiresAt) {
+          return null;
+        }
+
+        return {
+          email: parsed.email,
+          role: parsed.role,
+          nome: parsed.nome || getFallbackName(parsed.email, parsed.role),
+        };
+      }
+    }
+
+    // Legacy colon-delimited token format fallbacks (email:role:expiresAt:signature or email:expiresAt:signature)
     const parts = token.split(':');
     if (parts.length === 4) {
       const [email, role, expiresAtStr, signature] = parts;
       const expiresAt = parseInt(expiresAtStr, 10);
 
-      // Check expiration
       if (Date.now() > expiresAt) {
         return null;
       }
 
-      // Verify signature
       const payload = `${email}:${role}:${expiresAt}`;
       const expectedSignature = sha256(`${payload}:${SECRET_KEY}`);
 
       if (signature === expectedSignature) {
-        return { email, role };
+        return { email, role, nome: getFallbackName(email, role) };
       }
     } else if (parts.length === 3) {
-      // Legacy token format fallback
       const [email, expiresAtStr, signature] = parts;
       const expiresAt = parseInt(expiresAtStr, 10);
 
@@ -126,7 +172,7 @@ export function verifySessionToken(token: string | undefined): { email: string; 
       if (signature === expectedSignature) {
         const adminEmail = process.env.ADMIN_EMAIL || 'gestaodedados@ipda.com.br';
         const role = email === adminEmail ? 'admin' : 'viewer';
-        return { email, role };
+        return { email, role, nome: getFallbackName(email, role) };
       }
     }
     return null;
