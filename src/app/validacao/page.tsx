@@ -217,7 +217,10 @@ export default function ValidacaoPage() {
           window.location.href = '/mapa-geral';
         } else if (data.success && data.role) {
           setUserRole(data.role);
-          if (data.nome) setUserName(data.nome);
+          if (data.nome) {
+            setUserName(data.nome);
+            setOperator(data.nome);
+          }
         }
       })
       .catch((err) => {
@@ -394,23 +397,6 @@ export default function ValidacaoPage() {
     setCurrentIndex(0);
   }, [searchQuery, currentPage, filterRegiao, filterEstado, filterStatus, filterPorte]);
 
-  // Load operator name from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedOperator = localStorage.getItem('validador_operador');
-      if (savedOperator) {
-        setOperator(savedOperator);
-      }
-    }
-  }, []);
-
-  // Save operator name to localStorage when changed
-  const handleOperatorChange = (val: string) => {
-    setOperator(val);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('validador_operador', val);
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -1587,20 +1573,10 @@ export default function ValidacaoPage() {
                         <User className="h-3 w-3 text-zinc-500" />
                         Nome do Operador (Validador Autorizado)
                       </label>
-                      <select
-                        value={operator}
-                        onChange={(e) => handleOperatorChange(e.target.value)}
-                        className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full mt-1.5 font-semibold text-zinc-800 dark:text-slate-100"
-                      >
-                        <option value="">Selecione o validador para assinar...</option>
-                        <option value="Luiz Eduardo">Luiz Eduardo</option>
-                        <option value="Caio Rodrigues">Caio Rodrigues</option>
-                        <option value="Guilherme de Almeida">Guilherme de Almeida</option>
-                        <option value="Christian Azevedo">Christian Azevedo</option>
-                        <option value="Mayara Ruanny">Mayara Ruanny</option>
-                        <option value="Fernanda Brito">Fernanda Brito</option>
-                        <option value="Flaviane Marvilla">Flaviane Marvilla</option>
-                      </select>
+                      <div className="bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 text-xs rounded-lg p-2.5 w-full mt-1.5 font-bold flex items-center gap-2 cursor-not-allowed">
+                        <Check className="h-4 w-4" />
+                        <span>Assinatura vinculada: {userName || operator || 'Carregando...'}</span>
+                      </div>
                     </div>
 
                     {/* Action buttons */}
