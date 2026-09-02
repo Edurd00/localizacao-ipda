@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { saveIgrejaSingle, registrarHistorico } from '@/lib/db';
+import { saveIgrejaSingle, registrarHistorico, getIgrejas } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { verifySessionToken } from '@/lib/auth';
 
@@ -114,17 +114,44 @@ export async function PUT(request: Request) {
       }
     }
 
+    // Fetch existing record to perform Smart Diff before updating
+    const currentChurchRes = await getIgrejas({
+      ...(id ? { id } : {}),
+      ...(codigo_totvs ? { search: codigo_totvs } : {}),
+    });
+    const currentChurch = currentChurchRes.data.find(
+      (item) => (id && item.id === id) || (codigo_totvs && item.codigo_totvs === codigo_totvs)
+    ) || currentChurchRes.data[0];
+
+    const changedFields: Record<string, any> = {};
+    if (currentChurch) {
+      Object.keys(updates).forEach((key) => {
+        const newVal = updates[key];
+        const oldVal = (currentChurch as any)[key];
+
+        // Strict value normalization check
+        const normNew = newVal === null || newVal === undefined ? '' : String(newVal).trim();
+        const normOld = oldVal === null || oldVal === undefined ? '' : String(oldVal).trim();
+
+        if (normNew !== normOld) {
+          changedFields[key] = newVal;
+        }
+      });
+    } else {
+      Object.assign(changedFields, updates);
+    }
+
     const savedChurch = await saveIgrejaSingle({ id, codigo_totvs }, updates);
 
-    // Record audit history entry
+    // Record audit history entry only if there are actual changed fields
     const targetTotvs = codigo_totvs || savedChurch.codigo_totvs || id;
-    if (targetTotvs) {
+    if (targetTotvs && Object.keys(changedFields).length > 0) {
       await registrarHistorico(
         targetTotvs,
         user.nome,
         user.email,
         'EDICAO_DADOS',
-        updates
+        changedFields
       );
     }
 
