@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getIgrejas, getDistinctStates } from '@/lib/db';
+import { verifySessionToken } from '@/lib/auth';
 
-export const revalidate = 86400;
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const isAuthenticated = verifySessionToken(cookieStore.get('session_token')?.value);
+
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { success: false, error: 'Não autorizado' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado') || 'ALL';
     const status = searchParams.get('status') || 'ALL';
@@ -14,7 +26,9 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || searchParams.get('q') || '';
 
     const page = pageParam ? parseInt(pageParam, 10) || 1 : 1;
-    const limit = limitParam === 'ALL' || !limitParam ? 'ALL' : (parseInt(limitParam, 10) || 'ALL');
+    // Strict limit enforced to max 100 records per request to avoid egress spikes
+    const rawLimit = parseInt(limitParam || '100', 10);
+    const limit = isNaN(rawLimit) || rawLimit <= 0 ? 100 : Math.min(rawLimit, 100);
 
     const [result, states] = await Promise.all([
       getIgrejas(
@@ -55,39 +69,16 @@ export async function GET(request: Request) {
       getDistinctStates(),
     ]);
 
-    const igrejasData = result.data.map((igreja: any) => ({
-      ...igreja,
-      dirigente_nome: null,
-      dirigente_telefone: null,
-      dirigente_email: null,
-      financeira_nome: null,
-      financeira_telefone: null,
-      financeira_email: null,
-      tipo_prebenda: null,
-    }));
-
-    return new NextResponse(
-      JSON.stringify({
-        success: true,
-        igrejas: igrejasData,
-        total: result.total,
-        page,
-        limit,
-        states,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate',
-        },
-      }
-    );
+    return NextResponse.json({
+      success: true,
+      igrejas: result.data,
+      total: result.total,
+      page,
+      limit,
+      states,
+    });
   } catch (err: unknown) {
-    if ((err as any)?.digest === 'DYNAMIC_SERVER_USAGE' || (err as any)?.message?.includes('Dynamic server usage')) {
-      throw err;
-    }
-    console.error('API Error in GET /api/igrejas:', err);
+    console.error('API Error in GET /api/admin/igrejas-completas:', err);
     const errMsg = err instanceof Error ? err.message : 'Unknown database error';
     return NextResponse.json(
       { success: false, error: errMsg },
