@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Building2, MapPin, Loader2 } from 'lucide-react';
+import { Building2, MapPin, Loader2, Link } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { toast } from 'sonner';
 import { PORTE_INFO, getPorte, getDescendantCount, formatLeadershipTenure } from './GeneralMapComponent';
@@ -196,24 +196,34 @@ export default function ChurchDetailModal({
               </span>
             </p>
 
+            {ig.codigo_totvs_pai && parentChurch && (
+              <p className="flex items-start gap-1.5 mt-1.5">
+                <Link className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" />
+                <span>
+                  <span className="font-semibold text-slate-400">Coligada a:</span>{' '}
+                  <span className="text-slate-800 font-medium">{parentChurch.desc_igreja} ({ig.codigo_totvs_pai})</span>
+                </span>
+              </p>
+            )}
+
             {((ig.qtd_membros !== null && ig.qtd_membros !== undefined && ig.qtd_membros > 0) ||
               (ig.qtd_jovens !== null && ig.qtd_jovens !== undefined && ig.qtd_jovens > 0)) && (
-              <div className="flex items-center gap-2 font-bold text-slate-800 bg-slate-100 p-2 rounded-lg border border-slate-200 text-[11px] mt-2">
+              <div className="flex items-center gap-2 font-bold text-slate-800 bg-slate-100 p-2 rounded-lg border border-slate-200 text-[11px] mt-1.5">
                 <span>👥 {ig.qtd_membros || 0} Membros</span>
                 <span className="text-slate-300">|</span>
                 <span>⚡ {ig.qtd_jovens || 0} Jovens</span>
               </div>
             )}
 
-            <div className="pt-2 border-t border-slate-100">
+            <div className="pt-1.5 border-t border-slate-100">
               {comparisonMode ? (
                 String(fixedDest?.codigo_totvs) === String(ig.codigo_totvs) ? (
-                  <div className="space-y-2.5 my-3">
-                    <div className="h-9 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-center gap-1">
+                  <div className="space-y-2 my-2">
+                    <div className="h-8 text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center justify-center gap-1">
                       <span>📍 Alvo de Análise</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
@@ -223,42 +233,42 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(null);
                           toast.info('Modo comparativo desativado.');
                         }}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all cursor-pointer"
                       >
-                        <span className="text-sm">📐</span>
+                        <span className="text-xs">📐</span>
                         <span className="truncate font-semibold">Cancelar Comp.</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleTraceConnectionMesh(ig)}
-                        className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium border rounded-xl transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium border rounded-lg transition-all cursor-pointer ${
                           String(connectionPathSource) === String(ig.codigo_totvs)
                             ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                             : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
                         }`}
                       >
-                        <span className="text-sm">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
+                        <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
                         <span className="truncate font-semibold">{String(connectionPathSource) === String(ig.codigo_totvs) ? 'Ocultar Malha' : 'Ver Malha'}</span>
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2.5 my-3">
-                    <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-2 my-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
                           setSedeCandidataA(ig);
                           toast.success(`Sede Candidata A definida: ${ig.desc_igreja}`);
                         }}
-                        className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium border rounded-xl transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium border rounded-lg transition-all cursor-pointer ${
                           String(sedeCandidataA?.codigo_totvs) === String(ig.codigo_totvs)
                             ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
                             : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
                         }`}
                       >
-                        <span className="text-sm">🟢</span>
+                        <span className="text-xs">🟢</span>
                         <span className="truncate font-semibold">Sede Cand. A</span>
                       </button>
 
@@ -268,18 +278,18 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(ig);
                           toast.success(`Sede Candidata B definida: ${ig.desc_igreja}`);
                         }}
-                        className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium border rounded-xl transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium border rounded-lg transition-all cursor-pointer ${
                           String(sedeCandidataB?.codigo_totvs) === String(ig.codigo_totvs)
                             ? 'border-cyan-500 bg-cyan-500 text-white hover:bg-cyan-600'
                             : 'border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-800'
                         }`}
                       >
-                        <span className="text-sm">🔵</span>
+                        <span className="text-xs">🔵</span>
                         <span className="truncate font-semibold">Sede Cand. B</span>
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
@@ -289,22 +299,22 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(null);
                           toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
                         }}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer"
                       >
-                        <span className="text-sm">📐</span>
+                        <span className="text-xs">📐</span>
                         <span className="truncate font-semibold">Comparar Rotas</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleTraceConnectionMesh(ig)}
-                        className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium border rounded-xl transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium border rounded-lg transition-all cursor-pointer ${
                           String(connectionPathSource) === String(ig.codigo_totvs)
                             ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                             : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
                         }`}
                       >
-                        <span className="text-sm">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
+                        <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
                         <span className="truncate font-semibold">{String(connectionPathSource) === String(ig.codigo_totvs) ? 'Ocultar Malha' : 'Ver Malha'}</span>
                       </button>
                     </div>
@@ -313,16 +323,16 @@ export default function ChurchDetailModal({
               ) : (
                 <>
                   {/* Grid 2x2 para os 4 botões de ação */}
-                  <div className="grid grid-cols-2 gap-2.5 my-3">
+                  <div className="grid grid-cols-2 gap-1.5 my-2">
                     {/* 1. Rota Superior */}
                     <button
                       type="button"
                       disabled={!(ig.codigo_totvs_pai && parentChurch)}
                       onClick={() => fetchTerrestrialRoute(ig, parentChurch!)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       title={ig.codigo_totvs_pai && parentChurch ? `Rota para Sede Superior: ${parentChurch.desc_igreja}` : 'Sem coligação superior registrada'}
                     >
-                      <span className="text-sm">🚗</span>
+                      <span className="text-xs">🚗</span>
                       <span className="truncate font-semibold">Rota Superior</span>
                     </button>
 
@@ -334,9 +344,9 @@ export default function ChurchDetailModal({
                           setPontoOrigem(ig);
                           toast.success(`Origem definida: ${ig.desc_igreja}`);
                         }}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer"
                       >
-                        <span className="text-sm">📍</span>
+                        <span className="text-xs">📍</span>
                         <span className="truncate font-semibold">Definir Origem</span>
                       </button>
                     ) : String(pontoOrigem.codigo_totvs) !== String(ig.codigo_totvs) ? (
@@ -348,10 +358,10 @@ export default function ChurchDetailModal({
                             setPontoOrigem(null);
                           }
                         }}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-xl hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
                         title={`Traçar rota a partir de ${pontoOrigem.desc_igreja}`}
                       >
-                        <span className="text-sm">🏁</span>
+                        <span className="text-xs">🏁</span>
                         <span className="truncate font-semibold">Traçar Rota</span>
                       </button>
                     ) : (
@@ -361,9 +371,9 @@ export default function ChurchDetailModal({
                           setPontoOrigem(null);
                           toast.info('Origem de rota cancelada.');
                         }}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer"
                       >
-                        <span className="text-sm">❌</span>
+                        <span className="text-xs">❌</span>
                         <span className="truncate font-semibold">Cancelar Origem</span>
                       </button>
                     )}
@@ -378,9 +388,9 @@ export default function ChurchDetailModal({
                         setSedeCandidataB(null);
                         toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino.`);
                       }}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all cursor-pointer"
+                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer"
                     >
-                      <span className="text-sm">📐</span>
+                      <span className="text-xs">📐</span>
                       <span className="truncate font-semibold">Comparar Rotas</span>
                     </button>
 
@@ -388,13 +398,13 @@ export default function ChurchDetailModal({
                     <button
                       type="button"
                       onClick={() => handleTraceConnectionMesh(ig)}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium border rounded-xl transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium border rounded-lg transition-all cursor-pointer ${
                         String(connectionPathSource) === String(ig.codigo_totvs)
                           ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
                           : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
                       }`}
                     >
-                      <span className="text-sm">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
+                      <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
                       <span className="truncate font-semibold">{String(connectionPathSource) === String(ig.codigo_totvs) ? 'Ocultar Malha' : 'Ver Malha'}</span>
                     </button>
                   </div>
@@ -406,29 +416,11 @@ export default function ChurchDetailModal({
                 href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all cursor-pointer"
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all cursor-pointer"
               >
                 <span>🗺️</span>
                 <span>Abrir no Google Maps ↗</span>
               </a>
-
-              {/* Bloco de Coligação (Igreja Mãe / Pai) reestruturado ao final da aba Geral */}
-              <hr className="my-4 border-zinc-200 dark:border-slate-700" />
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 rounded-xl space-y-1">
-                <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider block">Coligada a:</span>
-                {ig.codigo_totvs_pai ? (
-                  <>
-                    <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">
-                      {parentChurch ? parentChurch.desc_igreja : 'Igreja Superior'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-mono">
-                      Código TOTVS: {ig.codigo_totvs_pai}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-slate-400 italic text-xs">Sede Raiz (Sem coligação superior).</p>
-                )}
-              </div>
             </div>
           </div>
         )}
