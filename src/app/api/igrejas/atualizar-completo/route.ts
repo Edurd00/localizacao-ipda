@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { saveIgrejaSingle } from '@/lib/db';
+import { saveIgrejaSingle, registrarHistorico } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { verifySessionToken } from '@/lib/auth';
 
@@ -14,7 +14,8 @@ async function checkAuth() {
 
 export async function PUT(request: Request) {
   try {
-    if (!(await checkAuth())) {
+    const user = await checkAuth();
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Acesso não autorizado. Faça login novamente.' },
         { status: 401 }
@@ -114,6 +115,18 @@ export async function PUT(request: Request) {
     }
 
     const savedChurch = await saveIgrejaSingle({ id, codigo_totvs }, updates);
+
+    // Record audit history entry
+    const targetTotvs = codigo_totvs || savedChurch.codigo_totvs || id;
+    if (targetTotvs) {
+      await registrarHistorico(
+        targetTotvs,
+        user.nome,
+        user.email,
+        'EDICAO_DADOS',
+        updates
+      );
+    }
 
     // On-demand revalidation to ensure changes appear instantly on Map and Tree
     try {
