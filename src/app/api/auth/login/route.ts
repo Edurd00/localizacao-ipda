@@ -4,6 +4,7 @@ import { generateSessionToken } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 const TEAM_MEMBERS: Record<string, { nome: string; role: string }> = {
+  'coordenacao.dados@ipda.com.br': { nome: 'Adriana Felix', role: 'admin' },
   'gestaodedados@ipda.com.br': { nome: 'Caio Rodrigues', role: 'admin' },
   'gestaodedados.nordeste@ipda.com.br': { nome: 'Luiz Eduardo', role: 'admin' },
   'gestaodedados.sudestesp@ipda.com.br': { nome: 'Christian Azevedo', role: 'admin' },
@@ -45,7 +46,8 @@ export async function POST(request: Request) {
     // Determine expected password hash based on email / role rules
     let expectedPasswordHash: string | undefined;
 
-    if (memberKey.toLowerCase() === 'gestaodedados@ipda.com.br') {
+    const lowerKey = memberKey.toLowerCase();
+    if (lowerKey === 'gestaodedados@ipda.com.br' || lowerKey === 'coordenacao.dados@ipda.com.br') {
       expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH;
     } else if (member.role === 'admin') {
       expectedPasswordHash = process.env.REGIONAL_PASSWORD_HASH;
