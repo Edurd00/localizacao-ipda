@@ -152,10 +152,10 @@ export default function DashboardView({
 
       const worksheet = XLSX.utils.json_to_sheet(rows);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Igrejas IPDA');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Unidades GeoManager');
 
       const dateStr = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(workbook, `Localizacao_IPDA_Relatorio_${fileNameSuffix}_${dateStr}.xlsx`);
+      XLSX.writeFile(workbook, `GeoManager_Relatorio_${fileNameSuffix}_${dateStr}.xlsx`);
       toast.success(`Relatório (${rows.length} igrejas) exportado com sucesso!`, { id: toastId });
     } catch (err) {
       console.error('Error exporting excel:', err);
@@ -175,7 +175,7 @@ export default function DashboardView({
             <span>Painel de Indicadores e Gestão Global</span>
           </div>
           <h2 className="text-2xl font-black mt-1 tracking-tight text-white">
-            Dashboard de Geolocalização IPDA
+            Dashboard GeoManager Enterprise
           </h2>
           <p className="text-xs text-indigo-200 mt-1 max-w-xl leading-relaxed opacity-90">
             Acompanhe o progresso de validação das 12.000+ igrejas por estado, exporte relatórios consolidados e gerencie o processo de geocodificação.

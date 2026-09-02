@@ -4,16 +4,8 @@ import { generateSessionToken } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 const TEAM_MEMBERS: Record<string, { nome: string; role: string }> = {
-  'coordenacao.dados@ipda.com.br': { nome: 'Adriana Felix', role: 'admin' },
-  'gestaodedados@ipda.com.br': { nome: 'Caio Rodrigues', role: 'admin' },
-  'gestaodedados.nordeste@ipda.com.br': { nome: 'Luiz Eduardo', role: 'admin' },
-  'gestaodedados.sudestesp@ipda.com.br': { nome: 'Christian Azevedo', role: 'admin' },
-  'gestaodedados.norte@ipda.com.br': { nome: 'Guilherme Almeida', role: 'admin' },
-  'gestaodedados.centrooeste@ipda.com.br': { nome: 'Flaviane Marvilla', role: 'admin' },
-  'gestaodedados.sudestemg@ipda.com.br': { nome: 'Fernanda Brito', role: 'admin' },
-  'gestaodedados.sul@ipda.com.br': { nome: 'Mayara Ruany', role: 'admin' },
-  // Mantém o viewer genérico que criamos anteriormente
-  [process.env.VIEWER_EMAIL || 'leitura@ipda.com.br']: { nome: 'Usuário de Leitura', role: 'viewer' }
+  'admin@geomanager.com': { nome: 'Gestor de Dados', role: 'admin' },
+  'viewer@geomanager.com': { nome: 'Usuário de Leitura', role: 'viewer' },
 };
 
 export async function POST(request: Request) {
@@ -43,26 +35,17 @@ export async function POST(request: Request) {
 
     const member = TEAM_MEMBERS[memberKey];
 
-    // Determine expected password hash based on email / role rules
-    let expectedPasswordHash: string | undefined;
-
+    // Password validation adapted for portfolio direct password checks
+    let isValidPassword = false;
     const lowerKey = memberKey.toLowerCase();
-    if (lowerKey === 'gestaodedados@ipda.com.br' || lowerKey === 'coordenacao.dados@ipda.com.br') {
-      expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH;
-    } else if (member.role === 'admin') {
-      expectedPasswordHash = process.env.REGIONAL_PASSWORD_HASH;
-    } else {
-      expectedPasswordHash = process.env.VIEWER_PASSWORD_HASH;
+
+    if (lowerKey === 'admin@geomanager.com') {
+      isValidPassword = password === 'admin123' || password === process.env.ADMIN_PASSWORD_HASH;
+    } else if (lowerKey === 'viewer@geomanager.com') {
+      isValidPassword = password === 'viewer123' || password === process.env.VIEWER_PASSWORD_HASH;
     }
 
-    if (!expectedPasswordHash) {
-      return NextResponse.json(
-        { success: false, error: 'Servidor não configurado. Variável de senha ausente.' },
-        { status: 500 }
-      );
-    }
-
-    if (password !== expectedPasswordHash) {
+    if (!isValidPassword) {
       return NextResponse.json(
         { success: false, error: 'Credenciais inválidas. Verifique seu e-mail e senha.' },
         { status: 401 }

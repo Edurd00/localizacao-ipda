@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Localizações IPDA | Geolocalização e Mapeamento Oficial",
-  description: "Sistema oficial de geolocalização e gestão da malha de coligações IPDA",
+  title: "GeoManager Enterprise | Geolocalização e Mapeamento Corporativo",
+  description: "Sistema avançado de geolocalização e gestão de rede da GeoManager Enterprise",
   icons: {
     icon: "/favicon.ico",
   },

@@ -681,7 +681,7 @@ export default function OrganizacaoContent() {
               </a>
               <div>
                 <h1 className="text-base font-extrabold text-zinc-950 dark:text-white tracking-tight flex items-center gap-1.5">
-                  🏛️ Organização IPDA
+                  🏛️ Organização GeoManager
                 </h1>
                 <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                   SISTEMA DE ESTRUTURA ORGANIZACIONAL DA IGREJA

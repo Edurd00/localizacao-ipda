@@ -396,9 +396,9 @@ export default function RelatoriosPage() {
       {/* Printable Official Header (Only visible on print) */}
       <div className="hidden print:block mb-6 text-center border-b-2 border-indigo-900 pb-4">
         <div className="flex items-center justify-between">
-          <img src="/img/logo.png" alt="IPDA Logo" className="h-12 w-auto object-contain" />
+          <img src="/img/logo.png" alt="GeoManager Enterprise Logo" className="h-12 w-auto object-contain" />
           <div className="text-right">
-            <h1 className="text-xl font-black text-indigo-950">GEO-VALIG IPDA</h1>
+            <h1 className="text-xl font-black text-indigo-950">GeoManager Enterprise</h1>
             <p className="text-xs font-bold text-zinc-600">RELATÓRIO HIERÁRQUICO, MEMBRESIA & BI</p>
             <p className="text-[10px] text-zinc-500 font-mono mt-0.5" suppressHydrationWarning>
               Gerado em: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
@@ -411,10 +411,10 @@ export default function RelatoriosPage() {
       <header className="relative z-[9999] h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 shadow-xs transition-colors duration-200 flex items-center print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex justify-between items-center">
           <div className="flex items-center space-x-3 shrink-0">
-            <img src="/img/logo.png" alt="GEO-VALIG IPDA" className="h-10 w-auto object-contain shadow-sm" />
+            <img src="/img/logo.png" alt="GeoManager Enterprise" className="h-10 w-auto object-contain shadow-sm" />
             <div className="hidden sm:block">
               <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
-                GEO-VALIG IPDA <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">BI</span>
+                GeoManager Enterprise <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">BI</span>
               </h1>
               <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Relatórios & Inteligência de Dados</p>
             </div>

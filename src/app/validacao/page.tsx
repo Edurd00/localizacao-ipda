@@ -929,12 +929,12 @@ export default function ValidacaoPage() {
             <div className="flex items-center space-x-3 shrink-0">
               <img
                 src="/img/logo.png"
-                alt="Localização IPDA"
+                alt="GeoManager Enterprise"
                 className="h-10 w-auto object-contain shadow-sm"
               />
               <div className="hidden sm:block">
                 <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
-                  GEO-VALIG IPDA <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">12K</span>
+                  GeoManager Enterprise <span className="text-[10px] bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-slate-700 font-bold">12K</span>
                 </h1>
                 <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Validação e Geolocalização</p>
               </div>

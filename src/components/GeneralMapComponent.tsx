@@ -2366,10 +2366,10 @@ export default function GeneralMapComponent({
         {/* Left Section: Logo & Counter */}
         <div className="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
           <div className="flex items-center space-x-2">
-            <img src="/img/logo.png" alt="IPDA" className="h-10 w-auto object-contain" />
+            <img src="/img/logo.png" alt="GeoManager Enterprise" className="h-10 w-auto object-contain" />
             <div>
-              <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight">
-                GEOLOCALIZAÇÕES IPDA
+              <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight uppercase">
+                GeoManager Enterprise
               </h1>
               <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
             </div>

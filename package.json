@@ -30,6 +30,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

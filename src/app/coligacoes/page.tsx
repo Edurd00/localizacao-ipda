@@ -832,7 +832,7 @@ export default function ColigacoesPage() {
                   🌳 Gestão de Coligações e Hierarquia
                 </h1>
                 <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-                  GEO-VALIG • Inteligência de Dados e Topologias
+                  GeoManager Enterprise • Inteligência de Dados e Topologias
                 </p>
               </div>
             </div>

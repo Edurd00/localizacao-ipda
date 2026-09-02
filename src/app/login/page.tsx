@@ -11,9 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
+  const submitAuth = async (loginEmail: string, loginPass: string) => {
+    if (!loginEmail || !loginPass) {
       toast.error('Por favor, preencha todos os campos.');
       return;
     }
@@ -23,7 +22,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: loginEmail, password: loginPass }),
       });
       const data = await res.json();
 
@@ -41,6 +40,17 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitAuth(email, password);
+  };
+
+  const handleQuickLogin = (demoEmail: string, demoPass: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    submitAuth(demoEmail, demoPass);
   };
 
   return (
@@ -62,12 +72,12 @@ export default function LoginPage() {
         <div className="flex justify-center">
           <img
             src="/img/logo.png"
-            alt="GEO-VALIG IPDA"
+            alt="GeoManager Enterprise"
             className="h-16 w-auto object-contain shadow-md"
           />
         </div>
         <h2 className="mt-6 text-center text-2xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
-          Painel Administrativo IPDA <Sparkles className="h-5 w-5 text-amber-500 fill-amber-500 animate-pulse" />
+          Painel GeoManager Enterprise <Sparkles className="h-5 w-5 text-amber-500 fill-amber-500 animate-pulse" />
         </h2>
         <p className="mt-1 text-center text-xs text-zinc-500 font-semibold uppercase tracking-wider">
           Geolocalizações • Área Restrita da Equipe
@@ -135,6 +145,35 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-zinc-300" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-zinc-500">Acesso Rápido (Portfólio)</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleQuickLogin('admin@geomanager.com', 'admin123')}
+              className="w-full flex justify-center py-2.5 px-4 border border-purple-200 rounded-xl shadow-xs text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all disabled:opacity-50 active:scale-[0.98]"
+            >
+              Entrar como Gestor (Admin)
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleQuickLogin('viewer@geomanager.com', 'viewer123')}
+              className="w-full flex justify-center py-2.5 px-4 border border-zinc-300 rounded-xl shadow-xs text-xs font-bold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-400 transition-all disabled:opacity-50 active:scale-[0.98]"
+            >
+              Entrar como Leitor (Viewer)
+            </button>
+          </div>
 
           <div className="pt-4 border-t border-zinc-100 text-center">
             <span className="text-[10px] text-zinc-400 font-medium">
