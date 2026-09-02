@@ -65,8 +65,25 @@ export async function GET() {
       );
     `);
 
-    // Limpa dados anteriores para garantir 300 congregações limpas
-    await client.query('TRUNCATE TABLE historico_igrejas, igrejas RESTART IDENTITY CASCADE;');
+    // Limpar as tabelas para evitar duplicidade caso a rota seja chamada mais de uma vez
+    await client.query('DELETE FROM historico_igrejas;');
+    await client.query('DELETE FROM igrejas;');
+
+    // Lista de âncoras (Centros urbanos reais do Brasil)
+    const anchorCities = [
+      { lat: -23.5505, lng: -46.6333 }, // São Paulo
+      { lat: -22.9068, lng: -43.1729 }, // Rio de Janeiro
+      { lat: -19.9167, lng: -43.9345 }, // Belo Horizonte
+      { lat: -15.7801, lng: -47.9292 }, // Brasília
+      { lat: -12.9714, lng: -38.5116 }, // Salvador
+      { lat: -3.7172,  lng: -38.5431 }, // Fortaleza
+      { lat: -8.0476,  lng: -34.8770 }, // Recife
+      { lat: -3.1190,  lng: -60.0217 }, // Manaus
+      { lat: -1.4550,  lng: -48.5024 }, // Belém
+      { lat: -30.0346, lng: -51.2177 }, // Porto Alegre
+      { lat: -25.4284, lng: -49.2733 }, // Curitiba
+      { lat: -16.6869, lng: -49.2648 }, // Goiânia
+    ];
 
     // 2. Geração de Igrejas (300 congregações)
     const sedes: string[] = [];
@@ -86,9 +103,15 @@ export async function GET() {
       const bairro = faker.location.secondaryAddress() || 'Centro';
       const cep = faker.location.zipCode('#####-###');
 
-      // Coordenadas válidas no Brasil (Lat entre -30 e 0, Lng entre -60 e -40)
-      const latitude = faker.number.float({ min: -30, max: 0, fractionDigits: 6 });
-      const longitude = faker.number.float({ min: -60, max: -40, fractionDigits: 6 });
+      // Escolhe uma cidade base aleatória
+      const base = anchorCities[Math.floor(Math.random() * anchorCities.length)];
+
+      // Aplica um desvio (offset) aleatório de até ~150km (aprox 1.5 graus)
+      const latOffset = (Math.random() - 0.5) * 3;
+      const lngOffset = (Math.random() - 0.5) * 3;
+
+      const finalLat = parseFloat((base.lat + latOffset).toFixed(6));
+      const finalLng = parseFloat((base.lng + lngOffset).toFixed(6));
 
       const dirigente_nome = faker.person.fullName();
       const qtd_membros = faker.number.int({ min: 10, max: 500 });
@@ -101,7 +124,7 @@ export async function GET() {
         codigo_totvs_pai = faker.helpers.arrayElement(sedes);
       }
 
-      const link_google_maps = `https://maps.google.com/?q=${latitude},${longitude}`;
+      const link_google_maps = `https://maps.google.com/?q=${finalLat},${finalLng}`;
 
       generatedIgrejas.push({
         codigo_totvs,
@@ -113,8 +136,8 @@ export async function GET() {
         municipio: city,
         estado: state,
         cep,
-        latitude,
-        longitude,
+        latitude: finalLat,
+        longitude: finalLng,
         link_google_maps,
         dirigente_nome,
         qtd_membros,
