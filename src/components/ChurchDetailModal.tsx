@@ -578,7 +578,8 @@ export default function ChurchDetailModal({
               <div className="border-l-2 border-zinc-200 ml-2 pl-4 space-y-4 my-2 max-h-[280px] overflow-y-auto pr-1">
                 {historicoData.map((item, index) => {
                   const dateFormatted = item.criado_em
-                    ? new Date(item.criado_em).toLocaleDateString('pt-BR', {
+                    ? new Date(item.criado_em).toLocaleString('pt-BR', {
+                        timeZone: 'America/Sao_Paulo',
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',

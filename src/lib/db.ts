@@ -90,7 +90,7 @@ export async function registrarHistorico(
   });
 }
 
-export async function getHistoricoIgreja(totvs: string): Promise<HistoricoIgreja[]> {
+export async function getHistoricoIgreja(totvs: string, limit: number = 15): Promise<HistoricoIgreja[]> {
   await ensurePostgresTable();
   if (pool) {
     try {
@@ -99,8 +99,9 @@ export async function getHistoricoIgreja(totvs: string): Promise<HistoricoIgreja
         FROM historico_igrejas
         WHERE codigo_totvs = $1
         ORDER BY criado_em DESC
+        LIMIT $2
       `;
-      const res = await pool.query(query, [totvs]);
+      const res = await pool.query(query, [totvs, limit]);
       return res.rows.map((row) => ({
         id: row.id,
         codigo_totvs: row.codigo_totvs,
@@ -118,7 +119,8 @@ export async function getHistoricoIgreja(totvs: string): Promise<HistoricoIgreja
 
   return memoryHistorico
     .filter((h) => h.codigo_totvs === totvs)
-    .sort((a, b) => new Date(b.criado_em || 0).getTime() - new Date(a.criado_em || 0).getTime());
+    .sort((a, b) => new Date(b.criado_em || 0).getTime() - new Date(a.criado_em || 0).getTime())
+    .slice(0, limit);
 }
 
 // Global singleton pattern for pg Pool in serverless environments
