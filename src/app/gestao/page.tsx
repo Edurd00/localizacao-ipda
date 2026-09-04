@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useTransition, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'sonner';
 import {
@@ -11,16 +11,12 @@ import {
   Edit,
   Users,
   X,
-  Check,
   Loader2,
   RefreshCw,
   Power,
   Building2,
-  MapPin,
   Phone,
-  Mail,
   User,
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -45,11 +41,10 @@ export default function GestaoPage() {
   const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isPending, startTransition] = useTransition();
 
-  // Search input typing speed optimization
+  // Search input typing speed optimization (400ms Debounce)
   const [searchInput, setSearchInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Filters & Priority Sorting states
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -59,10 +54,11 @@ export default function GestaoPage() {
   const [filterPorteGroup, setFilterPorteGroup] = useState<string>('ALL');
   const [prioritizeMajorPortes, setPrioritizeMajorPortes] = useState<boolean>(false);
 
-  // Pagination & Card pointer states
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  // Pagination states (50 items per page limit)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const itemsPerPage = 50;
 
   // Selected Church states for Modals
   const [selectedChurch, setSelectedChurch] = useState<Igreja | null>(null);
@@ -97,6 +93,91 @@ export default function GestaoPage() {
   const [formQtdMembros, setFormQtdMembros] = useState('');
   const [formQtdJovens, setFormQtdJovens] = useState('');
   const [formTipoPrebenda, setFormTipoPrebenda] = useState('NAO_PREBENDADA');
+
+  const [saving, setSaving] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  // Debounce search input by 400ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 400);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput]);
+
+  // Load session & check permissions
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.authenticated) {
+          window.location.href = '/login';
+        } else if (data.role === 'viewer') {
+          window.location.href = '/mapa-geral';
+        } else if (data.role) {
+          setUserRole(data.role);
+          if (data.nome) setUserName(data.nome);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        window.location.href = '/login';
+      });
+  }, []);
+
+  // Server-side paginated fetch function
+  const fetchIgrejasList = async (
+    page = currentPage,
+    search = searchTerm,
+    estado = filterEstado,
+    status = filterStatus,
+    porte = filterPorte
+  ) => {
+    if (!igrejas.length) setLoading(true);
+    else setIsSyncing(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(itemsPerPage),
+      });
+
+      if (search.trim()) params.set('search', search.trim());
+      if (estado !== 'ALL') params.set('estado', estado);
+      if (status !== 'ALL') params.set('status', status);
+      if (porte !== 'ALL') params.set('porte', porte);
+
+      const res = await fetch(`/api/admin/igrejas-completas?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setIgrejas(data.igrejas || []);
+        const total = data.total || 0;
+        setTotalRecords(total);
+        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+      } else {
+        toast.error('Erro ao carregar lista de igrejas.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro de conexão ao carregar as igrejas.');
+    } finally {
+      setLoading(false);
+      setIsSyncing(false);
+    }
+  };
+
+  // Reset page to 1 when search or database filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchIgrejasList(1, searchTerm, filterEstado, filterStatus, filterPorte);
+  }, [searchTerm, filterEstado, filterStatus, filterPorte]);
+
+  // Fetch page data when currentPage changes
+  useEffect(() => {
+    fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
+  }, [currentPage]);
 
   // ViaCEP Fetcher with Auto-fill
   const handleCepBlurOrChange = async (val: string) => {
@@ -147,92 +228,12 @@ export default function GestaoPage() {
     return igrejas.find((ig) => ig.codigo_totvs.trim().replace(/^0+/, '') === target);
   }, [igrejas, formParentTotvs]);
 
-  const [saving, setSaving] = useState(false);
-  const [syncLoading, setSyncLoading] = useState(false);
-
-  // Load session & check permissions
-  useEffect(() => {
-    fetch('/api/auth/session')
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.authenticated) {
-          window.location.href = '/login';
-        } else if (data.role === 'viewer') {
-          window.location.href = '/mapa-geral';
-        } else if (data.role) {
-          setUserRole(data.role);
-          if (data.nome) setUserName(data.nome);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        window.location.href = '/login';
-      });
-  }, []);
-
-  const fetchIgrejasList = async () => {
-    if (!igrejas.length) setLoading(true);
-    else setIsSyncing(true);
-    try {
-      let page = 1;
-      const limit = 100;
-      let totalPages = 1;
-      let allIgrejas: Igreja[] = [];
-
-      do {
-        const res = await fetch(`/api/admin/igrejas-completas?page=${page}&limit=${limit}`);
-        const data = await res.json();
-        if (data.success) {
-          allIgrejas = [...allIgrejas, ...(data.igrejas || [])];
-          if (data.total) {
-            totalPages = Math.ceil(data.total / limit);
-          }
-          page++;
-        } else {
-          toast.error('Erro ao carregar lista de igrejas.');
-          break;
-        }
-      } while (page <= totalPages);
-
-      setIgrejas(allIgrejas);
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro de conexão ao carregar as igrejas.');
-    } finally {
-      setLoading(false);
-      setIsSyncing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchIgrejasList();
-  }, []);
-
   const handleForceReloadDatabase = async () => {
     setSyncLoading(true);
     try {
       fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
-
-      const res = await fetch(`/api/igrejas/validadas?refresh=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      if (!res.ok) throw new Error('Erro ao buscar validadas');
-
-      const data = await res.json();
-      const churchList = Array.isArray(data)
-        ? data
-        : (data.igrejas || data.data || []);
-
-      if (Array.isArray(churchList)) {
-        setIgrejas(churchList);
-        setFilterContactStatus('ALL');
-        setFilterPorteGroup('ALL');
-        toast.success(`Banco atualizado com sucesso! Total de ${churchList.length} igrejas validadas carregadas.`);
-      }
+      await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
+      toast.success('Banco de dados sincronizado!');
     } catch (error) {
       console.error('Erro ao recarregar banco completo:', error);
       toast.error('Erro ao conectar ao banco de dados.');
@@ -254,16 +255,7 @@ export default function GestaoPage() {
     }
   };
 
-  // Typing search trigger
-  useEffect(() => {
-    startTransition(() => {
-      setSearchTerm(searchInput);
-      setCurrentIndex(0);
-      setCurrentPage(1);
-    });
-  }, [searchInput]);
-
-  // Coverage KPI metrics calculation
+  // Coverage KPI metrics calculation based on currently loaded records
   const kpiMetrics = useMemo(() => {
     const total = igrejas.length;
     if (total === 0) {
@@ -297,22 +289,9 @@ export default function GestaoPage() {
     };
   }, [igrejas]);
 
-  // 1. Lógica do Filtro Combinado
+  // Client-side contact status & porte group filtering on current page items
   const igrejasFiltradas = useMemo(() => {
     return igrejas.filter((igreja) => {
-      const matchesStatus = filterStatus === 'ALL' || String(igreja.status || '').toLowerCase() === filterStatus.toLowerCase();
-      const matchesEstado = filterEstado === 'ALL' || igreja.estado === filterEstado;
-      const matchesPorte = filterPorte === 'ALL' || igreja.porte === filterPorte;
-
-      const query = searchTerm.trim().toLowerCase();
-      const matchesSearch =
-        query === '' ||
-        String(igreja.codigo_totvs || '').toLowerCase().includes(query) ||
-        String(igreja.desc_igreja || '').toLowerCase().includes(query) ||
-        String(igreja.municipio || '').toLowerCase().includes(query) ||
-        String(igreja.bairro || '').toLowerCase().includes(query) ||
-        String(igreja.endereco || '').toLowerCase().includes(query);
-
       const hasDir = Boolean(igreja.dirigente_nome && igreja.dirigente_nome.trim().length > 0);
       const hasFin = Boolean(igreja.financeira_nome && igreja.financeira_nome.trim().length > 0);
       let matchesContact = true;
@@ -331,9 +310,9 @@ export default function GestaoPage() {
         matchesPorteGroup = porteUpper !== 'ESTADUAL' && porteUpper !== 'SETORIAL' && porteUpper !== 'CENTRAL' && porteUpper !== 'REGIONAL';
       }
 
-      return matchesStatus && matchesEstado && matchesPorte && matchesSearch && matchesContact && matchesPorteGroup;
+      return matchesContact && matchesPorteGroup;
     });
-  }, [igrejas, filterStatus, filterEstado, filterPorte, searchTerm, filterContactStatus, filterPorteGroup]);
+  }, [igrejas, filterContactStatus, filterPorteGroup]);
 
   // Priority sorting if active
   const filteredIgrejas = useMemo(() => {
@@ -355,20 +334,6 @@ export default function GestaoPage() {
       return weightA - weightB;
     });
   }, [igrejasFiltradas, prioritizeMajorPortes]);
-
-  // 2. Reset de Paginação e Ponteiro ao Alterar Busca/Filtros
-  useEffect(() => {
-    setCurrentIndex(0);
-    setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterEstado, filterPorte, filterContactStatus, filterPorteGroup]);
-
-  // Pagination slice
-  const paginatedIgrejas = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredIgrejas.slice(start, start + itemsPerPage);
-  }, [filteredIgrejas, currentPage]);
-
-  const totalPages = Math.ceil(filteredIgrejas.length / itemsPerPage);
 
   const openCreateModal = () => {
     setFormTotvs('');
@@ -491,7 +456,7 @@ export default function GestaoPage() {
       if (data.success) {
         toast.success(data.message || 'Nova igreja cadastrada com sucesso!');
         setIsCreateModalOpen(false);
-        await fetchIgrejasList();
+        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
       } else {
         toast.error(data.error || 'Erro ao cadastrar nova igreja.');
       }
@@ -525,7 +490,7 @@ export default function GestaoPage() {
         toast.success(data.message || `Importação concluída! ${data.count} registros processados.`);
         setIsImportContactsModalOpen(false);
         setFileToImport(null);
-        await fetchIgrejasList();
+        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
       } else {
         toast.error(data.error || 'Erro ao importar contatos.');
       }
@@ -566,7 +531,7 @@ export default function GestaoPage() {
       if (data.success) {
         toast.success(data.message || 'Igreja atualizada com sucesso!');
         setIsEditModalOpen(false);
-        await fetchIgrejasList();
+        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
       } else {
         toast.error(data.error || 'Erro ao atualizar dados.');
       }
@@ -606,7 +571,7 @@ export default function GestaoPage() {
       if (data.success) {
         toast.success('Responsáveis e contatos atualizados!');
         setIsContactsModalOpen(false);
-        await fetchIgrejasList();
+        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
       } else {
         toast.error(data.error || 'Erro ao salvar contatos.');
       }
@@ -787,7 +752,7 @@ export default function GestaoPage() {
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs font-bold text-zinc-500 bg-zinc-100 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-slate-700">
-              {filteredIgrejas.length} {filteredIgrejas.length === 1 ? 'registro' : 'registros'}
+              {totalRecords} {totalRecords === 1 ? 'registro' : 'registros'}
             </span>
             {userRole !== 'viewer' && (
               <button
@@ -818,7 +783,6 @@ export default function GestaoPage() {
             value={filterContactStatus}
             onChange={(e) => {
               setFilterContactStatus(e.target.value);
-              setCurrentPage(1);
             }}
             className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -834,7 +798,6 @@ export default function GestaoPage() {
             value={filterPorteGroup}
             onChange={(e) => {
               setFilterPorteGroup(e.target.value);
-              setCurrentPage(1);
             }}
             className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -849,7 +812,6 @@ export default function GestaoPage() {
             type="button"
             onClick={() => {
               setPrioritizeMajorPortes(!prioritizeMajorPortes);
-              setCurrentPage(1);
             }}
             className={`h-10 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs border ${
               prioritizeMajorPortes
@@ -890,7 +852,7 @@ export default function GestaoPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-slate-800 font-medium">
-                  {paginatedIgrejas.map((ig) => {
+                  {filteredIgrejas.map((ig) => {
                     const porte = ig.porte || 'LOCAL';
                     const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
 
@@ -994,21 +956,23 @@ export default function GestaoPage() {
             {totalPages > 1 && (
               <div className="p-4 bg-zinc-50 dark:bg-slate-800/50 border-t border-zinc-150 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <span className="text-xs text-zinc-500 dark:text-slate-400 font-semibold font-mono">
-                  Página {currentPage} de {totalPages}
+                  Página {currentPage} de {totalPages} ({totalRecords} registros)
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className="p-1.5 border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-zinc-650 hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                    disabled={currentPage <= 1 || loading || isSyncing}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    className="px-3 py-1.5 border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold text-zinc-700 dark:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-4 w-4" />
+                    <span>Anterior</span>
                   </button>
                   <button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className="p-1.5 border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-zinc-650 hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                    disabled={currentPage >= totalPages || loading || isSyncing}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    className="px-3 py-1.5 border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold text-zinc-700 dark:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:cursor-not-allowed"
                   >
+                    <span>Próxima</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>

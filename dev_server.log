@@ -2,17 +2,17 @@
 > test-dir@0.1.0 dev
 > next dev
 
-⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.2.11 (Turbopack)
-- Local:         http://localhost:3001
-- Network:       http://192.168.0.2:3001
-✓ Ready in 680ms
-⨯ Another next dev server is already running.
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 533ms
 
-- Local:        http://localhost:3000
-- PID:          152946
-- Dir:          /app
-- Log:          .next/dev/logs/next-development.log
-
-Run kill 152946 to stop it.
-[?25h
+○ Compiling / ...
+ HEAD / 200 in 5.4s (next.js: 5.1s, application-code: 285ms)
+ GET /login 200 in 828ms (next.js: 693ms, application-code: 135ms)
+ POST /api/auth/login 401 in 678ms (next.js: 645ms, application-code: 33ms)
+ GET /login 200 in 100ms (next.js: 4ms, application-code: 96ms)
+ GET /gestao 200 in 997ms (next.js: 818ms, proxy.ts: 9ms, application-code: 169ms)
+ GET /api/auth/session 200 in 253ms (next.js: 236ms, application-code: 17ms)
+ GET /api/admin/igrejas-completas?page=1&limit=50 200 in 349ms (next.js: 336ms, application-code: 14ms)
+ GET /api/admin/igrejas-completas?page=1&limit=50 200 in 10ms (next.js: 3ms, application-code: 7ms)
