@@ -238,12 +238,20 @@ export async function getIgrejas(
     estado?: string;
     status?: string;
     porte?: string;
+    contactStatus?: string;
+    porteGroup?: string;
     page?: number;
     limit?: number | string;
     search?: string;
   },
   columns?: string[]
-): Promise<{ data: Igreja[]; total: number }> {
+): Promise<{
+  data: Igreja[];
+  total: number;
+  totalDirigentes: number;
+  totalFinanceira: number;
+  majorPending: number;
+}> {
   await ensurePostgresTable();
   const safeColumns = getSafeColumns(columns);
 
@@ -282,28 +290,60 @@ export async function getIgrejas(
         } else if (p === 'ALDEIA INDIGENA' || p === 'ALDEIA INDÍGENA') {
           whereClause += ` AND (porte = 'ALDEIA INDIGENA' OR porte = 'ALDEIA INDÍGENA' OR (porte IS NULL AND (UPPER(desc_igreja) LIKE '%ALDEIA%' OR UPPER(desc_igreja) LIKE '%INDIGENA%' OR UPPER(desc_igreja) LIKE '%INDÍGENA%')))`;
         } else {
-          // ESTADUAL, SETORIAL, CENTRAL, REGIONAL
           whereClause += ` AND (porte = $${paramCount} OR (porte IS NULL AND UPPER(desc_igreja) LIKE $${paramCount + 1}))`;
           params.push(p, `%${p}%`);
           paramCount += 2;
         }
       }
 
+      if (filters?.porteGroup && filters.porteGroup !== 'ALL') {
+        const pg = filters.porteGroup;
+        if (pg === 'ESTADUAL_SETORIAL') {
+          whereClause += ` AND UPPER(COALESCE(porte, 'LOCAL')) IN ('ESTADUAL', 'SETORIAL')`;
+        } else if (pg === 'CENTRAL_REGIONAL') {
+          whereClause += ` AND UPPER(COALESCE(porte, 'LOCAL')) IN ('CENTRAL', 'REGIONAL')`;
+        } else if (pg === 'LOCAL_OUTROS') {
+          whereClause += ` AND UPPER(COALESCE(porte, 'LOCAL')) NOT IN ('ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL')`;
+        }
+      }
+
+      if (filters?.contactStatus && filters.contactStatus !== 'ALL') {
+        const cs = filters.contactStatus;
+        if (cs === 'NO_DIRIGENTE') {
+          whereClause += ` AND (dirigente_nome IS NULL OR TRIM(dirigente_nome) = '')`;
+        } else if (cs === 'NO_FINANCEIRA') {
+          whereClause += ` AND (financeira_nome IS NULL OR TRIM(financeira_nome) = '')`;
+        } else if (cs === 'NO_BOTH') {
+          whereClause += ` AND (dirigente_nome IS NULL OR TRIM(dirigente_nome) = '') AND (financeira_nome IS NULL OR TRIM(financeira_nome) = '')`;
+        } else if (cs === 'COMPLETE') {
+          whereClause += ` AND (dirigente_nome IS NOT NULL AND TRIM(dirigente_nome) <> '') AND (financeira_nome IS NOT NULL AND TRIM(financeira_nome) <> '')`;
+        }
+      }
+
       if (search) {
-        whereClause += ` AND (desc_igreja ILIKE $${paramCount} OR codigo_totvs ILIKE $${paramCount} OR municipio ILIKE $${paramCount})`;
+        whereClause += ` AND (desc_igreja ILIKE $${paramCount} OR codigo_totvs ILIKE $${paramCount} OR municipio ILIKE $${paramCount} OR endereco ILIKE $${paramCount} OR bairro ILIKE $${paramCount})`;
         params.push(`%${search}%`);
         paramCount++;
       }
 
-      // Count query for total matching records
-      const countQuery = `SELECT COUNT(*) AS total FROM igrejas${whereClause}`;
-      const countRes = await pool.query(countQuery, params);
-      const total = parseInt(countRes.rows[0]?.total || '0', 10);
+      // Fast SQL aggregation query for total count and statistics
+      const statsQuery = `
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(CASE WHEN dirigente_nome IS NOT NULL AND TRIM(dirigente_nome) <> '' THEN 1 END)::int AS total_dirigentes,
+          COUNT(CASE WHEN financeira_nome IS NOT NULL AND TRIM(financeira_nome) <> '' THEN 1 END)::int AS total_financeira,
+          COUNT(CASE WHEN UPPER(COALESCE(porte, 'LOCAL')) IN ('ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL') AND ((dirigente_nome IS NULL OR TRIM(dirigente_nome) = '') OR (financeira_nome IS NULL OR TRIM(financeira_nome) = '')) THEN 1 END)::int AS major_pending
+        FROM igrejas${whereClause}
+      `;
+      const statsRes = await pool.query(statsQuery, params);
+      const total = statsRes.rows[0]?.total || 0;
+      const totalDirigentes = statsRes.rows[0]?.total_dirigentes || 0;
+      const totalFinanceira = statsRes.rows[0]?.total_financeira || 0;
+      const majorPending = statsRes.rows[0]?.major_pending || 0;
 
       const selector = safeColumns ? safeColumns.join(', ') : '*';
       let dataQuery = `SELECT ${selector} FROM igrejas${whereClause}`;
 
-      // Order by desc_igreja ONLY if it's selected/requested
       if (!safeColumns || safeColumns.includes('desc_igreja')) {
         dataQuery += ' ORDER BY desc_igreja ASC';
       }
@@ -362,7 +402,7 @@ export async function getIgrejas(
         return item as Igreja;
       });
 
-      return { data, total };
+      return { data, total, totalDirigentes, totalFinanceira, majorPending };
     } catch (err) {
       console.error('Postgres error in getIgrejas:', err);
       throw err;
@@ -432,17 +472,49 @@ export async function getIgrejas(
       }
     });
   }
+  if (filters?.porteGroup && filters.porteGroup !== 'ALL') {
+    const pg = filters.porteGroup;
+    data = data.filter((item) => {
+      const p = (item.porte || 'LOCAL').toUpperCase();
+      if (pg === 'ESTADUAL_SETORIAL') return p === 'ESTADUAL' || p === 'SETORIAL';
+      if (pg === 'CENTRAL_REGIONAL') return p === 'CENTRAL' || p === 'REGIONAL';
+      if (pg === 'LOCAL_OUTROS') return p !== 'ESTADUAL' && p !== 'SETORIAL' && p !== 'CENTRAL' && p !== 'REGIONAL';
+      return true;
+    });
+  }
+  if (filters?.contactStatus && filters.contactStatus !== 'ALL') {
+    const cs = filters.contactStatus;
+    data = data.filter((item) => {
+      const hasDir = Boolean(item.dirigente_nome && item.dirigente_nome.trim().length > 0);
+      const hasFin = Boolean(item.financeira_nome && item.financeira_nome.trim().length > 0);
+      if (cs === 'NO_DIRIGENTE') return !hasDir;
+      if (cs === 'NO_FINANCEIRA') return !hasFin;
+      if (cs === 'NO_BOTH') return !hasDir && !hasFin;
+      if (cs === 'COMPLETE') return hasDir && hasFin;
+      return true;
+    });
+  }
   if (search) {
     const s = search.toLowerCase();
     data = data.filter(
       (item) =>
         (item.desc_igreja || '').toLowerCase().includes(s) ||
         (item.codigo_totvs || '').toLowerCase().includes(s) ||
-        (item.municipio || '').toLowerCase().includes(s)
+        (item.municipio || '').toLowerCase().includes(s) ||
+        (item.endereco || '').toLowerCase().includes(s) ||
+        (item.bairro || '').toLowerCase().includes(s)
     );
   }
 
   const total = data.length;
+  const totalDirigentes = data.filter((ig) => Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0)).length;
+  const totalFinanceira = data.filter((ig) => Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0)).length;
+  const majorPending = data.filter((ig) => {
+    const p = (ig.porte || 'LOCAL').toUpperCase();
+    const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
+    const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
+    return ['ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL'].includes(p) && (!hasDir || !hasFin);
+  }).length;
 
   data.sort((a, b) => (a.desc_igreja || '').localeCompare(b.desc_igreja || ''));
 
@@ -462,7 +534,7 @@ export async function getIgrejas(
     });
   }
 
-  return { data, total };
+  return { data, total, totalDirigentes, totalFinanceira, majorPending };
 }
 
 export interface IgrejaMap {

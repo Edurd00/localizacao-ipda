@@ -46,18 +46,24 @@ export default function GestaoPage() {
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filters & Priority Sorting states
+  // Filters
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [filterEstado, setFilterEstado] = useState<string>('ALL');
   const [filterPorte, setFilterPorte] = useState<string>('ALL');
   const [filterContactStatus, setFilterContactStatus] = useState<string>('ALL');
   const [filterPorteGroup, setFilterPorteGroup] = useState<string>('ALL');
-  const [prioritizeMajorPortes, setPrioritizeMajorPortes] = useState<boolean>(false);
+
+  // Server-computed KPI Metadata state
+  const [meta, setMeta] = useState({
+    total: 0,
+    totalDirigentes: 0,
+    totalFinanceira: 0,
+    majorPending: 0,
+    totalPages: 1,
+  });
 
   // Pagination states (50 items per page limit)
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
   const itemsPerPage = 50;
 
   // Selected Church states for Modals
@@ -97,10 +103,11 @@ export default function GestaoPage() {
   const [saving, setSaving] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
 
-  // Debounce search input by 400ms
+  // Debounce search input by 400ms and reset currentPage to 1
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchTerm(searchInput);
+      setCurrentPage(1);
     }, 400);
 
     return () => {
@@ -129,33 +136,35 @@ export default function GestaoPage() {
   }, []);
 
   // Server-side paginated fetch function
-  const fetchIgrejasList = async (
-    page = currentPage,
-    search = searchTerm,
-    estado = filterEstado,
-    status = filterStatus,
-    porte = filterPorte
-  ) => {
+  const fetchIgrejasList = async () => {
     if (!igrejas.length) setLoading(true);
     else setIsSyncing(true);
     try {
       const params = new URLSearchParams({
-        page: String(page),
+        page: String(currentPage),
         limit: String(itemsPerPage),
       });
 
-      if (search.trim()) params.set('search', search.trim());
-      if (estado !== 'ALL') params.set('estado', estado);
-      if (status !== 'ALL') params.set('status', status);
-      if (porte !== 'ALL') params.set('porte', porte);
+      if (searchTerm.trim()) params.set('search', searchTerm.trim());
+      if (filterEstado !== 'ALL') params.set('estado', filterEstado);
+      if (filterStatus !== 'ALL') params.set('status', filterStatus);
+      if (filterPorte !== 'ALL') params.set('porte', filterPorte);
+      if (filterContactStatus !== 'ALL') params.set('statusContato', filterContactStatus);
+      if (filterPorteGroup !== 'ALL') params.set('porteGroup', filterPorteGroup);
 
       const res = await fetch(`/api/admin/igrejas-completas?${params.toString()}`);
       const data = await res.json();
       if (data.success) {
-        setIgrejas(data.igrejas || []);
-        const total = data.total || 0;
-        setTotalRecords(total);
-        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+        setIgrejas(data.data || data.igrejas || []);
+        if (data.meta) {
+          setMeta({
+            total: data.meta.total || 0,
+            totalDirigentes: data.meta.totalDirigentes || 0,
+            totalFinanceira: data.meta.totalFinanceira || 0,
+            majorPending: data.meta.majorPending || 0,
+            totalPages: data.meta.totalPages || 1,
+          });
+        }
       } else {
         toast.error('Erro ao carregar lista de igrejas.');
       }
@@ -168,16 +177,10 @@ export default function GestaoPage() {
     }
   };
 
-  // Reset page to 1 when search or database filter changes
+  // Fetch page data on pagination or filter changes
   useEffect(() => {
-    setCurrentPage(1);
-    fetchIgrejasList(1, searchTerm, filterEstado, filterStatus, filterPorte);
-  }, [searchTerm, filterEstado, filterStatus, filterPorte]);
-
-  // Fetch page data when currentPage changes
-  useEffect(() => {
-    fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
-  }, [currentPage]);
+    fetchIgrejasList();
+  }, [currentPage, searchTerm, filterContactStatus, filterPorteGroup, filterPorte, filterEstado, filterStatus]);
 
   // ViaCEP Fetcher with Auto-fill
   const handleCepBlurOrChange = async (val: string) => {
@@ -232,7 +235,7 @@ export default function GestaoPage() {
     setSyncLoading(true);
     try {
       fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
-      await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
+      await fetchIgrejasList();
       toast.success('Banco de dados sincronizado!');
     } catch (error) {
       console.error('Erro ao recarregar banco completo:', error);
@@ -255,85 +258,9 @@ export default function GestaoPage() {
     }
   };
 
-  // Coverage KPI metrics calculation based on currently loaded records
-  const kpiMetrics = useMemo(() => {
-    const total = igrejas.length;
-    if (total === 0) {
-      return { dirigenteCount: 0, dirigentePct: 0, financeiraCount: 0, financeiraPct: 0, majorPendingCount: 0 };
-    }
-
-    let dirCount = 0;
-    let finCount = 0;
-    let majorPending = 0;
-
-    const majorPortes = new Set(['ESTADUAL', 'SETORIAL', 'CENTRAL', 'REGIONAL']);
-
-    for (const ig of igrejas) {
-      const hasDir = Boolean(ig.dirigente_nome && ig.dirigente_nome.trim().length > 0);
-      const hasFin = Boolean(ig.financeira_nome && ig.financeira_nome.trim().length > 0);
-      if (hasDir) dirCount++;
-      if (hasFin) finCount++;
-
-      const porte = (ig.porte || 'LOCAL').toUpperCase();
-      if (majorPortes.has(porte) && (!hasDir || !hasFin)) {
-        majorPending++;
-      }
-    }
-
-    return {
-      dirigenteCount: dirCount,
-      dirigentePct: Math.round((dirCount / total) * 100),
-      financeiraCount: finCount,
-      financeiraPct: Math.round((finCount / total) * 100),
-      majorPendingCount: majorPending,
-    };
-  }, [igrejas]);
-
-  // Client-side contact status & porte group filtering on current page items
-  const igrejasFiltradas = useMemo(() => {
-    return igrejas.filter((igreja) => {
-      const hasDir = Boolean(igreja.dirigente_nome && igreja.dirigente_nome.trim().length > 0);
-      const hasFin = Boolean(igreja.financeira_nome && igreja.financeira_nome.trim().length > 0);
-      let matchesContact = true;
-      if (filterContactStatus === 'NO_DIRIGENTE') matchesContact = !hasDir;
-      else if (filterContactStatus === 'NO_FINANCEIRA') matchesContact = !hasFin;
-      else if (filterContactStatus === 'NO_BOTH') matchesContact = !hasDir && !hasFin;
-      else if (filterContactStatus === 'COMPLETE') matchesContact = hasDir && hasFin;
-
-      const porteUpper = (igreja.porte || 'LOCAL').toUpperCase();
-      let matchesPorteGroup = true;
-      if (filterPorteGroup === 'ESTADUAL_SETORIAL') {
-        matchesPorteGroup = porteUpper === 'ESTADUAL' || porteUpper === 'SETORIAL';
-      } else if (filterPorteGroup === 'CENTRAL_REGIONAL') {
-        matchesPorteGroup = porteUpper === 'CENTRAL' || porteUpper === 'REGIONAL';
-      } else if (filterPorteGroup === 'LOCAL_OUTROS') {
-        matchesPorteGroup = porteUpper !== 'ESTADUAL' && porteUpper !== 'SETORIAL' && porteUpper !== 'CENTRAL' && porteUpper !== 'REGIONAL';
-      }
-
-      return matchesContact && matchesPorteGroup;
-    });
-  }, [igrejas, filterContactStatus, filterPorteGroup]);
-
-  // Priority sorting if active
-  const filteredIgrejas = useMemo(() => {
-    if (!prioritizeMajorPortes) return igrejasFiltradas;
-
-    const PORTE_WEIGHTS: Record<string, number> = {
-      ESTADUAL: 1,
-      SETORIAL: 2,
-      CENTRAL: 3,
-      REGIONAL: 4,
-      LOCAL: 5,
-      'CASA DE ORAÇÃO': 6,
-      'ALDEIA INDIGENA': 7,
-    };
-
-    return [...igrejasFiltradas].sort((a, b) => {
-      const weightA = PORTE_WEIGHTS[(a.porte || 'LOCAL').toUpperCase()] || 99;
-      const weightB = PORTE_WEIGHTS[(b.porte || 'LOCAL').toUpperCase()] || 99;
-      return weightA - weightB;
-    });
-  }, [igrejasFiltradas, prioritizeMajorPortes]);
+  // KPI card percentages computed directly from server response meta
+  const dirigentePct = meta.total > 0 ? Math.round((meta.totalDirigentes / meta.total) * 100) : 0;
+  const financeiraPct = meta.total > 0 ? Math.round((meta.totalFinanceira / meta.total) * 100) : 0;
 
   const openCreateModal = () => {
     setFormTotvs('');
@@ -456,7 +383,7 @@ export default function GestaoPage() {
       if (data.success) {
         toast.success(data.message || 'Nova igreja cadastrada com sucesso!');
         setIsCreateModalOpen(false);
-        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
+        await fetchIgrejasList();
       } else {
         toast.error(data.error || 'Erro ao cadastrar nova igreja.');
       }
@@ -490,7 +417,7 @@ export default function GestaoPage() {
         toast.success(data.message || `Importação concluída! ${data.count} registros processados.`);
         setIsImportContactsModalOpen(false);
         setFileToImport(null);
-        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
+        await fetchIgrejasList();
       } else {
         toast.error(data.error || 'Erro ao importar contatos.');
       }
@@ -531,7 +458,7 @@ export default function GestaoPage() {
       if (data.success) {
         toast.success(data.message || 'Igreja atualizada com sucesso!');
         setIsEditModalOpen(false);
-        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
+        await fetchIgrejasList();
       } else {
         toast.error(data.error || 'Erro ao atualizar dados.');
       }
@@ -571,7 +498,7 @@ export default function GestaoPage() {
       if (data.success) {
         toast.success('Responsáveis e contatos atualizados!');
         setIsContactsModalOpen(false);
-        await fetchIgrejasList(currentPage, searchTerm, filterEstado, filterStatus, filterPorte);
+        await fetchIgrejasList();
       } else {
         toast.error(data.error || 'Erro ao salvar contatos.');
       }
@@ -703,7 +630,7 @@ export default function GestaoPage() {
             <div>
               <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🎴 Cobertura de Dirigentes</p>
               <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
-                {kpiMetrics.dirigenteCount} <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">({kpiMetrics.dirigentePct}%)</span>
+                {meta.totalDirigentes} <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">({dirigentePct}%)</span>
               </h3>
             </div>
             <div className="p-2.5 bg-indigo-50 dark:bg-slate-800 text-indigo-600 rounded-xl border border-indigo-100 dark:border-slate-700">
@@ -715,7 +642,7 @@ export default function GestaoPage() {
             <div>
               <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">💼 Cobertura Financeira</p>
               <h3 className="text-xl font-black text-zinc-900 dark:text-white mt-0.5 font-mono">
-                {kpiMetrics.financeiraCount} <span className="text-xs text-violet-600 dark:text-violet-400 font-bold">({kpiMetrics.financeiraPct}%)</span>
+                {meta.totalFinanceira} <span className="text-xs text-violet-600 dark:text-violet-400 font-bold">({financeiraPct}%)</span>
               </h3>
             </div>
             <div className="p-2.5 bg-violet-50 dark:bg-slate-800 text-violet-600 rounded-xl border border-violet-100 dark:border-slate-700">
@@ -727,7 +654,7 @@ export default function GestaoPage() {
             <div>
               <p className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase tracking-wider">🚨 Sedes Maiores Pendentes</p>
               <h3 className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 font-mono">
-                {kpiMetrics.majorPendingCount} <span className="text-xs text-amber-500 font-normal">igrejas</span>
+                {meta.majorPending} <span className="text-xs text-amber-500 font-normal">igrejas</span>
               </h3>
             </div>
             <div className="p-2.5 bg-amber-50 dark:bg-slate-800 text-amber-600 rounded-xl border border-amber-100 dark:border-slate-700">
@@ -752,7 +679,7 @@ export default function GestaoPage() {
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs font-bold text-zinc-500 bg-zinc-100 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-slate-700">
-              {totalRecords} {totalRecords === 1 ? 'registro' : 'registros'}
+              {meta.total} {meta.total === 1 ? 'registro' : 'registros'}
             </span>
             {userRole !== 'viewer' && (
               <button
@@ -776,13 +703,14 @@ export default function GestaoPage() {
           </div>
         </div>
 
-        {/* Painel de Filtros e Priorização de Portes */}
+        {/* Painel de Filtros */}
         <div className="flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           {/* Filter 1: Status do Contato */}
           <select
             value={filterContactStatus}
             onChange={(e) => {
               setFilterContactStatus(e.target.value);
+              setCurrentPage(1);
             }}
             className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -798,6 +726,7 @@ export default function GestaoPage() {
             value={filterPorteGroup}
             onChange={(e) => {
               setFilterPorteGroup(e.target.value);
+              setCurrentPage(1);
             }}
             className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -807,20 +736,20 @@ export default function GestaoPage() {
             <option value="LOCAL_OUTROS">⚪ Locais & Outros</option>
           </select>
 
-          {/* Toggle: Priorizar Portes Maiores */}
-          <button
-            type="button"
-            onClick={() => {
-              setPrioritizeMajorPortes(!prioritizeMajorPortes);
+          {/* Filter 3: Porte Específico */}
+          <select
+            value={filterPorte}
+            onChange={(e) => {
+              setFilterPorte(e.target.value);
+              setCurrentPage(1);
             }}
-            className={`h-10 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs border ${
-              prioritizeMajorPortes
-                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-sm'
-                : 'bg-zinc-50 dark:bg-slate-800 text-zinc-650 dark:text-slate-350 border-zinc-200 dark:border-slate-700 hover:bg-zinc-100'
-            }`}
+            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <span>⚡ Priorizar Portes Maiores</span>
-          </button>
+            <option value="ALL">Classificação Específica: Todas</option>
+            {Object.keys(PORTE_INFO).map((porteKey) => (
+              <option key={porteKey} value={porteKey}>{PORTE_INFO[porteKey].label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Loading Indicator */}
@@ -829,14 +758,14 @@ export default function GestaoPage() {
             <Loader2 className="animate-spin h-10 w-10 text-indigo-600 mb-4" />
             <h3 className="font-bold text-zinc-800 dark:text-white">Buscando base de dados de igrejas...</h3>
           </div>
-        ) : filteredIgrejas.length === 0 ? (
+        ) : igrejas.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl text-center px-4">
             <Users className="h-12 w-12 text-zinc-300 mb-3" />
             <h3 className="font-bold text-zinc-800 dark:text-white">Nenhum registro encontrado</h3>
             <p className="text-xs text-zinc-500 mt-1">Nenhum resultado com base na sua pesquisa "{searchTerm}".</p>
           </div>
         ) : (
-          /* Table Layout styled properly */
+          /* Table Layout strictly rendering response.data */
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
@@ -852,7 +781,7 @@ export default function GestaoPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-slate-800 font-medium">
-                  {filteredIgrejas.map((ig) => {
+                  {igrejas.map((ig) => {
                     const porte = ig.porte || 'LOCAL';
                     const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
 
@@ -953,10 +882,10 @@ export default function GestaoPage() {
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
+            {meta.totalPages > 1 && (
               <div className="p-4 bg-zinc-50 dark:bg-slate-800/50 border-t border-zinc-150 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <span className="text-xs text-zinc-500 dark:text-slate-400 font-semibold font-mono">
-                  Página {currentPage} de {totalPages} ({totalRecords} registros)
+                  Página {currentPage} de {meta.totalPages} ({meta.total} registros)
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -968,8 +897,8 @@ export default function GestaoPage() {
                     <span>Anterior</span>
                   </button>
                   <button
-                    disabled={currentPage >= totalPages || loading || isSyncing}
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= meta.totalPages || loading || isSyncing}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, meta.totalPages))}
                     className="px-3 py-1.5 border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold text-zinc-700 dark:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:cursor-not-allowed"
                   >
                     <span>Próxima</span>
