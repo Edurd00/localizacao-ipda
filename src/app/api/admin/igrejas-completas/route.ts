@@ -21,18 +21,20 @@ export async function GET(request: Request) {
     const estado = searchParams.get('estado') || 'ALL';
     const status = searchParams.get('status') || 'ALL';
     const porte = searchParams.get('porte') || 'ALL';
+    const contactStatus = searchParams.get('statusContato') || searchParams.get('contactStatus') || 'ALL';
+    const porteGroup = searchParams.get('porteGroup') || 'ALL';
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
     const search = searchParams.get('search') || searchParams.get('q') || '';
 
     const page = pageParam ? parseInt(pageParam, 10) || 1 : 1;
-    // Default limit set to 50 records per page to minimize egress
+    // Strict limit enforced to max 50 records per request to avoid egress spikes
     const rawLimit = parseInt(limitParam || '50', 10);
-    const limit = isNaN(rawLimit) || rawLimit <= 0 ? 50 : Math.min(rawLimit, 100);
+    const limit = isNaN(rawLimit) || rawLimit <= 0 ? 50 : Math.min(rawLimit, 50);
 
     const [result, states] = await Promise.all([
       getIgrejas(
-        { estado, status, porte, page, limit, search },
+        { estado, status, porte, contactStatus, porteGroup, page, limit, search },
         [
           'id',
           'codigo_totvs',
@@ -62,12 +64,22 @@ export async function GET(request: Request) {
       getDistinctStates(),
     ]);
 
+    const total = result.total || 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
     return NextResponse.json({
       success: true,
-      igrejas: result.data,
-      total: result.total,
-      page,
-      limit,
+      data: result.data,
+      igrejas: result.data, // backward compatibility
+      meta: {
+        total,
+        totalDirigentes: result.totalDirigentes || 0,
+        totalFinanceira: result.totalFinanceira || 0,
+        majorPending: result.majorPending || 0,
+        page,
+        totalPages,
+        limit,
+      },
       states,
     });
   } catch (err: unknown) {
