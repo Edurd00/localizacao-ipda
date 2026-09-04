@@ -26,9 +26,9 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || searchParams.get('q') || '';
 
     const page = pageParam ? parseInt(pageParam, 10) || 1 : 1;
-    // Strict limit enforced to max 100 records per request to avoid egress spikes
-    const rawLimit = parseInt(limitParam || '100', 10);
-    const limit = isNaN(rawLimit) || rawLimit <= 0 ? 100 : Math.min(rawLimit, 100);
+    // Default limit set to 50 records per page to minimize egress
+    const rawLimit = parseInt(limitParam || '50', 10);
+    const limit = isNaN(rawLimit) || rawLimit <= 0 ? 50 : Math.min(rawLimit, 100);
 
     const [result, states] = await Promise.all([
       getIgrejas(
@@ -37,33 +37,26 @@ export async function GET(request: Request) {
           'id',
           'codigo_totvs',
           'desc_igreja',
-          'tipo_imovel',
-          'endereco',
-          'bairro',
-          'municipio',
           'estado',
-          'cep',
-          'link_google_maps',
-          'latitude',
-          'longitude',
-          'status',
-          'usuario_validador',
-          'validado_por',
-          'validado_em',
-          'observacoes',
-          'codigo_totvs_pai',
-          'porte',
-          'updated_at',
+          'municipio',
           'dirigente_nome',
           'dirigente_telefone',
-          'dirigente_email',
           'financeira_nome',
           'financeira_telefone',
-          'financeira_email',
+          'bairro',
+          'endereco',
+          'cep',
+          'link_google_maps',
+          'porte',
+          'codigo_totvs_pai',
+          'dirigente_email',
           'dirigente_data_posse',
+          'financeira_email',
           'qtd_membros',
           'qtd_jovens',
-          'tipo_prebenda'
+          'tipo_prebenda',
+          'tipo_imovel',
+          'status',
         ]
       ),
       getDistinctStates(),
