@@ -43,11 +43,33 @@ export default function ChurchDetailModal({
   handleTraceConnectionMesh,
   fetchTerrestrialRoute,
 }: ChurchDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'historico'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'patrimonio' | 'historico'>('geral');
   const [liderancaData, setLiderancaData] = useState<any>(null);
   const [loadingLideranca, setLoadingLideranca] = useState<boolean>(false);
   const [historicoData, setHistoricoData] = useState<any[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState<boolean>(false);
+  const [patrimonioData, setPatrimonioData] = useState<any>(null);
+  const [isLoadingPatrimonio, setIsLoadingPatrimonio] = useState<boolean>(false);
+
+  const fetchPatrimonio = async (totvs: string) => {
+    setIsLoadingPatrimonio(true);
+    try {
+      const res = await fetch(`/api/patrimonio/${encodeURIComponent(totvs)}`);
+      const json = await res.json();
+      setPatrimonioData(json.data || null);
+    } catch (err) {
+      console.error('Erro ao buscar patrimônio:', err);
+      setPatrimonioData(null);
+    } finally {
+      setIsLoadingPatrimonio(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'patrimonio' && ig?.codigo_totvs) {
+      fetchPatrimonio(ig.codigo_totvs);
+    }
+  }, [activeTab, ig?.codigo_totvs]);
 
   // Fetch leadership data dynamically in real time for authenticated users
   useEffect(() => {
@@ -134,7 +156,7 @@ export default function ChurchDetailModal({
         <button
           type="button"
           onClick={() => setActiveTab('geral')}
-          className={`flex-1 py-1 text-center text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+          className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
             activeTab === 'geral'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -146,7 +168,7 @@ export default function ChurchDetailModal({
           <button
             type="button"
             onClick={() => setActiveTab('lideranca')}
-            className={`flex-1 py-1 text-center text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'lideranca'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -155,11 +177,22 @@ export default function ChurchDetailModal({
             👥 Liderança
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setActiveTab('patrimonio')}
+          className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            activeTab === 'patrimonio'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+          🪑 Patrimônio
+          </button>
         {isAuthenticated && (
           <button
             type="button"
             onClick={() => setActiveTab('historico')}
-            className={`flex-1 py-1 text-center text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'historico'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -526,6 +559,94 @@ export default function ChurchDetailModal({
           </div>
         )}
 
+
+        {activeTab === 'patrimonio' && (
+          <div className="space-y-2 py-1">
+            {isLoadingPatrimonio ? (
+              <div className="flex items-center justify-center p-6 text-indigo-600 gap-2 font-medium">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Carregando dados de patrimônio...</span>
+              </div>
+            ) : !patrimonioData ? (
+              <div className="p-4 text-center text-slate-500 bg-slate-50 rounded-xl border border-slate-200/80 my-2">
+                <p className="text-xs italic">Nenhum relatório de patrimônio enviado para esta congregação.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {/* Cabeçalho com ano_referencia, nome_responsavel, telefone_responsavel e data_envio */}
+                <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs space-y-1 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                    <span className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                      📅 Ref: {patrimonioData.ano_referencia || 'N/A'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded font-mono">
+                      Envio: {(() => {
+                        const rawDate = patrimonioData.data_envio || patrimonioData.criado_em || patrimonioData.created_at;
+                        if (!rawDate) return '---';
+                        try {
+                          const d = new Date(rawDate);
+                          return isNaN(d.getTime()) ? '---' : d.toLocaleDateString('pt-BR');
+                        } catch {
+                          return '---';
+                        }
+                      })()}
+                    </span>
+                  </div>
+                  <div className="pt-1 text-[11px] text-slate-700 space-y-0.5">
+                    <p>
+                      <span className="font-semibold text-slate-500">Responsável:</span>{' '}
+                      <strong className="text-slate-800">{patrimonioData.nome_responsavel || '---'}</strong>
+                    </p>
+                    {patrimonioData.telefone_responsavel && (
+                      <p>
+                        <span className="font-semibold text-slate-500">Telefone:</span>{' '}
+                        <span className="text-slate-800 font-medium">{patrimonioData.telefone_responsavel}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabela de patrimonio_itens (Apenas itens com possui === 'Sim') */}
+                {(() => {
+                  const validItens = (patrimonioData.patrimonio_itens || []).filter(
+                    (item: any) => String(item.possui || '').trim().toLowerCase() === 'sim'
+                  );
+
+                  if (validItens.length === 0) {
+                    return (
+                      <p className="text-slate-400 italic text-xs p-2 text-center">
+                        Nenhum item marcado como &quot;Sim&quot; neste relatório.
+                      </p>
+                    );
+                  }
+
+                  return (
+                    <div className="max-h-[220px] overflow-y-auto border border-slate-200 rounded-lg shadow-xs">
+                      <table className="w-full text-left text-[11px]">
+                        <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0">
+                          <tr>
+                            <th className="px-2 py-1.5">Item</th>
+                            <th className="px-2 py-1.5 text-center">Quantidade</th>
+                            <th className="px-2 py-1.5">Conservação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-800 bg-white">
+                          {validItens.map((item: any, idx: number) => (
+                            <tr key={item.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="px-2 py-1.5 font-medium">{item.item || item.nome_item || item.descricao || '---'}</td>
+                              <td className="px-2 py-1.5 text-center font-bold text-indigo-900">{item.quantidade ?? item.qtd ?? '---'}</td>
+                              <td className="px-2 py-1.5 text-slate-600">{item.conservacao || item.estado_conservacao || item.estado || '---'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        )}
 
         {isAuthenticated && activeTab === 'historico' && (
           <div className="space-y-3 py-1">
