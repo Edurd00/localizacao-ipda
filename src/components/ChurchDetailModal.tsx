@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Building2, MapPin, Loader2, Link } from 'lucide-react';
+import { Building2, MapPin, Loader2, Link, User, Phone } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { toast } from 'sonner';
 import { PORTE_INFO, getPorte, getDescendantCount, formatLeadershipTenure } from './GeneralMapComponent';
@@ -576,7 +576,7 @@ export default function ChurchDetailModal({
             ) : (
               <div className="space-y-2.5">
                 {/* Cabeçalho com ano_referencia, nome_responsavel, telefone_responsavel e data_envio */}
-                <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs space-y-1 shadow-xs">
+                <div className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-lg text-xs space-y-1 shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
                     <span className="font-bold text-slate-900 text-xs flex items-center gap-1">
                       📅 Ref: {patrimonioData.ano_referencia || 'N/A'}
@@ -595,12 +595,14 @@ export default function ChurchDetailModal({
                     </span>
                   </div>
                   <div className="pt-1 text-[11px] text-slate-700 space-y-0.5">
-                    <p>
+                    <p className="flex items-center gap-1">
+                      <User className="h-3 w-3 text-slate-400 shrink-0" />
                       <span className="font-semibold text-slate-500">Responsável:</span>{' '}
-                      <strong className="text-slate-800">{patrimonioData.nome_responsavel || '---'}</strong>
+                      <strong className="font-bold text-slate-800">{patrimonioData.nome_responsavel || '---'}</strong>
                     </p>
                     {patrimonioData.telefone_responsavel && (
-                      <p>
+                      <p className="flex items-center gap-1">
+                        <Phone className="h-3 w-3 text-slate-400 shrink-0" />
                         <span className="font-semibold text-slate-500">Telefone:</span>{' '}
                         <span className="text-slate-800 font-medium">{patrimonioData.telefone_responsavel}</span>
                       </p>
@@ -623,9 +625,9 @@ export default function ChurchDetailModal({
                   }
 
                   return (
-                    <div className="max-h-[220px] overflow-y-auto border border-slate-200 rounded-lg shadow-xs">
+                    <div className="max-h-[220px] overflow-y-auto border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                       <table className="w-full text-left text-[11px]">
-                        <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0">
+                        <thead className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[9px] border-b border-slate-200 sticky top-0">
                           <tr>
                             <th className="px-2 py-1.5">Item</th>
                             <th className="px-2 py-1.5 text-center">Quantidade</th>
@@ -634,10 +636,14 @@ export default function ChurchDetailModal({
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-slate-800 bg-white">
                           {validItens.map((item: any, idx: number) => (
-                            <tr key={item.id || idx} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="px-2 py-1.5 font-medium">{item.item || item.nome_item || item.descricao || '---'}</td>
-                              <td className="px-2 py-1.5 text-center font-bold text-indigo-900">{item.quantidade ?? item.qtd ?? '---'}</td>
-                              <td className="px-2 py-1.5 text-slate-600">{item.conservacao || item.estado_conservacao || item.estado || '---'}</td>
+                            <tr key={item.id || idx} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-2 py-1.5 font-medium">{item.item_nome || item.item || item.nome_item || item.descricao || '---'}</td>
+                              <td className="px-2 py-1.5 text-center">
+                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-1.5 py-0.5 rounded-md font-mono font-bold">
+                                  {item.quantidade ?? item.qtd ?? '---'}
+                                </span>
+                              </td>
+                              <td className="px-2 py-1.5 text-[10px] text-slate-500 font-medium">{item.conservacao || item.estado_conservacao || item.estado || '---'}</td>
                             </tr>
                           ))}
                         </tbody>
