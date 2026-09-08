@@ -18,3 +18,8 @@
  GET /api/igrejas/validadas 200 in 9ms (next.js: 5ms, application-code: 5ms)
  GET /api/auth/session 200 in 13ms (next.js: 6ms, application-code: 8ms)
  GET /api/auth/session 200 in 13ms (next.js: 5ms, application-code: 8ms)
+ GET / 200 in 1117ms (next.js: 100ms, application-code: 1017ms)
+ GET /api/auth/session 200 in 27ms (next.js: 10ms, application-code: 17ms)
+ GET /api/igrejas/validadas 200 in 16ms (next.js: 5ms, application-code: 10ms)
+ GET /api/auth/session 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/auth/session 200 in 13ms (next.js: 4ms, application-code: 9ms)
