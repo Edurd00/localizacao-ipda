@@ -151,56 +151,60 @@ export default function ChurchDetailModal({
         </div>
       </div>
 
-      {/* Navigation Tabs (Floating without full divider lines) */}
-      <div className="flex border-b border-slate-200 mt-2">
+      {/* Navigation Tabs (Segmented Control Layout) */}
+      <div className={`grid ${isAuthenticated ? 'grid-cols-4' : 'grid-cols-1'} gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl mt-3`}>
         <button
           type="button"
           onClick={() => setActiveTab('geral')}
-          className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+          className={`flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold transition-all select-none cursor-pointer ${
             activeTab === 'geral'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-600'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 border border-transparent'
           }`}
         >
-          📍 Geral
+          <span>📍</span>
+          <span className="mt-0.5">Geral</span>
         </button>
         {isAuthenticated && (
           <button
             type="button"
             onClick={() => setActiveTab('lideranca')}
-            className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold transition-all select-none cursor-pointer ${
               activeTab === 'lideranca'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-600'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 border border-transparent'
             }`}
           >
-            👥 Liderança
+            <span>👥</span>
+            <span className="mt-0.5">Liderança</span>
           </button>
         )}
         {isAuthenticated && (
           <button
             type="button"
             onClick={() => setActiveTab('patrimonio')}
-            className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold transition-all select-none cursor-pointer ${
               activeTab === 'patrimonio'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-600'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 border border-transparent'
             }`}
           >
-            🪑 Patrimônio
+            <span>🪑</span>
+            <span className="mt-0.5">Patrimônio</span>
           </button>
         )}
         {isAuthenticated && (
           <button
             type="button"
             onClick={() => setActiveTab('historico')}
-            className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold transition-all select-none cursor-pointer ${
               activeTab === 'historico'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-600'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 border border-transparent'
             }`}
           >
-            🕒 Histórico
+            <span>🕒</span>
+            <span className="mt-0.5">Histórico</span>
           </button>
         )}
       </div>
