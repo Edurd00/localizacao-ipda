@@ -7,7 +7,6 @@ import { Toaster, toast } from 'sonner';
 import {
   Search,
   Users,
-  X,
   Loader2,
   RefreshCw,
   Power,
@@ -18,9 +17,9 @@ import {
   Calendar,
   Phone,
   User,
-  Building2,
   Package,
 } from 'lucide-react';
+import PatrimonioDetailModal from '@/components/PatrimonioDetailModal';
 
 export interface PatrimonioSubmissao {
   id: string;
@@ -75,8 +74,6 @@ export default function GestaoPatrimonioPage() {
   // Modal / Detail states
   const [selectedSubmissao, setSelectedSubmissao] = useState<PatrimonioSubmissao | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detailItems, setDetailItems] = useState<PatrimonioItem[]>([]);
-  const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Debounce search input by 400ms
   useEffect(() => {
@@ -149,25 +146,10 @@ export default function GestaoPatrimonioPage() {
     fetchSubmissoesList();
   }, [currentPage, searchTerm]);
 
-  // Open Details Modal and fetch item breakdown
-  const handleOpenDetails = async (sub: PatrimonioSubmissao) => {
+  // Open Details Modal
+  const handleOpenDetails = (sub: PatrimonioSubmissao) => {
     setSelectedSubmissao(sub);
     setIsDetailModalOpen(true);
-    setLoadingDetail(true);
-    setDetailItems([]);
-
-    try {
-      const res = await fetch(`/api/patrimonio/${encodeURIComponent(sub.codigo_totvs)}`);
-      const json = await res.json();
-      if (json.data && json.data.patrimonio_itens) {
-        setDetailItems(json.data.patrimonio_itens || []);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar detalhes do patrimônio:', err);
-      toast.error('Erro ao carregar os itens do relatório.');
-    } finally {
-      setLoadingDetail(false);
-    }
   };
 
   const handleLogout = async () => {
@@ -454,132 +436,11 @@ export default function GestaoPatrimonioPage() {
       </main>
 
       {/* 🔍 Modal: Detalhes do Relatório de Patrimônio */}
-      {isDetailModalOpen && selectedSubmissao && (
-        <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full shadow-2xl border border-zinc-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 max-h-[90vh]">
-            <div className="p-5 border-b border-zinc-100 dark:border-slate-800 flex justify-between items-center bg-zinc-50/50 dark:bg-slate-800/40">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                <Package className="h-5 w-5" />
-                <h3 className="font-extrabold text-sm uppercase tracking-wider">
-                  Relatório de Patrimônio - TOTVS {selectedSubmissao.codigo_totvs}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Resumo da Submissão */}
-              <div className="bg-zinc-50 dark:bg-slate-800/60 p-4 rounded-xl border border-zinc-200 dark:border-slate-700 space-y-2 text-xs">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-bold text-zinc-900 dark:text-white text-sm">
-                      {selectedSubmissao.desc_igreja || `Igreja TOTVS ${selectedSubmissao.codigo_totvs}`}
-                    </h4>
-                    {selectedSubmissao.municipio && (
-                      <p className="text-zinc-500 dark:text-slate-400 font-medium">📍 {selectedSubmissao.municipio}</p>
-                    )}
-                  </div>
-                  {selectedSubmissao.ano_referencia && (
-                    <span className="bg-indigo-100 text-indigo-800 dark:bg-slate-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-mono font-bold text-[10px]">
-                      Ref: {selectedSubmissao.ano_referencia}
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-200/60 dark:border-slate-700/60 text-zinc-700 dark:text-slate-300">
-                  <div>
-                    <span className="font-bold text-zinc-500 block text-[10px] uppercase">Responsável</span>
-                    <span className="font-semibold">{selectedSubmissao.nome_responsavel || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-zinc-500 block text-[10px] uppercase">Telefone</span>
-                    <span className="font-mono">{selectedSubmissao.telefone_responsavel || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-zinc-500 block text-[10px] uppercase">Data de Envio</span>
-                    <span className="font-mono">
-                      {formatDate(selectedSubmissao.data_envio || selectedSubmissao.criado_em || selectedSubmissao.created_at)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabela de Itens de Patrimônio */}
-              <div>
-                <h5 className="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
-                  <Package className="h-4 w-4 text-indigo-500" />
-                  Itens Declarados no Patrimônio
-                </h5>
-
-                {loadingDetail ? (
-                  <div className="flex items-center justify-center p-8 text-indigo-600 gap-2 font-medium bg-zinc-50 dark:bg-slate-800/40 rounded-xl border border-zinc-200 dark:border-slate-800">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Carregando itens de patrimônio...</span>
-                  </div>
-                ) : detailItems.length === 0 ? (
-                  <div className="p-6 text-center text-zinc-500 dark:text-slate-400 bg-zinc-50 dark:bg-slate-800/40 rounded-xl border border-zinc-200 dark:border-slate-800 text-xs italic">
-                    Nenhum item específico listado para este relatório.
-                  </div>
-                ) : (
-                  <div className="max-h-[260px] overflow-y-auto border border-zinc-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-xs">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-300 font-bold border-b border-zinc-200 dark:border-slate-700 sticky top-0">
-                        <tr>
-                          <th className="px-3 py-2">Item</th>
-                          <th className="px-3 py-2 text-center">Possui</th>
-                          <th className="px-3 py-2 text-center">Quantidade</th>
-                          <th className="px-3 py-2">Conservação</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 dark:divide-slate-800 text-zinc-800 dark:text-slate-200 bg-white dark:bg-slate-900">
-                        {detailItems.map((item, idx) => (
-                          <tr key={item.id || idx} className="hover:bg-zinc-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <td className="px-3 py-2 font-medium">
-                              {item.item || item.nome_item || item.descricao || '---'}
-                            </td>
-                            <td className="px-3 py-2 text-center">
-                              <span
-                                className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
-                                  String(item.possui || '').toLowerCase() === 'sim'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                                    : 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                                }`}
-                              >
-                                {item.possui || '---'}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2 text-center font-bold text-indigo-900 dark:text-indigo-300 font-mono">
-                              {item.quantidade ?? item.qtd ?? '---'}
-                            </td>
-                            <td className="px-3 py-2 text-zinc-600 dark:text-slate-400">
-                              {item.conservacao || item.estado_conservacao || item.estado || '---'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-zinc-100 dark:border-slate-800 bg-zinc-50/50 dark:bg-slate-800/40 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-800 dark:text-slate-200 font-bold text-xs rounded-xl transition-colors"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PatrimonioDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        submissao={selectedSubmissao}
+      />
     </div>
   );
 }
