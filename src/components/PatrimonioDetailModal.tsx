@@ -235,7 +235,7 @@ export default function PatrimonioDetailModal({
                         }
                       >
                         <td className="px-3 py-2.5 font-medium">
-                          {item.item || item.nome_item || item.descricao || '---'}
+                          {item.item_nome || item.item || item.nome_item || item.descricao || '---'}
                         </td>
                         <td className="px-3 py-2.5 text-center font-bold text-indigo-900 dark:text-indigo-300 font-mono">
                           {item.quantidade ?? item.qtd ?? '---'}

@@ -258,7 +258,7 @@ export default function PatrimonioPDF({ submissao, itens }: PatrimonioPDFProps) 
             validItems.map((item, idx) => (
               <View key={item.id || idx} style={idx % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
                 <Text style={styles.tableCellItem}>
-                  {item.item || item.nome_item || item.descricao || '---'}
+                  {item.item_nome || item.item || item.nome_item || item.descricao || '---'}
                 </Text>
                 <Text style={styles.tableCellQtd}>
                   {item.quantidade ?? item.qtd ?? '---'}
