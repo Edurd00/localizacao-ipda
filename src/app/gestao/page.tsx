@@ -566,6 +566,12 @@ export default function GestaoPage() {
                   >
                     🌳 Coligações
                   </a>
+                  <a
+                    href="/gestao-patrimonio"
+                    className="block px-3 py-2 text-xs font-medium text-zinc-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+                  >
+                    🪑 Patrimônio
+                  </a>
                 </div>
               </div>
             )}
