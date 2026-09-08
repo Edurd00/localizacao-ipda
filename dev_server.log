@@ -19,3 +19,58 @@
  GET /gestao-patrimonio 200 in 2.3s (next.js: 1569ms, proxy.ts: 11ms, application-code: 728ms)
  GET /api/auth/session 200 in 322ms (next.js: 307ms, application-code: 15ms)
  GET /api/patrimonio/lista?page=1&limit=20 200 in 816ms (next.js: 804ms, application-code: 12ms)
+ GET /gestao-patrimonio 200 in 1321ms (next.js: 635ms, proxy.ts: 307ms, application-code: 379ms)
+ GET /api/auth/session 200 in 107ms (next.js: 91ms, application-code: 16ms)
+API Error: Error: Database pool não configurado
+    at GET (src/app/api/patrimonio/lista/route.ts:18:22)
+  16 |     const offset = (page - 1) * limit;
+  17 |
+> 18 |     if (!pool) throw new Error('Database pool não configurado');
+     |                      ^
+  19 |
+  20 |     let whereClause = `WHERE i.status != 'DESATIVADO'`;
+  21 |     const params: any[] = [];
+ GET /api/patrimonio/lista?page=1&limit=50 500 in 397ms (next.js: 48ms, application-code: 349ms)
+ GET /gestao-patrimonio 200 in 357ms (next.js: 101ms, proxy.ts: 91ms, application-code: 165ms)
+ GET /api/auth/session 200 in 36ms (next.js: 27ms, application-code: 10ms)
+ GET /api/patrimonio/lista?page=1&limit=50 200 in 157ms (next.js: 151ms, application-code: 6ms)
+ GET /gestao-patrimonio 200 in 1835ms (next.js: 430ms, proxy.ts: 313ms, application-code: 1092ms)
+API Error in GET /api/patrimonio/lista: Error: Database pool não configurado
+    at GET (src/app/api/patrimonio/lista/route.ts:18:22)
+  16 |     const offset = (page - 1) * limit;
+  17 |
+> 18 |     if (!pool) throw new Error('Database pool não configurado');
+     |                      ^
+  19 |
+  20 |     const params: any[] = [];
+  21 |     let paramIdx = 1;
+ GET /api/patrimonio/lista?page=1&limit=50 500 in 489ms (next.js: 148ms, application-code: 341ms)
+ GET /api/auth/session 200 in 496ms (next.js: 67ms, application-code: 430ms)
+ GET /gestao-patrimonio 200 in 1583ms (next.js: 645ms, proxy.ts: 388ms, application-code: 550ms)
+ GET /api/auth/session 200 in 72ms (next.js: 62ms, application-code: 10ms)
+API Error in GET /api/patrimonio/lista: Error: Database pool não configurado
+    at GET (src/app/api/patrimonio/lista/route.ts:18:22)
+  16 |     const offset = (page - 1) * limit;
+  17 |
+> 18 |     if (!pool) throw new Error('Database pool não configurado');
+     |                      ^
+  19 |
+  20 |     const params: any[] = [];
+  21 |     let paramIdx = 1;
+ GET /api/patrimonio/lista?page=1&limit=50 500 in 400ms (next.js: 130ms, application-code: 270ms)
+API Error in GET /api/patrimonio/lista: Error: Database pool não configurado
+    at GET (src/app/api/patrimonio/lista/route.ts:18:22)
+  16 |     const offset = (page - 1) * limit;
+  17 |
+> 18 |     if (!pool) throw new Error('Database pool não configurado');
+     |                      ^
+  19 |
+  20 |     const params: any[] = [];
+  21 |     let paramIdx = 1;
+ GET /api/patrimonio/lista?page=1&limit=15 500 in 140ms (next.js: 3ms, application-code: 137ms)
+ GET /gestao-patrimonio 200 in 387ms (next.js: 106ms, proxy.ts: 102ms, application-code: 178ms)
+ GET /api/auth/session 200 in 37ms (next.js: 28ms, application-code: 9ms)
+ GET /api/patrimonio/lista?page=1&limit=50 200 in 142ms (next.js: 136ms, application-code: 6ms)
+ GET /gestao-patrimonio 200 in 1567ms (next.js: 730ms, proxy.ts: 355ms, application-code: 482ms)
+ GET /api/auth/session 200 in 76ms (next.js: 64ms, application-code: 12ms)
+ GET /api/patrimonio/lista?page=1&limit=50 200 in 247ms (next.js: 239ms, application-code: 8ms)
