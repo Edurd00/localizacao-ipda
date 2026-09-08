@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Package, FileText } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import PatrimonioPDF from '@/components/PatrimonioPDF';
 
 export interface PatrimonioSubmissao {
   id: string;
@@ -43,6 +45,12 @@ export default function PatrimonioDetailModal({
 }: PatrimonioDetailModalProps) {
   const [items, setItems] = useState<PatrimonioItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Critical for Next.js SSR hydration prevention
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen && submissao) {
@@ -89,10 +97,6 @@ export default function PatrimonioDetailModal({
     return val === 'sim' || val === 's' || val === 'true';
   });
 
-  const handleExportPdf = () => {
-    console.log('Iniciando PDF Client-Side...');
-  };
-
   const formatDate = (rawDate?: string | null) => {
     if (!rawDate) return '---';
     try {
@@ -116,14 +120,36 @@ export default function PatrimonioDetailModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExportPdf}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>📄 Exportar Relatório</span>
-            </button>
+            {isClient ? (
+              <PDFDownloadLink
+                document={<PatrimonioPDF submissao={submissao} itens={items} />}
+                fileName={`relatorio-patrimonio-${submissao.codigo_totvs}.pdf`}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                {({ loading: pdfLoading }) =>
+                  pdfLoading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Gerando documento...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>📄 Exportar Relatório</span>
+                    </>
+                  )
+                }
+              </PDFDownloadLink>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="px-3 py-1.5 bg-indigo-600/50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 opacity-60"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>📄 Exportar Relatório</span>
+              </button>
+            )}
 
             <button
               onClick={onClose}

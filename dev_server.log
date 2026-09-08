@@ -28,3 +28,6 @@
  GET /gestao-patrimonio 200 in 696ms (next.js: 191ms, proxy.ts: 176ms, application-code: 330ms)
  GET /api/patrimonio/lista?page=1&limit=20 200 in 145ms (next.js: 135ms, application-code: 10ms)
  GET /api/auth/session 200 in 160ms (next.js: 56ms, application-code: 104ms)
+ GET /gestao-patrimonio 200 in 1941ms (next.js: 561ms, proxy.ts: 361ms, application-code: 1019ms)
+ GET /api/auth/session 200 in 66ms (next.js: 56ms, application-code: 10ms)
+ GET /api/patrimonio/lista?page=1&limit=20 200 in 111ms (next.js: 105ms, application-code: 6ms)

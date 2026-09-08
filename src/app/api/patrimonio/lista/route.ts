@@ -31,22 +31,17 @@ export async function GET(request: NextRequest) {
         let countQuery = `
           SELECT COUNT(*)::int AS total
           FROM patrimonio_submissoes s
-          LEFT JOIN igrejas i ON s.codigo_totvs = i.codigo_totvs
         `;
         let dataQuery = `
-          SELECT
-            s.*,
-            i.desc_igreja,
-            i.municipio
+          SELECT s.*
           FROM patrimonio_submissoes s
-          LEFT JOIN igrejas i ON s.codigo_totvs = i.codigo_totvs
         `;
 
         const params: (string | number)[] = [];
         let paramIdx = 1;
 
         if (search) {
-          const whereClause = ` WHERE (s.codigo_totvs ILIKE $${paramIdx} OR i.desc_igreja ILIKE $${paramIdx} OR s.nome_responsavel ILIKE $${paramIdx})`;
+          const whereClause = ` WHERE (s.codigo_totvs ILIKE $${paramIdx} OR s.nome_responsavel ILIKE $${paramIdx})`;
           countQuery += whereClause;
           dataQuery += whereClause;
           params.push(`%${search}%`);
@@ -84,7 +79,7 @@ export async function GET(request: NextRequest) {
     if (supabase) {
       let query = supabase
         .from('patrimonio_submissoes')
-        .select('*, igrejas(desc_igreja, municipio)', { count: 'exact' });
+        .select('*', { count: 'exact' });
 
       if (search) {
         query = query.or(`codigo_totvs.ilike.%${search}%,nome_responsavel.ilike.%${search}%`);
@@ -97,18 +92,12 @@ export async function GET(request: NextRequest) {
       const { data, count, error } = await query;
 
       if (!error && data) {
-        const formattedData = data.map((item: any) => ({
-          ...item,
-          desc_igreja: item.igrejas?.desc_igreja || null,
-          municipio: item.igrejas?.municipio || null,
-        }));
-
         const total = count || 0;
         const totalPages = Math.max(1, Math.ceil(total / limit));
 
         return NextResponse.json({
           success: true,
-          data: formattedData,
+          data,
           meta: {
             total,
             page,
