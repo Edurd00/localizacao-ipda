@@ -21,6 +21,7 @@ export interface PatrimonioSubmissao {
 export interface PatrimonioItem {
   id: string;
   submissao_id?: string;
+  item_nome?: string;
   item?: string;
   nome_item?: string;
   descricao?: string;
