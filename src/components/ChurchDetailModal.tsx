@@ -177,17 +177,19 @@ export default function ChurchDetailModal({
             👥 Liderança
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setActiveTab('patrimonio')}
-          className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'patrimonio'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+        {isAuthenticated && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('patrimonio')}
+            className={`flex-1 py-1 text-center text-[10px] sm:text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'patrimonio'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-          🪑 Patrimônio
+            🪑 Patrimônio
           </button>
+        )}
         {isAuthenticated && (
           <button
             type="button"
@@ -560,7 +562,7 @@ export default function ChurchDetailModal({
         )}
 
 
-        {activeTab === 'patrimonio' && (
+        {isAuthenticated && activeTab === 'patrimonio' && (
           <div className="space-y-2 py-1">
             {isLoadingPatrimonio ? (
               <div className="flex items-center justify-center p-6 text-indigo-600 gap-2 font-medium">
