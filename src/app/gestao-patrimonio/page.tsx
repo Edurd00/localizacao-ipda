@@ -123,14 +123,102 @@ export default function GestaoPatrimonioPage() {
             <p className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider">Painel Administrativo de BI & Cobrança</p>
           </div>
         </div>
+        {/* Grouped Administrative Navigation Dropdowns */}
+        <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
+          <a
+            href="/"
+            className="px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs"
+          >
+            <span className="text-sm">🗺️</span>
+            <span>Mapa Geral</span>
+          </a>
+
+          {userRole !== 'viewer' && (
+            <div className="relative group">
+              <button
+                type="button"
+                className="px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs"
+              >
+                <span className="text-sm">📍</span>
+                <span>Validação & Gestão</span>
+                <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200"/>
+              </button>
+
+              {/* Invisible padding bridge prevents mouseleave dropoff */}
+              <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200/80 dark:before:border-slate-700/80 before:rotate-45">
+                  <a href="/validacao?tab=validation" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">📍</div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Validação de Igrejas</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Aprovação de coordenadas e status</span>
+                    </div>
+                  </a>
+                  <a href="/gestao" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">👥</div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Gestão de Contatos</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Dirigentes e tesouraria local</span>
+                    </div>
+                  </a>
+                  <a href="/coligacoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">🌳</div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Malha de Coligações</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Estrutura hierárquica e vínculos</span>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Inteligência & BI Dropdown */}
+          <div className="relative group">
+            <button
+              type="button"
+              className="px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs"
+            >
+              <span className="text-sm">📊</span>
+              <span>Inteligência & BI</span>
+              <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200"/>
+            </button>
+
+            {/* Invisible padding bridge prevents mouseleave dropoff */}
+            <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200/80 dark:before:border-slate-700/80 before:rotate-45">
+                <a href="/validacao?tab=dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm">📈</div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400">Dashboard Global</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Métricas de geocodificação</span>
+                  </div>
+                </a>
+                <a href="/relatorios" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm">📑</div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400">Relatórios de Matriz</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Membresia e condição pastoral</span>
+                  </div>
+                </a>
+                <a href="/gestao-patrimonio" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm">🪑</div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400">Gestão de Patrimônio</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Bens e inventário das igrejas</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
           {userName && (
             <span className="text-xs text-zinc-600 font-semibold hidden sm:inline-block bg-zinc-100 border border-zinc-200 px-3 py-1 rounded-full mr-2">
               Olá, <strong className="text-indigo-600">{userName}</strong>
             </span>
           )}
-          <a href="/" className="px-3 py-1.5 rounded-lg text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50 text-xs font-semibold transition-all">🗺️ Mapa Geral</a>
-          <a href="/validacao" className="px-3 py-1.5 rounded-lg text-zinc-650 hover:text-zinc-900 hover:bg-zinc-200/50 text-xs font-semibold transition-all">📍 Validação</a>
           <button onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).then(() => window.location.href = '/') }} className="text-red-600 text-xs font-bold px-3 py-1.5 hover:bg-red-50 rounded-lg flex items-center gap-1 cursor-pointer"><Power className="h-3.5 w-3.5"/> Sair</button>
         </div>
       </header>
