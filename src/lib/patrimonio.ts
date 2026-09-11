@@ -644,9 +644,9 @@ export async function verificarSubmissaoAnual(totvs: string, ano: number = new D
       const res = await pool.query(
         `SELECT id FROM patrimonio_submissoes
          WHERE LOWER(codigo_totvs) = LOWER($1)
-           AND ano_referencia = $2
+           AND ano_referencia = EXTRACT(YEAR FROM CURRENT_DATE)
          LIMIT 1`,
-        [cleanTotvs, ano]
+        [cleanTotvs]
       );
       return res.rows.length > 0;
     } catch (err) {
