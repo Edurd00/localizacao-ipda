@@ -613,7 +613,9 @@ export default function GestaoPatrimonioPage() {
                       <td className="p-4 text-center">
                         {sub.submissao_id ? (
                           <button onClick={() => { setSelectedSubmissao(sub); setIsDetailModalOpen(true); }} className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors shadow-xs cursor-pointer"><Eye className="h-3.5 w-3.5"/> Ver Detalhes</button>
-                        ) : <span className="text-[10px] text-zinc-400 italic">Sem envio</span>}
+                        ) : (
+                          <a href={`/patrimonio/${sub.codigo_totvs}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors shadow-xs cursor-pointer" title="Abrir formulário público de patrimônio">🔗 Link Público</a>
+                        )}
                       </td>
                     </tr>
                   ))}
