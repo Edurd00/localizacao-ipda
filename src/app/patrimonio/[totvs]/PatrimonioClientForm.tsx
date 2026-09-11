@@ -96,6 +96,13 @@ const ETAPAS_WIZARD = [
   { numero: 3, titulo: '3. Envio e Confirmação', subtitulo: 'Conferência Final' },
 ];
 
+const CONSERVACAO_OPCOES: Array<{ valor: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'; rotulo: string }> = [
+  { valor: 'ÓTIMO', rotulo: 'Ótimo' },
+  { valor: 'BOM', rotulo: 'Bom' },
+  { valor: 'REGULAR', rotulo: 'Regular' },
+  { valor: 'RUIM', rotulo: 'Ruim' },
+];
+
 export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
   const isUrlTotvs = Boolean(totvs && totvs.trim().length > 0);
   const initialTotvs = (totvs || '').trim();
@@ -234,7 +241,8 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
     );
   };
 
-  const handleQuantityChange = (id: string, delta: number) => {
+  const handleQuantityChange = (id: string, delta: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setItens((prev) =>
       prev.map((it) => {
         if (it.id === id) {
@@ -248,8 +256,10 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
 
   const handleConservacaoChange = (
     id: string,
-    conservacao: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'
+    conservacao: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM',
+    e?: React.MouseEvent
   ) => {
+    if (e) e.stopPropagation();
     setItens((prev) =>
       prev.map((it) => (it.id === id ? { ...it, conservacao } : it))
     );
@@ -293,7 +303,8 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
     toast.success(`"${nome}" adicionado com sucesso!`);
   };
 
-  const handleRemoveCustomItem = (id: string) => {
+  const handleRemoveCustomItem = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setItens((prev) => prev.filter((it) => it.id !== id));
     toast.info('Item removido.');
   };
@@ -395,9 +406,9 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
   if (submittedSuccess && church) {
     const itensPositivos = itens.filter((i) => i.possui);
     return (
-      <div className="min-h-screen bg-slate-50 py-10 px-4 flex items-center justify-center font-sans pb-16">
+      <div className="w-full max-w-4xl mx-auto h-auto min-h-fit py-10 px-4 font-sans pb-16">
         <Toaster position="top-center" richColors />
-        <div className="bg-white max-w-2xl w-full rounded-3xl shadow-2xl border border-emerald-200 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-white rounded-3xl shadow-2xl border border-emerald-200 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
           <div className="bg-gradient-to-br from-emerald-600 to-teal-800 p-8 sm:p-10 text-white text-center relative overflow-hidden">
             <div className="w-24 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto mb-4 ring-8 ring-white/10">
               <CheckCircle2 className="h-12 w-12 text-white" />
@@ -507,10 +518,10 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
   const totalBensDeclarados = itens.filter((i) => i.possui).length;
 
   return (
-    <div className="min-h-screen h-auto bg-slate-100/80 py-8 px-4 sm:px-6 font-sans text-slate-900 pb-16">
+    <div className="w-full max-w-4xl mx-auto h-auto min-h-fit py-8 px-4 sm:px-6 font-sans text-slate-900 pb-16">
       <Toaster position="top-center" richColors />
 
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header Oficial IPDA */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -544,7 +555,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
 
         {/* Wizard Stepper Progress Bar (3 Etapas) */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {ETAPAS_WIZARD.map((step) => {
               const isConcluida = etapaAtual > step.numero;
               const isAtiva = etapaAtual === step.numero;
@@ -558,7 +569,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
                     if (step.numero < etapaAtual) setEtapaAtual(step.numero);
                   }}
                   disabled={step.numero > etapaAtual || isDesabilitada}
-                  className={`flex flex-col items-center sm:items-start p-3 rounded-2xl transition-all text-left ${
+                  className={`flex flex-col items-center sm:items-start p-3.5 rounded-2xl transition-all text-left ${
                     isAtiva
                       ? 'bg-indigo-50 border-2 border-indigo-600 shadow-xs'
                       : isConcluida
@@ -568,7 +579,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-black font-mono ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black font-mono ${
                         isConcluida
                           ? 'bg-emerald-600 text-white'
                           : isAtiva
@@ -579,7 +590,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
                       {isConcluida ? <Check className="h-4 w-4" /> : step.numero}
                     </div>
                     <span
-                      className={`hidden sm:inline-block text-sm font-extrabold ${
+                      className={`hidden sm:inline-block text-sm sm:text-base font-extrabold ${
                         isAtiva ? 'text-indigo-950' : isConcluida ? 'text-emerald-950' : 'text-slate-500'
                       }`}
                     >
@@ -703,7 +714,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
               )}
             </div>
 
-            {/* Dados do Dirigente Local (Campos Ampliados para Idosos) */}
+            {/* Dados do Dirigente Local */}
             <div className="pt-4 border-t border-slate-100 space-y-5">
               {/* Nome Completo do Dirigente Local */}
               <div>
@@ -813,8 +824,8 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
               </span>
             </div>
 
-            {/* Categorias Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none">
+            {/* Categorias Tabs (Wrap sem corte lateral) */}
+            <div className="flex flex-wrap gap-2 md:gap-3 my-4">
               {categoriasEtapa2.map((cat) => {
                 const IconComp = CATEGORIAS_ICONES[cat] || Layers;
                 const isActive = categoriaAtiva === cat;
@@ -827,10 +838,10 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
                     key={cat}
                     type="button"
                     onClick={() => setCategoriaAtiva(cat)}
-                    className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shrink-0 flex items-center gap-2 cursor-pointer ${
+                    className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                     }`}
                   >
                     <IconComp className="h-4 w-4" />
@@ -838,7 +849,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
                     {countNaCat > 0 && (
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-mono font-black ${
-                          isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'
+                          isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-900'
                         }`}
                       >
                         {countNaCat}
@@ -849,109 +860,127 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
               })}
             </div>
 
-            {/* Lista dos Itens */}
-            <div className="space-y-3">
+            {/* Lista dos Itens (Cards Clicáveis para Idosos) */}
+            <div className="space-y-4">
               {itensExibidos.map((item) => {
                 const isChecked = item.possui;
 
                 return (
                   <div
                     key={item.id}
-                    className={`p-4 sm:p-5 rounded-2xl border-2 transition-all ${
+                    onClick={() => handleTogglePossui(item.id)}
+                    className={`cursor-pointer rounded-2xl border-2 p-4 sm:p-5 transition-all ${
                       isChecked
-                        ? 'bg-indigo-50/50 border-indigo-300 shadow-2xs'
-                        : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-50'
+                        ? 'bg-indigo-50/60 border-indigo-600 shadow-sm'
+                        : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      {/* Checkbox e Título */}
-                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3.5">
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleTogglePossui(item.id)}
-                          className="mt-1 h-6 w-6 rounded-lg border-slate-400 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                          onChange={() => {}} // acionado pelo card pai
+                          className="mt-1 h-6 w-6 rounded-lg border-slate-400 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0"
                         />
                         <div>
                           <span
-                            className={`text-base sm:text-lg font-extrabold block ${
-                              isChecked ? 'text-indigo-950' : 'text-slate-800'
+                            className={`text-base sm:text-lg font-black block ${
+                              isChecked ? 'text-indigo-950' : 'text-slate-900'
                             }`}
                           >
                             {item.item_nome}
                           </span>
-                          <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-extrabold block mt-0.5">
                             {item.categoria}
                           </span>
                         </div>
-                      </label>
+                      </div>
 
-                      {/* Controles inline ao marcar Sim */}
-                      {isChecked && (
-                        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap ml-9 sm:ml-0">
-                          {/* Stepper de Quantidade */}
-                          <div className="flex items-center bg-white border-2 border-slate-300 rounded-2xl overflow-hidden shadow-2xs h-12">
-                            <button
-                              type="button"
-                              onClick={() => handleQuantityChange(item.id, -1)}
-                              className="px-3.5 h-full text-slate-700 hover:bg-slate-100 text-base font-black cursor-pointer transition-colors"
-                              title="Diminuir"
-                            >
-                              -
-                            </button>
-                            <span className="px-3 text-base font-mono font-black text-slate-900 min-w-10 text-center">
-                              {item.quantidade}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleQuantityChange(item.id, 1)}
-                              className="px-3.5 h-full text-slate-700 hover:bg-slate-100 text-base font-black cursor-pointer transition-colors"
-                              title="Aumentar"
-                            >
-                              +
-                            </button>
-                          </div>
-
-                          {/* Estado de Conservação */}
-                          <select
-                            value={item.conservacao}
-                            onChange={(e) =>
-                              handleConservacaoChange(
-                                item.id,
-                                e.target.value as 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'
-                              )
-                            }
-                            className="bg-white text-xs sm:text-sm font-extrabold text-slate-800 border-2 border-slate-300 rounded-2xl px-3 h-12 focus:ring-2 focus:ring-indigo-600 focus:outline-hidden"
-                          >
-                            <option value="ÓTIMO">Estado: Ótimo</option>
-                            <option value="BOM">Estado: Bom</option>
-                            <option value="REGULAR">Estado: Regular</option>
-                            <option value="RUIM">Estado: Ruim / Reparo</option>
-                          </select>
-
-                          {item.isCustom && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCustomItem(item.id)}
-                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                              title="Remover item personalizado"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          )}
-                        </div>
+                      {item.isCustom && isChecked && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleRemoveCustomItem(item.id, e)}
+                          className="p-2 text-rose-600 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="Remover item personalizado"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
                       )}
                     </div>
 
+                    {/* Controles expansivos com botões grandes ao marcar */}
                     {isChecked && (
-                      <div className="mt-3 ml-9 pt-3 border-t border-indigo-100">
-                        <input
-                          type="text"
-                          placeholder="Observação (ex: Marca, potência, modelo...)"
-                          value={item.observacao || ''}
-                          onChange={(e) => handleObservacaoItemChange(item.id, e.target.value)}
-                          className="w-full text-xs sm:text-sm px-3.5 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-indigo-500 font-medium text-slate-800"
-                        />
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-4 pt-4 border-t border-indigo-200 space-y-4 animate-in fade-in duration-150"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          {/* Stepper de Quantidade com Botões Grandes */}
+                          <div className="space-y-1">
+                            <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                              Quantidade:
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => handleQuantityChange(item.id, -1, e)}
+                                className="h-11 w-11 rounded-xl bg-white border-2 border-slate-300 hover:bg-slate-100 active:scale-95 text-xl font-black text-slate-800 flex items-center justify-center transition-all shadow-2xs"
+                                title="Diminuir"
+                              >
+                                -
+                              </button>
+                              <span className="px-4 text-lg font-mono font-black text-indigo-950 min-w-12 text-center bg-white py-1.5 rounded-xl border border-indigo-100 shadow-2xs">
+                                {item.quantidade}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleQuantityChange(item.id, 1, e)}
+                                className="h-11 w-11 rounded-xl bg-white border-2 border-slate-300 hover:bg-slate-100 active:scale-95 text-xl font-black text-slate-800 flex items-center justify-center transition-all shadow-2xs"
+                                title="Aumentar"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Pílulas de Conservação Grandes */}
+                          <div className="space-y-1">
+                            <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                              Estado de Conservação:
+                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {CONSERVACAO_OPCOES.map((opt) => {
+                                const isSelected = item.conservacao === opt.valor;
+                                return (
+                                  <button
+                                    key={opt.valor}
+                                    type="button"
+                                    onClick={(e) => handleConservacaoChange(item.id, opt.valor, e)}
+                                    className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all border-2 ${
+                                      isSelected
+                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {opt.rotulo}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Campo Observação */}
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Observação opcional (ex: Marca, potência, ano...)"
+                            value={item.observacao || ''}
+                            onChange={(e) => handleObservacaoItemChange(item.id, e.target.value)}
+                            className="w-full text-xs sm:text-sm px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl focus:outline-hidden focus:border-indigo-600 font-medium text-slate-900"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1109,12 +1138,12 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
         {/* ======================================================== */}
         {/* BARRA DE NAVEGAÇÃO NO FLUXO NORMAL (NÃO FIXO/ABSOLUTO)    */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+        <div className="mt-8 border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             type="button"
             onClick={handleVoltarEtapa}
             disabled={etapaAtual === 1 || submitting}
-            className={`w-full sm:w-auto h-14 px-6 rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`w-full sm:w-auto h-14 px-8 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 transition-all cursor-pointer ${
               etapaAtual === 1
                 ? 'opacity-40 cursor-not-allowed text-slate-400 bg-slate-100'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
