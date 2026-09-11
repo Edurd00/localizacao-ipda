@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Package, FileText } from 'lucide-react';
+import { X, Loader2, Package, FileText, Edit3, Check, AlertCircle } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
+import { Toaster, toast } from 'sonner';
 import PatrimonioPDF from '@/components/PatrimonioPDF';
 
 export interface PatrimonioSubmissao {
@@ -48,7 +49,12 @@ export default function PatrimonioDetailModal({
   const [loading, setLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // Critical for Next.js SSR hydration prevention
+  // Estado para correção manual de TOTVS
+  const [displayTotvs, setDisplayTotvs] = useState<string>('');
+  const [editandoTotvs, setEditandoTotvs] = useState(false);
+  const [novoTotvsInput, setNovoTotvsInput] = useState('');
+  const [salvandoTotvs, setSalvandoTotvs] = useState(false);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -57,8 +63,10 @@ export default function PatrimonioDetailModal({
     if (isOpen && submissao) {
       setLoading(true);
       setItems([]);
+      setDisplayTotvs(submissao.codigo_totvs || '');
+      setNovoTotvsInput(submissao.codigo_totvs || '');
+      setEditandoTotvs(false);
 
-      // First try fetching by submissao.id via /api/patrimonio/detalhes/[id]
       const fetchUrl = submissao.id
         ? `/api/patrimonio/detalhes/${encodeURIComponent(submissao.id)}`
         : `/api/patrimonio/${encodeURIComponent(submissao.codigo_totvs)}`;
@@ -71,7 +79,6 @@ export default function PatrimonioDetailModal({
           } else if (json.data && Array.isArray(json.data.patrimonio_itens)) {
             setItems(json.data.patrimonio_itens);
           } else {
-            // Fallback to totvs endpoint
             return fetch(`/api/patrimonio/${encodeURIComponent(submissao.codigo_totvs)}`)
               .then((res) => res.json())
               .then((jsonFallback) => {
@@ -92,7 +99,6 @@ export default function PatrimonioDetailModal({
 
   if (!isOpen || !submissao) return null;
 
-  // Filter: Hide any item where possui is 'Não', 'nao', or empty/null
   const validItems = items.filter((item) => {
     const val = String(item.possui || '').trim().toLowerCase();
     return val === 'sim' || val === 's' || val === 'true';
@@ -108,23 +114,59 @@ export default function PatrimonioDetailModal({
     }
   };
 
+  const handleSalvarNovoTotvs = async () => {
+    const clean = novoTotvsInput.trim().toUpperCase();
+    if (!clean) {
+      toast.warning('Digite o novo Código TOTVS.');
+      return;
+    }
+
+    setSalvandoTotvs(true);
+    try {
+      const res = await fetch('/api/patrimonio/corrigir-totvs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissao_id: submissao.id,
+          novo_codigo_totvs: clean,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Erro ao corrigir Código TOTVS.');
+      }
+
+      setDisplayTotvs(clean);
+      submissao.codigo_totvs = clean;
+      setEditandoTotvs(false);
+      toast.success('Código TOTVS corrigido com sucesso!');
+    } catch (err: any) {
+      console.error('Erro ao corrigir TOTVS:', err);
+      toast.error(err.message || 'Erro ao corrigir Código TOTVS.');
+    } finally {
+      setSalvandoTotvs(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <Toaster position="top-center" richColors />
       <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full shadow-2xl border border-zinc-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 max-h-[90vh]">
         {/* Header */}
         <div className="p-5 border-b border-zinc-100 dark:border-slate-800 flex justify-between items-center bg-zinc-50/50 dark:bg-slate-800/40">
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
             <Package className="h-5 w-5" />
             <h3 className="font-extrabold text-sm uppercase tracking-wider">
-              Relatório de Patrimônio - TOTVS {submissao.codigo_totvs}
+              Relatório de Patrimônio - TOTVS {displayTotvs}
             </h3>
           </div>
 
           <div className="flex items-center gap-2">
             {isClient ? (
               <PDFDownloadLink
-                document={<PatrimonioPDF submissao={submissao} itens={items} />}
-                fileName={`relatorio-patrimonio-${submissao.codigo_totvs}.pdf`}
+                document={<PatrimonioPDF submissao={{ ...submissao, codigo_totvs: displayTotvs }} itens={items} />}
+                fileName={`relatorio-patrimonio-${displayTotvs}.pdf`}
                 className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 {({ loading: pdfLoading }) =>
@@ -163,23 +205,67 @@ export default function PatrimonioDetailModal({
 
         {/* Content */}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
-          {/* Submission summary */}
+          {/* Submission summary with discrete "Corrigir Código TOTVS" button */}
           <div className="bg-zinc-50 dark:bg-slate-800/60 p-4 rounded-xl border border-zinc-200 dark:border-slate-700 space-y-2 text-xs">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
               <div>
                 <h4 className="font-bold text-zinc-900 dark:text-white text-sm">
-                  {submissao.desc_igreja || `Igreja TOTVS ${submissao.codigo_totvs}`}
+                  {submissao.desc_igreja || `Igreja TOTVS ${displayTotvs}`}
                 </h4>
                 {submissao.municipio && (
                   <p className="text-zinc-500 dark:text-slate-400 font-medium">📍 {submissao.municipio}</p>
                 )}
               </div>
-              {submissao.ano_referencia && (
-                <span className="bg-indigo-100 text-indigo-800 dark:bg-slate-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-mono font-bold text-[10px]">
-                  Ref: {submissao.ano_referencia}
+
+              <div className="flex items-center gap-2">
+                <span className="bg-indigo-100 text-indigo-900 dark:bg-slate-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-mono font-bold text-xs">
+                  TOTVS: {displayTotvs}
                 </span>
-              )}
+
+                <button
+                  type="button"
+                  onClick={() => setEditandoTotvs(!editandoTotvs)}
+                  className="text-[11px] font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-700 border border-indigo-200 dark:border-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                  title="Corrigir Código TOTVS manualmente"
+                >
+                  <Edit3 className="h-3 w-3" />
+                  <span>Corrigir Código TOTVS</span>
+                </button>
+              </div>
             </div>
+
+            {/* Painel de edição discreta do TOTVS */}
+            {editandoTotvs && (
+              <div className="mt-3 p-3 bg-indigo-50/90 dark:bg-slate-800 border border-indigo-200 dark:border-slate-700 rounded-xl space-y-2 animate-in fade-in duration-150">
+                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 block">
+                  Digite o Código TOTVS correto para esta submissão:
+                </span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={novoTotvsInput}
+                    onChange={(e) => setNovoTotvsInput(e.target.value.toUpperCase())}
+                    placeholder="Ex: 15280"
+                    className="flex-1 h-9 px-3 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSalvarNovoTotvs}
+                    disabled={salvandoTotvs || !novoTotvsInput.trim()}
+                    className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    {salvandoTotvs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Salvar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditandoTotvs(false)}
+                    className="h-9 px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-200/60 dark:border-slate-700/60 text-zinc-700 dark:text-slate-300">
               <div>

@@ -5,14 +5,57 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 519ms
+- Environments: .env.local
+✓ Ready in 988ms
 
- GET /login 200 in 3.7s (next.js: 3.4s, application-code: 353ms)
- GET /login 200 in 98ms (next.js: 9ms, application-code: 88ms)
- POST /api/auth/login 401 in 472ms (next.js: 439ms, application-code: 33ms)
- GET /login 200 in 68ms (next.js: 5ms, application-code: 63ms)
- POST /api/auth/login 401 in 12ms (next.js: 5ms, application-code: 8ms)
- GET /login 200 in 68ms (next.js: 3ms, application-code: 65ms)
- GET /validacao 200 in 2.1s (next.js: 1760ms, proxy.ts: 12ms, application-code: 372ms)
- GET /api/igrejas?status=PENDENTE&page=1&limit=100&t=1788949508771 200 in 300ms (next.js: 285ms, application-code: 15ms)
- GET /api/auth/session 200 in 413ms (next.js: 392ms, application-code: 21ms)
+ GET /patrimonio/15280 200 in 1354ms (next.js: 1082ms, application-code: 272ms)
+Postgres error in obterIgrejaMinima: Error: connect ENETUNREACH 2600:1f18:441a:8900:e4c5:77ff:2166:146f:5432 - Local (:::0)
+    at async obterIgrejaMinima (src/lib/patrimonio.ts:139:19)
+    at async GET (src/app/api/igrejas/public-lookup/route.ts:18:20)
+  137 |   if (pool) {
+  138 |     try {
+> 139 |       const res = await pool.query(
+      |                   ^
+  140 |         `SELECT codigo_totvs, desc_igreja, endereco, bairro, municipio, estado
+  141 |          FROM igrejas
+  142 |          WHERE LOWER(codigo_totvs) = $1 {
+  errno: -101,
+  code: 'ENETUNREACH',
+  syscall: 'connect',
+  address: '2600:1f18:441a:8900:e4c5:77ff:2166:146f',
+  port: 5432
+}
+Erro ao verificar/criar tabelas de patrimônio: Error: connect ENETUNREACH 2600:1f18:441a:8900:e4c5:77ff:2166:146f:5432 - Local (:::0)
+    at async ensurePatrimonioTables (src/lib/patrimonio.ts:113:5)
+    at async verificarSubmissaoAnual (src/lib/patrimonio.ts:640:3)
+    at async GET (src/app/api/igrejas/public-lookup/route.ts:28:23)
+  111 |       CREATE INDEX IF NOT EXISTS idx_patrimonio_itens_submissao ON patrimonio_itens (subm...
+  112 |     `;
+> 113 |     await pool.query(ddl);
+      |     ^
+  114 |     tablesEnsured = true;
+  115 |   } catch (err) {
+  116 |     console.error('Erro ao verificar/criar tabelas de patrimônio:', err); {
+  errno: -101,
+  code: 'ENETUNREACH',
+  syscall: 'connect',
+  address: '2600:1f18:441a:8900:e4c5:77ff:2166:146f',
+  port: 5432
+}
+Postgres error in verificarSubmissaoAnual: Error: connect ENETUNREACH 2600:1f18:441a:8900:e4c5:77ff:2166:146f:5432 - Local (:::0)
+    at async verificarSubmissaoAnual (src/lib/patrimonio.ts:644:19)
+    at async GET (src/app/api/igrejas/public-lookup/route.ts:28:23)
+  642 |   if (pool) {
+  643 |     try {
+> 644 |       const res = await pool.query(
+      |                   ^
+  645 |         `SELECT id FROM patrimonio_submissoes
+  646 |          WHERE LOWER(codigo_totvs) = LOWER($1)
+  647 |            AND ano_referencia = EXTRACT(YEAR FROM CURRENT_DATE) {
+  errno: -101,
+  code: 'ENETUNREACH',
+  syscall: 'connect',
+  address: '2600:1f18:441a:8900:e4c5:77ff:2166:146f',
+  port: 5432
+}
+ GET /api/igrejas/public-lookup?totvs=15280 200 in 1286ms (next.js: 216ms, application-code: 1070ms)

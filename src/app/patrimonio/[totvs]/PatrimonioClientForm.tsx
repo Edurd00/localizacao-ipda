@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   MapPin,
@@ -9,39 +9,27 @@ import {
   Loader2,
   Plus,
   Trash2,
-  Phone,
-  User,
-  ShieldCheck,
-  Send,
-  Calendar,
   Volume2,
-  Music,
-  Armchair,
   Wind,
-  Tv,
+  Armchair,
   Coffee,
   Check,
   Printer,
   FileCheck2,
   ChevronRight,
   ChevronLeft,
-  Upload,
-  Image as ImageIcon,
-  X,
-  Eye,
   AlertTriangle,
   Info,
   Layers,
-  FileText,
-  BadgeCheck,
+  Send,
+  Lock,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import {
-  DadosGeraisForm,
   ItemPatrimonialForm,
-  FotoPatrimonialForm,
   ErrosValidacao,
   validarDadosGerais,
+  validarTelefoneComDdd,
   formatarTelefone,
 } from '@/lib/patrimonioValidation';
 
@@ -52,13 +40,8 @@ interface ChurchData {
   bairro: string;
   municipio: string;
   estado: string;
-  cep: string;
-  porte?: string | null;
-  dirigente_nome?: string | null;
-  dirigente_telefone?: string | null;
 }
 
-// Lista base inspirada no formulario-patrimonio-completo-main
 const ITENS_PADRAO: Array<{ id: string; nome: string; categoria: string }> = [
   // Mobiliário e Estrutura
   { id: 'banco', nome: 'Bancos da Nave', categoria: 'Mobiliário e Estrutura' },
@@ -108,27 +91,40 @@ const CATEGORIAS_ICONES: Record<string, any> = {
 };
 
 const ETAPAS_WIZARD = [
-  { numero: 1, titulo: 'Dados Gerais', subtitulo: 'Igreja e Responsável' },
-  { numero: 2, titulo: 'Bens e Itens', subtitulo: 'Equipamentos e Bens' },
-  { numero: 3, titulo: 'Fotos e Anexos', subtitulo: 'Registro Visual' },
-  { numero: 4, titulo: 'Revisão e Envio', subtitulo: 'Conferência Final' },
+  { numero: 1, titulo: '1. Igreja e Dirigente', subtitulo: 'Identificação Local' },
+  { numero: 2, titulo: '2. Bens e Itens', subtitulo: 'Equipamentos e Bens' },
+  { numero: 3, titulo: '3. Envio e Confirmação', subtitulo: 'Conferência Final' },
 ];
 
-export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
+const CONSERVACAO_OPCOES: Array<{ valor: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'; rotulo: string }> = [
+  { valor: 'ÓTIMO', rotulo: 'Ótimo' },
+  { valor: 'BOM', rotulo: 'Bom' },
+  { valor: 'REGULAR', rotulo: 'Regular' },
+  { valor: 'RUIM', rotulo: 'Ruim' },
+];
+
+export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
+  const isUrlTotvs = Boolean(totvs && totvs.trim().length > 0);
+  const initialTotvs = (totvs || '').trim();
+
   const [etapaAtual, setEtapaAtual] = useState<number>(1);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [church, setChurch] = useState<ChurchData | null>(null);
-  const [previousSubmission, setPreviousSubmission] = useState<any | null>(null);
-  const [notFound, setNotFound] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
   const [protocolo, setProtocolo] = useState<string | null>(null);
   const [isModalConfirmacaoAberto, setIsModalConfirmacaoAberto] = useState(false);
 
+  // Controle de TOTVS
+  const [inputTotvs, setInputTotvs] = useState<string>(initialTotvs);
+  const [debouncedTotvs, setDebouncedTotvs] = useState<string>(initialTotvs);
+  const [searchingChurch, setSearchingChurch] = useState<boolean>(isUrlTotvs);
+  const [church, setChurch] = useState<ChurchData | null>(null);
+  const [churchNotFound, setChurchNotFound] = useState<boolean>(false);
+  const [jaEnviadoAnual, setJaEnviadoAnual] = useState<boolean>(false);
+
   // Etapa 1: Dados Gerais
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
-  const [cargoResponsavel, setCargoResponsavel] = useState('Dirigente');
+  const cargoResponsavel = 'Dirigente Local'; // Fixo conforme especificação
   const [anoReferencia, setAnoReferencia] = useState(new Date().getFullYear());
   const [errosEtapa1, setErrosEtapa1] = useState<ErrosValidacao>({});
   const [camposTocadosEtapa1, setCamposTocadosEtapa1] = useState<Record<string, boolean>>({});
@@ -138,101 +134,90 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   const [novoItemNome, setNovoItemNome] = useState('');
   const [categoriaAtiva, setCategoriaAtiva] = useState<string>('TODAS');
 
-  // Etapa 3: Fotos & Documentos
-  const [fotos, setFotos] = useState<FotoPatrimonialForm[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Etapa 4: Observações Gerais
+  // Etapa 3: Observações Gerais
   const [observacoesGerais, setObservacoesGerais] = useState('');
 
-  // Carregar dados iniciais da igreja via consulta pública mínima
+  // Debounce de 500ms se o TOTVS for editável
   useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/igrejas/public-lookup?totvs=${encodeURIComponent(totvs)}`);
-        const json = await res.json();
+    if (isUrlTotvs) {
+      setDebouncedTotvs(initialTotvs);
+      return;
+    }
 
-        if (!res.ok || !json.success || !json.igreja) {
-          setNotFound(true);
-          setLoading(false);
+    const handler = setTimeout(() => {
+      setDebouncedTotvs(inputTotvs.trim());
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [inputTotvs, isUrlTotvs, initialTotvs]);
+
+  // Consulta pública da congregação
+  useEffect(() => {
+    if (!debouncedTotvs) {
+      setChurch(null);
+      setChurchNotFound(false);
+      setSearchingChurch(false);
+      return;
+    }
+
+    let isMounted = true;
+    setSearchingChurch(true);
+
+    fetch(`/api/igrejas/public-lookup?totvs=${encodeURIComponent(debouncedTotvs)}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!isMounted) return;
+        if (json.ja_enviado) {
+          setChurch(json.igreja || null);
+          setJaEnviadoAnual(true);
+          setChurchNotFound(false);
+          toast.warning(`A declaração patrimonial referente ao ano de ${new Date().getFullYear()} desta igreja já foi recebida e consta no sistema.`);
           return;
         }
 
-        setChurch(json.igreja);
-
-        // Itens base
-        const baseItems: ItemPatrimonialForm[] = ITENS_PADRAO.map((it) => ({
-          id: it.id,
-          item_nome: it.nome,
-          categoria: it.categoria,
-          quantidade: 1,
-          possui: false,
-          conservacao: 'BOM',
-          observacao: '',
-        }));
-
-        // Se houver submissão anterior
-        if (json.data) {
-          setPreviousSubmission(json.data);
-          if (json.data.nome_responsavel) setNomeResponsavel(json.data.nome_responsavel);
-          if (json.data.telefone_responsavel) {
-            setTelefoneResponsavel(formatarTelefone(json.data.telefone_responsavel));
-          }
-          if (json.data.ano_referencia) setAnoReferencia(Number(json.data.ano_referencia));
-          if (json.data.observacoes) setObservacoesGerais(json.data.observacoes);
-
-          const existingItems = Array.isArray(json.data.patrimonio_itens)
-            ? json.data.patrimonio_itens
-            : [];
-
-          const existingMap = new Map<string, any>();
-          existingItems.forEach((it: any) => {
-            const name = (it.item_nome || it.item || it.nome_item || it.descricao || '').trim().toLowerCase();
-            if (name) existingMap.set(name, it);
-          });
-
-          baseItems.forEach((it) => {
-            const match = existingMap.get(it.item_nome.toLowerCase());
-            if (match) {
-              it.possui = String(match.possui).toLowerCase() === 'sim' || match.possui === true;
-              it.quantidade = Number(match.quantidade ?? match.qtd ?? 1);
-              it.conservacao = (match.conservacao || match.estado_conservacao || 'BOM').toUpperCase();
-              it.observacao = match.observacao || '';
-              existingMap.delete(it.item_nome.toLowerCase());
-            }
-          });
-
-          // Itens adicionais prévios
-          let customCount = 0;
-          existingMap.forEach((match) => {
-            customCount++;
-            baseItems.push({
-              id: `custom_${customCount}_${Date.now()}`,
-              item_nome: match.item_nome || match.item || match.nome_item || match.descricao,
-              categoria: 'Itens Adicionais',
-              quantidade: Number(match.quantidade ?? match.qtd ?? 1),
-              possui: String(match.possui).toLowerCase() === 'sim' || match.possui === true,
-              conservacao: (match.conservacao || match.estado_conservacao || 'BOM').toUpperCase(),
-              observacao: match.observacao || '',
-              isCustom: true,
-            });
-          });
+        if (json.success && json.igreja) {
+          setChurch(json.igreja);
+          setJaEnviadoAnual(false);
+          setChurchNotFound(false);
+        } else {
+          setChurch(null);
+          setJaEnviadoAnual(false);
+          setChurchNotFound(true);
+          toast.warning('Código TOTVS não localizado. Verifique o número com a sua regional.');
         }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error('Erro ao consultar TOTVS:', err);
+        setChurch(null);
+        setChurchNotFound(true);
+        toast.warning('Código TOTVS não localizado. Verifique o número com a sua regional.');
+      })
+      .finally(() => {
+        if (isMounted) setSearchingChurch(false);
+      });
 
-        setItens(baseItems);
-      } catch (err) {
-        console.error('Erro ao carregar dados da igreja:', err);
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedTotvs]);
+
+  // Inicializa lista base de bens
+  useEffect(() => {
+    if (church && itens.length === 0) {
+      const baseItems: ItemPatrimonialForm[] = ITENS_PADRAO.map((it) => ({
+        id: it.id,
+        item_nome: it.nome,
+        categoria: it.categoria,
+        quantidade: 1,
+        possui: false,
+        conservacao: 'BOM',
+        observacao: '',
+      }));
+      setItens(baseItems);
     }
+  }, [church, itens.length]);
 
-    loadData();
-  }, [totvs]);
-
-  // Validação em tempo real para a Etapa 1
+  // Validação da Etapa 1
   useEffect(() => {
     const erros = validarDadosGerais({
       nome_responsavel: nomeResponsavel,
@@ -242,7 +227,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     setErrosEtapa1(erros);
   }, [nomeResponsavel, telefoneResponsavel, anoReferencia]);
 
-  // Handlers para controle da Etapa 1
+  // Máscara e estado de telefone
   const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatado = formatarTelefone(e.target.value);
     setTelefoneResponsavel(formatado);
@@ -253,6 +238,13 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     setCamposTocadosEtapa1((prev) => ({ ...prev, [campo]: true }));
   };
 
+  // Validação estrita
+  const validacaoTel = validarTelefoneComDdd(telefoneResponsavel);
+  const isNomeValido = nomeResponsavel.trim().length >= 3;
+  const isFormularioLiberado = Boolean(
+    church && !searchingChurch && !churchNotFound && !jaEnviadoAnual && isNomeValido && validacaoTel.valido
+  );
+
   // Handlers para Itens (Etapa 2)
   const handleTogglePossui = (id: string) => {
     setItens((prev) =>
@@ -260,7 +252,8 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     );
   };
 
-  const handleQuantityChange = (id: string, delta: number) => {
+  const handleQuantityChange = (id: string, delta: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setItens((prev) =>
       prev.map((it) => {
         if (it.id === id) {
@@ -274,8 +267,10 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
 
   const handleConservacaoChange = (
     id: string,
-    conservacao: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'
+    conservacao: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM',
+    e?: React.MouseEvent
   ) => {
+    if (e) e.stopPropagation();
     setItens((prev) =>
       prev.map((it) => (it.id === id ? { ...it, conservacao } : it))
     );
@@ -291,7 +286,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     if (e) e.preventDefault();
     const nome = novoItemNome.trim();
     if (!nome) {
-      toast.warning('Digite o nome do bem a ser adicionado.');
+      toast.warning('Digite o nome do bem para adicionar.');
       return;
     }
 
@@ -299,7 +294,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
       (it) => it.item_nome.toLowerCase() === nome.toLowerCase()
     );
     if (jaExiste) {
-      toast.warning('Este item já consta na lista de bens.');
+      toast.warning('Este item já está na lista.');
       return;
     }
 
@@ -319,72 +314,29 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     toast.success(`"${nome}" adicionado com sucesso!`);
   };
 
-  const handleRemoveCustomItem = (id: string) => {
+  const handleRemoveCustomItem = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setItens((prev) => prev.filter((it) => it.id !== id));
     toast.info('Item removido.');
   };
 
-  // Handlers para Fotos (Etapa 3)
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`"${file.name}" não é uma imagem válida.`);
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`"${file.name}" excede o tamanho máximo de 10MB.`);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const previewUrl = event.target?.result as string;
-        const novaFoto: FotoPatrimonialForm = {
-          id: `foto_${Date.now()}_${Math.random()}`,
-          nome: file.name,
-          tamanho: file.size,
-          previewUrl,
-          legenda: '',
-        };
-        setFotos((prev) => [...prev, novaFoto]);
-        toast.success(`Foto "${file.name}" adicionada.`);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // Reset input
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleRemoveFoto = (id: string) => {
-    setFotos((prev) => prev.filter((f) => f.id !== id));
-    toast.info('Foto removida.');
-  };
-
-  const handleLegendaFotoChange = (id: string, legenda: string) => {
-    setFotos((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, legenda } : f))
-    );
-  };
-
-  // Controle de Navegação do Wizard
+  // Navegação
   const handleAvancarEtapa = () => {
     if (etapaAtual === 1) {
-      const erros = validarDadosGerais({
-        nome_responsavel: nomeResponsavel,
-        telefone_responsavel: telefoneResponsavel,
-        ano_referencia: anoReferencia,
-      });
-      if (Object.keys(erros).length > 0) {
-        setCamposTocadosEtapa1({
-          nome_responsavel: true,
-          telefone_responsavel: true,
-          ano_referencia: true,
-        });
-        toast.error('Por favor, preencha os dados obrigatórios do dirigente.');
+      if (!church || searchingChurch || churchNotFound) {
+        toast.error('Informe um Código TOTVS válido antes de continuar.');
+        return;
+      }
+
+      if (!isNomeValido) {
+        setCamposTocadosEtapa1((prev) => ({ ...prev, nome_responsavel: true }));
+        toast.error('Digite o nome completo do Dirigente Local.');
+        return;
+      }
+
+      if (!validacaoTel.valido) {
+        setCamposTocadosEtapa1((prev) => ({ ...prev, telefone_responsavel: true }));
+        toast.error(validacaoTel.erro || 'Digite o número de WhatsApp completo com DDD.');
         return;
       }
     }
@@ -393,13 +345,13 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
       const totalPossui = itens.filter((i) => i.possui).length;
       if (totalPossui === 0) {
         const confirmEmpty = confirm(
-          'Nenhum item foi marcado como "Possui". Deseja realmente prosseguir sem nenhum bem selecionado?'
+          'Nenhum bem foi marcado. Deseja realmente prosseguir sem nenhum item?'
         );
         if (!confirmEmpty) return;
       }
     }
 
-    setEtapaAtual((prev) => Math.min(4, prev + 1));
+    setEtapaAtual((prev) => Math.min(3, prev + 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -408,8 +360,13 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Submissão Final (Etapa 4)
+  // Submissão Final
   const handleConfirmarEnvio = async () => {
+    if (!church || !isFormularioLiberado) {
+      toast.error('Preencha os dados obrigatórios antes de enviar.');
+      return;
+    }
+
     setIsModalConfirmacaoAberto(false);
     setSubmitting(true);
 
@@ -423,18 +380,13 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
       }));
 
       const payload = {
-        codigo_totvs: totvs,
+        codigo_totvs: church.codigo_totvs,
         nome_responsavel: nomeResponsavel.trim(),
         telefone_responsavel: telefoneResponsavel.trim(),
         cargo_responsavel: cargoResponsavel,
         ano_referencia: anoReferencia,
         observacoes: observacoesGerais.trim() || null,
         itens: itensDeclarados,
-        fotos: fotos.map((f) => ({
-          nome: f.nome,
-          legenda: f.legenda || null,
-          tamanho: f.tamanho,
-        })),
       };
 
       const res = await fetch('/api/patrimonio/public-submit', {
@@ -449,122 +401,91 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         throw new Error(json.error || 'Erro ao processar o envio.');
       }
 
-      setProtocolo(`PAT-${totvs}-${Date.now().toString().slice(-6)}`);
+      setProtocolo(`PAT-${church.codigo_totvs}-${Date.now().toString().slice(-6)}`);
       setSubmittedSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       toast.success('Patrimônio registrado com sucesso!');
     } catch (err: any) {
-      console.error('Erro na submissão de patrimônio:', err);
-      toast.error(err.message || 'Erro ao enviar dados. Verifique a conexão e tente novamente.');
+      console.error('Erro no envio:', err);
+      toast.error(err.message || 'Erro ao enviar dados. Tente novamente.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full text-center border border-slate-100 flex flex-col items-center gap-3">
-          <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
-          <h3 className="font-extrabold text-slate-800 text-base">Carregando Formulário...</h3>
-          <p className="text-slate-500 text-xs">Identificando igreja TOTVS {totvs}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (notFound || !church) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border border-rose-100 space-y-4">
-          <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-            <AlertCircle className="h-8 w-8" />
-          </div>
-          <h2 className="text-xl font-black text-slate-900">Igreja Não Encontrada</h2>
-          <p className="text-slate-600 text-sm leading-relaxed">
-            Não localizamos nenhuma igreja vinculada ao código TOTVS <strong>"{totvs}"</strong>.
-            Confira com sua Sede ou Administrador se o link compartilhado está correto.
-          </p>
-          <div className="pt-2">
-            <span className="inline-block text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl">
-              Código pesquisado: <code className="font-mono text-indigo-600">{totvs}</code>
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Tela de Sucesso
-  if (submittedSuccess) {
+  if (submittedSuccess && church) {
     const itensPositivos = itens.filter((i) => i.possui);
     return (
-      <div className="min-h-screen bg-slate-50 py-8 px-4 flex items-center justify-center font-sans">
+      <div className="w-full max-w-4xl mx-auto h-auto min-h-fit py-10 px-4 font-sans pb-16">
         <Toaster position="top-center" richColors />
-        <div className="bg-white max-w-xl w-full rounded-3xl shadow-2xl border border-emerald-100 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-white text-center relative overflow-hidden">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 ring-8 ring-white/10">
-              <CheckCircle2 className="h-10 w-10 text-white" />
+        <div className="bg-white rounded-3xl shadow-2xl border border-emerald-200 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-800 p-8 sm:p-10 text-white text-center relative overflow-hidden">
+            <div className="w-24 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto mb-4 ring-8 ring-white/10">
+              <CheckCircle2 className="h-12 w-12 text-white" />
             </div>
-            <h2 className="text-2xl font-black tracking-tight">Cadastro Concluído!</h2>
-            <p className="text-emerald-100 text-sm mt-1">
-              O inventário patrimonial foi transmitido com sucesso à administração central.
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">Cadastro Concluído!</h2>
+            <p className="text-emerald-100 text-base sm:text-lg mt-2 font-medium">
+              O inventário patrimonial foi enviado com sucesso.
             </p>
             {protocolo && (
-              <div className="mt-4 inline-block bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider">
+              <div className="mt-4 inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-sm font-mono font-bold tracking-wider">
                 Protocolo: {protocolo}
               </div>
             )}
           </div>
 
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2 text-xs">
-              <div className="flex justify-between items-start">
+          <div className="p-6 sm:p-10 space-y-6">
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3 text-sm">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Igreja</span>
-                  <h4 className="font-bold text-slate-900 text-sm">{church.desc_igreja}</h4>
+                  <span className="text-xs font-bold text-slate-400 uppercase block">Congregação</span>
+                  <h4 className="font-extrabold text-slate-900 text-base sm:text-lg">{church.desc_igreja}</h4>
                 </div>
-                <span className="bg-indigo-100 text-indigo-800 font-mono font-bold px-2 py-0.5 rounded-md">
+                <span className="bg-indigo-100 text-indigo-900 font-mono font-extrabold text-sm px-3 py-1 rounded-xl self-start sm:self-auto">
                   TOTVS: {church.codigo_totvs}
                 </span>
               </div>
-              <p className="text-slate-600 flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                {church.endereco}, {church.bairro} - {church.municipio}/{church.estado}
+              <p className="text-slate-700 flex items-start gap-1.5 font-medium">
+                <MapPin className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+                <span>
+                  {church.endereco ? `${church.endereco}, ` : ''}{church.bairro} - {church.municipio}/{church.estado}
+                </span>
               </p>
-              <div className="pt-2 border-t border-slate-200/60 grid grid-cols-2 gap-2 text-slate-700">
+              <div className="pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-800">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Dirigente</span>
-                  <span className="font-semibold">{nomeResponsavel} ({cargoResponsavel})</span>
+                  <span className="text-xs font-bold text-slate-400 block uppercase">Dirigente Local</span>
+                  <span className="font-bold text-base">{nomeResponsavel}</span>
+                  <span className="block font-mono text-sm text-slate-600 mt-0.5">{telefoneResponsavel}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Ano Referência</span>
-                  <span className="font-mono font-bold">{anoReferencia}</span>
+                  <span className="text-xs font-bold text-slate-400 block uppercase">Ano Referência</span>
+                  <span className="font-mono font-extrabold text-base">{anoReferencia}</span>
                 </div>
               </div>
             </div>
 
-            <div className="border border-slate-200 rounded-2xl p-4">
-              <h5 className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+            <div className="border border-slate-200 rounded-2xl p-5">
+              <h5 className="font-bold text-sm uppercase tracking-wider text-slate-600 mb-3 flex items-center justify-between">
                 <span>Resumo dos Bens Cadastrados</span>
-                <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[11px]">
+                <span className="bg-emerald-100 text-emerald-900 font-extrabold px-3 py-1 rounded-full text-xs">
                   {itensPositivos.length} tipos de bens
                 </span>
               </h5>
 
               {itensPositivos.length === 0 ? (
-                <p className="text-slate-400 text-xs italic">Nenhum bem registrado como existente.</p>
+                <p className="text-slate-500 text-sm italic">Nenhum bem registrado como existente.</p>
               ) : (
-                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 text-xs">
+                <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 text-sm">
                   {itensPositivos.map((it, idx) => (
-                    <div key={idx} className="py-2 flex items-center justify-between">
+                    <div key={idx} className="py-2.5 flex items-center justify-between">
                       <div>
-                        <span className="font-semibold text-slate-800">{it.item_nome}</span>
-                        <span className="text-[10px] text-slate-400 ml-2 bg-slate-100 px-1.5 py-0.5 rounded font-medium">
+                        <span className="font-bold text-slate-900 text-base">{it.item_nome}</span>
+                        <span className="text-xs text-slate-500 ml-2 bg-slate-100 px-2 py-0.5 rounded font-bold">
                           {it.conservacao}
                         </span>
                       </div>
-                      <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                      <span className="font-mono font-extrabold text-indigo-800 bg-indigo-50 px-3 py-1 rounded-xl text-sm">
                         Qtd: {it.quantidade}
                       </span>
                     </div>
@@ -573,31 +494,13 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               )}
             </div>
 
-            {fotos.length > 0 && (
-              <div className="border border-slate-200 rounded-2xl p-4">
-                <h5 className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">
-                  Fotos Anexadas ({fotos.length})
-                </h5>
-                <div className="grid grid-cols-4 gap-2">
-                  {fotos.map((f) => (
-                    <img
-                      key={f.id}
-                      src={f.previewUrl}
-                      alt={f.nome}
-                      className="w-full h-16 object-cover rounded-xl border border-slate-200 shadow-2xs"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                className="flex-1 h-14 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
               >
-                <Printer className="h-4 w-4" />
+                <Printer className="h-5 w-5" />
                 Imprimir Comprovante
               </button>
               <button
@@ -606,7 +509,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                   setSubmittedSuccess(false);
                   setEtapaAtual(1);
                 }}
-                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all cursor-pointer"
+                className="h-14 px-6 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl font-bold text-base transition-all cursor-pointer"
               >
                 Nova Atualização
               </button>
@@ -617,7 +520,6 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     );
   }
 
-  // Filtragem de categorias na Etapa 2
   const categoriasEtapa2 = ['TODAS', ...Array.from(new Set(itens.map((i) => i.categoria)))];
   const itensExibidos =
     categoriaAtiva === 'TODAS'
@@ -627,112 +529,96 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   const totalBensDeclarados = itens.filter((i) => i.possui).length;
 
   return (
-    <div className="min-h-screen bg-slate-100/70 py-6 px-3 sm:px-6 font-sans text-slate-800">
+    <div className="w-full max-w-4xl mx-auto h-auto min-h-fit py-8 px-4 sm:px-6 font-sans text-slate-900 pb-16">
       <Toaster position="top-center" richColors />
 
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header Oficial IPDA */}
-        <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-5 sm:p-7 relative overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="bg-indigo-600 text-white text-[10px] font-black tracking-wider uppercase px-2.5 py-1 rounded-md">
-                  IPDA
-                </span>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/img/logo.png"
+                  alt="IPDA Logo"
+                  className="h-8 w-auto object-contain"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                  }}
+                />
                 <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
                   Controle Patrimonial
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Cadastro de Patrimônio da Igreja
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Declaração de Patrimônio
               </h1>
-              <p className="text-slate-500 text-xs sm:text-sm">
-                Preenchimento rápido e seguro dos bens materiais e equipamentos da igreja local.
+              <p className="text-slate-600 text-sm sm:text-base font-medium">
+                Formulário simplificado de bens materiais e equipamentos da congregação.
               </p>
             </div>
 
-            <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-3 sm:text-right shrink-0">
-              <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wider">
-                Código TOTVS
-              </span>
-              <span className="text-lg font-mono font-black text-indigo-950">{church.codigo_totvs}</span>
-            </div>
-          </div>
-
-          {/* Card Resumo Igreja */}
-          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60">
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Nome da Igreja
-              </span>
-              <div className="font-black text-slate-900 text-sm flex items-center gap-1.5 mt-0.5">
-                <Building2 className="h-4 w-4 text-indigo-600 shrink-0" />
-                {church.desc_igreja}
+            {church && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 sm:text-right shrink-0">
+                <span className="text-xs font-bold text-indigo-700 block uppercase tracking-wider">
+                  Código TOTVS
+                </span>
+                <span className="text-xl font-mono font-black text-indigo-950">{church.codigo_totvs}</span>
               </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Localização
-              </span>
-              <p className="text-xs text-slate-600 flex items-center gap-1.5 mt-0.5">
-                <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-                {church.endereco || 'Endereço não informado'}, {church.bairro} - {church.municipio}/
-                {church.estado}
-              </p>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Wizard Stepper Progress Bar */}
-        <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-4 sm:p-5">
-          <div className="grid grid-cols-4 gap-2">
+        {/* Wizard Stepper Progress Bar (3 Etapas) */}
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {ETAPAS_WIZARD.map((step) => {
               const isConcluida = etapaAtual > step.numero;
               const isAtiva = etapaAtual === step.numero;
+              const isDesabilitada = step.numero > 1 && (!church || !isFormularioLiberado);
 
               return (
                 <button
                   key={step.numero}
                   type="button"
                   onClick={() => {
-                    // Permite voltar diretamente para etapas já alcançadas
                     if (step.numero < etapaAtual) setEtapaAtual(step.numero);
                   }}
-                  disabled={step.numero > etapaAtual}
-                  className={`flex flex-col items-center sm:items-start p-2 sm:p-3 rounded-2xl transition-all text-left ${
+                  disabled={step.numero > etapaAtual || isDesabilitada}
+                  className={`flex flex-col items-center sm:items-start p-3.5 rounded-2xl transition-all text-left ${
                     isAtiva
-                      ? 'bg-indigo-50/80 border border-indigo-200 shadow-2xs'
+                      ? 'bg-indigo-50 border-2 border-indigo-600 shadow-xs'
                       : isConcluida
-                      ? 'bg-slate-50 hover:bg-slate-100 cursor-pointer'
-                      : 'opacity-50 cursor-not-allowed'
+                      ? 'bg-emerald-50 border border-emerald-200 cursor-pointer'
+                      : 'opacity-50 cursor-not-allowed bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black font-mono ${
                         isConcluida
                           ? 'bg-emerald-600 text-white'
                           : isAtiva
                           ? 'bg-indigo-600 text-white ring-4 ring-indigo-100'
-                          : 'bg-slate-200 text-slate-600'
+                          : 'bg-slate-200 text-slate-700'
                       }`}
                     >
-                      {isConcluida ? <Check className="h-3.5 w-3.5" /> : step.numero}
+                      {isConcluida ? <Check className="h-4 w-4" /> : step.numero}
                     </div>
                     <span
-                      className={`hidden sm:inline-block text-xs font-bold ${
-                        isAtiva ? 'text-indigo-900' : isConcluida ? 'text-slate-800' : 'text-slate-400'
+                      className={`hidden sm:inline-block text-sm sm:text-base font-extrabold ${
+                        isAtiva ? 'text-indigo-950' : isConcluida ? 'text-emerald-950' : 'text-slate-500'
                       }`}
                     >
                       {step.titulo}
                     </span>
                   </div>
-                  <span className="hidden sm:inline-block text-[10px] text-slate-400 font-medium truncate w-full">
+                  <span className="hidden sm:inline-block text-xs text-slate-500 font-medium truncate w-full">
                     {step.subtitulo}
                   </span>
-                  <span className="sm:hidden text-[9px] font-bold text-center mt-1 text-slate-600">
-                    {step.titulo.split(' ')[0]}
+                  <span className="sm:hidden text-xs font-bold text-center mt-1 text-slate-800">
+                    Etapa {step.numero}
                   </span>
                 </button>
               );
@@ -741,103 +627,216 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         </div>
 
         {/* ======================================================== */}
-        {/* ETAPA 1: Validação da Igreja e Dados Gerais              */}
+        {/* ETAPA 1: Igreja e Dirigente Local                        */}
         {/* ======================================================== */}
-        {etapaAtual === 1 && (
-          <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-5 sm:p-7 space-y-6 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <User className="h-5 w-5 text-indigo-600" />
+        {jaEnviadoAnual ? (
+          <div className="bg-white rounded-3xl shadow-sm border border-amber-200 p-8 sm:p-12 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="h-8 w-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Declaração Anual Já Recebida
+            </h2>
+            <p className="text-slate-700 text-base sm:text-lg font-medium max-w-lg mx-auto leading-relaxed">
+              A declaração patrimonial referente ao ano de <strong>{new Date().getFullYear()}</strong> desta igreja já foi recebida e consta no sistema.
+            </p>
+            {church && (
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-800 font-semibold inline-block max-w-md my-2">
+                <p className="font-extrabold text-slate-900 text-base">{church.desc_igreja}</p>
+                <p className="text-slate-600 mt-1 font-mono">TOTVS: {church.codigo_totvs}</p>
+                <p className="text-slate-500 text-xs mt-1">
+                  {church.endereco ? `${church.endereco}, ` : ''}{church.bairro} - {church.municipio}/{church.estado}
+                </p>
+              </div>
+            )}
+            <p className="text-xs sm:text-sm text-slate-500 font-medium pt-2">
+              Caso precise de alterações ou retificações, entre em contato com a sua Regional.
+            </p>
+          </div>
+        ) : (
+          <>
+            {etapaAtual === 1 && (
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <Building2 className="h-7 w-7 text-indigo-600 shrink-0" />
               <div>
-                <h3 className="font-extrabold text-slate-900 text-base">
-                  Etapa 1: Validação da Igreja e Dados Gerais
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Confirme a identidade da congregação e os dados do dirigente responsável pelo preenchimento.
+                <h2 className="font-black text-slate-900 text-lg sm:text-xl">
+                  Etapa 1: Identificação da Igreja e Dirigente
+                </h2>
+                <p className="text-sm text-slate-600 font-medium">
+                  Confirme a congregação e os dados do Dirigente Local responsável.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Nome do Dirigente */}
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nome Completo do Dirigente Responsável <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Pr. João Ferreira"
-                    value={nomeResponsavel}
-                    onChange={(e) => setNomeResponsavel(e.target.value)}
-                    onBlur={() => handleBlurCampoEtapa1('nome_responsavel')}
-                    className={`w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:outline-hidden transition-all ${
-                      camposTocadosEtapa1.nome_responsavel && errosEtapa1.nome_responsavel
-                        ? 'border-rose-300 focus:ring-2 focus:ring-rose-500 text-rose-900 bg-rose-50/20'
-                        : 'border-slate-300 focus:ring-2 focus:ring-indigo-500'
-                    }`}
-                  />
-                  {camposTocadosEtapa1.nome_responsavel && errosEtapa1.nome_responsavel && (
-                    <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errosEtapa1.nome_responsavel}
-                    </p>
-                  )}
-                </div>
+            {/* Campo TOTVS */}
+            <div className="space-y-2">
+              <label className="block text-sm sm:text-base font-extrabold text-slate-900">
+                Código TOTVS da Igreja <span className="text-rose-600">*</span>
+              </label>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  readOnly={isUrlTotvs}
+                  disabled={isUrlTotvs}
+                  placeholder="Digite o código TOTVS (ex: 10452)"
+                  value={inputTotvs}
+                  onChange={(e) => setInputTotvs(e.target.value.toUpperCase())}
+                  className={`w-full h-14 text-base sm:text-lg font-mono font-black px-4 bg-slate-50 border-2 rounded-2xl transition-all ${
+                    isUrlTotvs
+                      ? 'border-slate-300 bg-slate-100 text-slate-700 cursor-not-allowed'
+                      : 'border-slate-300 focus:bg-white focus:border-indigo-600 text-slate-900'
+                  }`}
+                />
+                {isUrlTotvs && (
+                  <div className="absolute right-4 top-4 flex items-center gap-1.5 text-slate-500 font-bold text-xs bg-slate-200/80 px-2.5 py-1 rounded-lg">
+                    <Lock className="h-3.5 w-3.5" />
+                    <span>Modo Leitura</span>
+                  </div>
+                )}
+                {searchingChurch && !isUrlTotvs && (
+                  <div className="absolute right-4 top-4 flex items-center gap-1.5 text-indigo-600 font-bold text-xs">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Buscando...</span>
+                  </div>
+                )}
               </div>
 
-              {/* Telefone / WhatsApp */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Telefone / WhatsApp com DDD <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    required
-                    placeholder="(11) 98765-4321"
-                    maxLength={15}
-                    value={telefoneResponsavel}
-                    onChange={handleTelefoneChange}
-                    onBlur={() => handleBlurCampoEtapa1('telefone_responsavel')}
-                    className={`w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:outline-hidden transition-all font-mono ${
-                      camposTocadosEtapa1.telefone_responsavel && errosEtapa1.telefone_responsavel
-                        ? 'border-rose-300 focus:ring-2 focus:ring-rose-500 text-rose-900 bg-rose-50/20'
-                        : 'border-slate-300 focus:ring-2 focus:ring-indigo-500'
-                    }`}
-                  />
-                  {camposTocadosEtapa1.telefone_responsavel && errosEtapa1.telefone_responsavel && (
-                    <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errosEtapa1.telefone_responsavel}
+              {/* Mensagem quando campo TOTVS estiver vazio */}
+              {!debouncedTotvs && !searchingChurch && (
+                <div className="mt-3 p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-start gap-3 animate-in fade-in duration-200">
+                  <Info className="h-6 w-6 text-indigo-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-indigo-950 space-y-1">
+                    <p className="font-extrabold text-base">Informe o Código TOTVS da sua congregação</p>
+                    <p className="text-indigo-800 leading-relaxed font-medium">
+                      Digite o número TOTVS da igreja no campo acima para carregar o nome e o endereço oficial. Se não souber o código, consulte a sua Regional.
                     </p>
-                  )}
+                  </div>
                 </div>
+              )}
+
+              {/* Alerta quando a Declaração Anual já tiver sido enviada */}
+              {jaEnviadoAnual && (
+                <div className="mt-3 p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 animate-in fade-in duration-200">
+                  <AlertCircle className="h-6 w-6 text-amber-700 shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-950 space-y-1">
+                    <p className="font-extrabold text-base">Declaração Anual Já Realizada</p>
+                    <p className="text-amber-900 leading-relaxed font-medium">
+                      Declaração de {new Date().getFullYear()} já realizada para este TOTVS. Para alterações ou atualizações, entre em contato com a sua Regional.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Card de Confirmação quando a Igreja for Encontrada */}
+              {church && !searchingChurch && !jaEnviadoAnual && (
+                <div className="mt-3 p-5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl space-y-2 animate-in fade-in zoom-in-95 duration-200 shadow-xs">
+                  <div className="flex items-center gap-2 text-emerald-900 font-black text-xs uppercase tracking-wider">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <span>Congregação Confirmada no Sistema</span>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 text-base sm:text-lg">
+                      {church.desc_igreja}
+                    </h3>
+                    <p className="text-sm text-slate-800 flex items-start gap-1.5 mt-1 font-bold">
+                      <MapPin className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5" />
+                      <span>
+                        {church.endereco ? `${church.endereco}, ` : ''}
+                        {church.bairro ? `${church.bairro} - ` : ''}
+                        {church.municipio}/{church.estado}
+                      </span>
+                    </p>
+                  </div>
+                  <p className="text-xs text-emerald-800 font-extrabold pt-2 border-t border-emerald-200">
+                    Confirme se o nome e o endereço pertencem à sua igreja local.
+                  </p>
+                </div>
+              )}
+
+              {/* Alerta de TOTVS não encontrado */}
+              {churchNotFound && !searchingChurch && (
+                <div className="mt-3 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 animate-in fade-in duration-200">
+                  <AlertTriangle className="h-6 w-6 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-rose-950 space-y-1">
+                    <p className="font-extrabold text-base">Código TOTVS não localizado</p>
+                    <p className="text-rose-800 leading-relaxed font-medium">
+                      Código TOTVS não encontrado. Verifique o número digitado com a sua regional.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Dados do Dirigente Local */}
+            <div className="pt-4 border-t border-slate-100 space-y-5">
+              {/* Nome Completo do Dirigente Local */}
+              <div>
+                <label className="block text-sm sm:text-base font-extrabold text-slate-900 mb-1.5">
+                  Nome Completo do Dirigente Local <span className="text-rose-600">*</span>
+                </label>
+
+                <input
+                  type="text"
+                  required
+                  placeholder="Digite seu nome completo (Ex: Pr. João Ferreira)"
+                  value={nomeResponsavel}
+                  onChange={(e) => setNomeResponsavel(e.target.value)}
+                  onBlur={() => handleBlurCampoEtapa1('nome_responsavel')}
+                  className={`w-full h-14 text-base sm:text-lg font-bold px-4 bg-slate-50 border-2 rounded-2xl focus:bg-white focus:outline-hidden transition-all ${
+                    camposTocadosEtapa1.nome_responsavel && errosEtapa1.nome_responsavel
+                      ? 'border-rose-400 focus:ring-2 focus:ring-rose-500 text-rose-950 bg-rose-50/30'
+                      : 'border-slate-300 focus:border-indigo-600'
+                  }`}
+                />
+                {camposTocadosEtapa1.nome_responsavel && errosEtapa1.nome_responsavel && (
+                  <p className="text-xs sm:text-sm text-rose-600 font-bold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errosEtapa1.nome_responsavel}
+                  </p>
+                )}
               </div>
 
-              {/* Cargo / Função */}
+              {/* Telefone / WhatsApp com Máscara e DDD */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Função / Cargo na Igreja
+                <label className="block text-sm sm:text-base font-extrabold text-slate-900 mb-1.5">
+                  Telefone / WhatsApp de Contato com DDD <span className="text-rose-600">*</span>
                 </label>
-                <select
-                  value={cargoResponsavel}
-                  onChange={(e) => setCargoResponsavel(e.target.value)}
-                  className="w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                >
-                  <option value="Dirigente">Dirigente Local</option>
-                  <option value="Pastor">Pastor da Igreja</option>
-                  <option value="Presbítero / Cooperador">Presbítero / Cooperador</option>
-                  <option value="Tesoureiro">Tesoureiro / Financeiro</option>
-                  <option value="Secretário">Secretário(a)</option>
-                  <option value="Outro">Outro Responsável</option>
-                </select>
+
+                <input
+                  type="tel"
+                  required
+                  placeholder="(11) 98765-4321"
+                  maxLength={15}
+                  value={telefoneResponsavel}
+                  onChange={handleTelefoneChange}
+                  onBlur={() => handleBlurCampoEtapa1('telefone_responsavel')}
+                  className={`w-full h-14 text-base sm:text-lg font-mono font-bold px-4 bg-slate-50 border-2 rounded-2xl focus:bg-white focus:outline-hidden transition-all ${
+                    camposTocadosEtapa1.telefone_responsavel && !validacaoTel.valido
+                      ? 'border-rose-400 focus:ring-2 focus:ring-rose-500 text-rose-950 bg-rose-50/30'
+                      : 'border-slate-300 focus:border-indigo-600'
+                  }`}
+                />
+                {camposTocadosEtapa1.telefone_responsavel && !validacaoTel.valido && (
+                  <p className="text-xs sm:text-sm text-rose-600 font-bold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {validacaoTel.erro}
+                  </p>
+                )}
+                {validacaoTel.valido && telefoneResponsavel && (
+                  <p className="text-xs sm:text-sm text-emerald-700 font-extrabold mt-1.5 flex items-center gap-1">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    Telefone e DDD validados
+                  </p>
+                )}
               </div>
 
               {/* Ano de Referência */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Ano de Referência do Inventário
+                <label className="block text-sm sm:text-base font-extrabold text-slate-900 mb-1.5">
+                  Ano do Inventário
                 </label>
                 <input
                   type="number"
@@ -845,46 +844,44 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                   max="2035"
                   value={anoReferencia}
                   onChange={(e) => setAnoReferencia(Number(e.target.value))}
-                  className="w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden font-mono"
+                  className="w-full h-14 text-base sm:text-lg font-mono font-bold px-4 bg-slate-50 border-2 border-slate-300 rounded-2xl focus:bg-white focus:border-indigo-600 focus:outline-hidden"
                 />
               </div>
+            </div>
 
-              {/* Informação do Porte */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Classificação / Porte
-                </label>
-                <div className="h-10 px-3.5 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-xs font-bold text-slate-700">
-                  {church.porte || 'LOCAL'}
-                </div>
-              </div>
+            {/* Aviso Sutil */}
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs sm:text-sm text-amber-950 font-medium">
+              <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong>Atenção:</strong> Os dados de contato informados acima (Nome e WhatsApp) serão cadastrados no sistema caso o registro oficial do dirigente da congregação não esteja presente.
+              </p>
             </div>
           </div>
         )}
 
         {/* ======================================================== */}
-        {/* ETAPA 2: Cadastro Dinâmico de Bens/Equipamentos           */}
+        {/* ETAPA 2: Bens e Equipamentos                              */}
         {/* ======================================================== */}
         {etapaAtual === 2 && (
-          <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-5 sm:p-7 space-y-5 animate-in fade-in duration-200">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
               <div>
-                <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-indigo-600" />
-                  Etapa 2: Cadastro Dinâmico de Bens e Equipamentos
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Marque "Sim" nos itens que a igreja possui, indique a quantidade e estado de conservação.
+                <h2 className="font-black text-slate-900 text-lg sm:text-xl flex items-center gap-2">
+                  <Layers className="h-6 w-6 text-indigo-600" />
+                  Etapa 2: Bens e Equipamentos da Igreja
+                </h2>
+                <p className="text-sm text-slate-600 font-medium">
+                  Marque os itens que a igreja possui e indique a quantidade e conservação.
                 </p>
               </div>
 
-              <span className="bg-indigo-50 text-indigo-700 font-extrabold text-xs px-3 py-1.5 rounded-full border border-indigo-100 self-start sm:self-center">
-                {totalBensDeclarados} {totalBensDeclarados === 1 ? 'item existente' : 'itens existentes'}
+              <span className="bg-indigo-100 text-indigo-900 font-black text-sm px-4 py-2 rounded-2xl border border-indigo-200 self-start sm:self-center">
+                {totalBensDeclarados} {totalBensDeclarados === 1 ? 'item marcado' : 'itens marcados'}
               </span>
             </div>
 
-            {/* Categorias Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-2 px-2 scrollbar-none">
+            {/* Categorias Tabs (Wrap sem corte lateral) */}
+            <div className="flex flex-wrap gap-2 md:gap-3 my-4">
               {categoriasEtapa2.map((cat) => {
                 const IconComp = CATEGORIAS_ICONES[cat] || Layers;
                 const isActive = categoriaAtiva === cat;
@@ -897,18 +894,18 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                     key={cat}
                     type="button"
                     onClick={() => setCategoriaAtiva(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                     }`}
                   >
-                    <IconComp className="h-3.5 w-3.5" />
+                    <IconComp className="h-4 w-4" />
                     <span>{cat}</span>
                     {countNaCat > 0 && (
                       <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                          isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                        className={`text-xs px-2 py-0.5 rounded-full font-mono font-black ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-900'
                         }`}
                       >
                         {countNaCat}
@@ -919,111 +916,127 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               })}
             </div>
 
-            {/* Lista dos Itens */}
-            <div className="space-y-3">
+            {/* Lista dos Itens (Cards Clicáveis para Idosos) */}
+            <div className="space-y-4">
               {itensExibidos.map((item) => {
                 const isChecked = item.possui;
 
                 return (
                   <div
                     key={item.id}
-                    className={`p-4 rounded-2xl border transition-all ${
+                    onClick={() => handleTogglePossui(item.id)}
+                    className={`cursor-pointer rounded-2xl border-2 p-4 sm:p-5 transition-all ${
                       isChecked
-                        ? 'bg-indigo-50/40 border-indigo-200 shadow-xs'
-                        : 'bg-slate-50/60 border-slate-200/70 hover:bg-slate-50'
+                        ? 'bg-indigo-50/60 border-indigo-600 shadow-sm'
+                        : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      {/* Lado Esquerdo: Checkbox / Toggle e Título */}
-                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3.5">
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleTogglePossui(item.id)}
-                          className="mt-0.5 h-5 w-5 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                          onChange={() => {}} // acionado pelo card pai
+                          className="mt-1 h-6 w-6 rounded-lg border-slate-400 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0"
                         />
                         <div>
                           <span
-                            className={`text-xs sm:text-sm font-bold block ${
-                              isChecked ? 'text-indigo-950' : 'text-slate-700'
+                            className={`text-base sm:text-lg font-black block ${
+                              isChecked ? 'text-indigo-950' : 'text-slate-900'
                             }`}
                           >
                             {item.item_nome}
                           </span>
-                          <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-extrabold block mt-0.5">
                             {item.categoria}
                           </span>
                         </div>
-                      </label>
+                      </div>
 
-                      {/* Lado Direito: Controles inline ao marcar Sim */}
-                      {isChecked && (
-                        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap ml-8 sm:ml-0">
-                          {/* Stepper de Quantidade */}
-                          <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden shadow-2xs">
-                            <button
-                              type="button"
-                              onClick={() => handleQuantityChange(item.id, -1)}
-                              className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 text-xs font-bold cursor-pointer transition-colors"
-                              title="Diminuir"
-                            >
-                              -
-                            </button>
-                            <span className="px-2.5 text-xs font-mono font-bold text-slate-900 min-w-8 text-center">
-                              {item.quantidade}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleQuantityChange(item.id, 1)}
-                              className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 text-xs font-bold cursor-pointer transition-colors"
-                              title="Aumentar"
-                            >
-                              +
-                            </button>
-                          </div>
-
-                          {/* Dropdown de Estado de Conservação */}
-                          <select
-                            value={item.conservacao}
-                            onChange={(e) =>
-                              handleConservacaoChange(
-                                item.id,
-                                e.target.value as 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'
-                              )
-                            }
-                            className="bg-white text-[11px] font-bold text-slate-700 border border-slate-300 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                          >
-                            <option value="ÓTIMO">Estado: Ótimo</option>
-                            <option value="BOM">Estado: Bom</option>
-                            <option value="REGULAR">Estado: Regular</option>
-                            <option value="RUIM">Estado: Ruim / Reparo</option>
-                          </select>
-
-                          {/* Remover item personalizado */}
-                          {item.isCustom && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCustomItem(item.id)}
-                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Remover item personalizado"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
+                      {item.isCustom && isChecked && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleRemoveCustomItem(item.id, e)}
+                          className="p-2 text-rose-600 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="Remover item personalizado"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
                       )}
                     </div>
 
-                    {/* Observação opcional inline do item */}
+                    {/* Controles expansivos com botões grandes ao marcar */}
                     {isChecked && (
-                      <div className="mt-3 ml-8 pt-2.5 border-t border-indigo-100/70">
-                        <input
-                          type="text"
-                          placeholder="Observação do bem (ex: Marca, modelo, potência, canal...)"
-                          value={item.observacao || ''}
-                          onChange={(e) => handleObservacaoItemChange(item.id, e.target.value)}
-                          className="w-full text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-indigo-400 placeholder:text-slate-400 text-slate-700"
-                        />
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-4 pt-4 border-t border-indigo-200 space-y-4 animate-in fade-in duration-150"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          {/* Stepper de Quantidade com Botões Grandes */}
+                          <div className="space-y-1">
+                            <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                              Quantidade:
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => handleQuantityChange(item.id, -1, e)}
+                                className="h-11 w-11 rounded-xl bg-white border-2 border-slate-300 hover:bg-slate-100 active:scale-95 text-xl font-black text-slate-800 flex items-center justify-center transition-all shadow-2xs"
+                                title="Diminuir"
+                              >
+                                -
+                              </button>
+                              <span className="px-4 text-lg font-mono font-black text-indigo-950 min-w-12 text-center bg-white py-1.5 rounded-xl border border-indigo-100 shadow-2xs">
+                                {item.quantidade}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleQuantityChange(item.id, 1, e)}
+                                className="h-11 w-11 rounded-xl bg-white border-2 border-slate-300 hover:bg-slate-100 active:scale-95 text-xl font-black text-slate-800 flex items-center justify-center transition-all shadow-2xs"
+                                title="Aumentar"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Pílulas de Conservação Grandes */}
+                          <div className="space-y-1">
+                            <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                              Estado de Conservação:
+                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {CONSERVACAO_OPCOES.map((opt) => {
+                                const isSelected = item.conservacao === opt.valor;
+                                return (
+                                  <button
+                                    key={opt.valor}
+                                    type="button"
+                                    onClick={(e) => handleConservacaoChange(item.id, opt.valor, e)}
+                                    className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all border-2 ${
+                                      isSelected
+                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {opt.rotulo}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Campo Observação */}
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Observação opcional (ex: Marca, potência, ano...)"
+                            value={item.observacao || ''}
+                            onChange={(e) => handleObservacaoItemChange(item.id, e.target.value)}
+                            className="w-full text-xs sm:text-sm px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl focus:outline-hidden focus:border-indigo-600 font-medium text-slate-900"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1032,14 +1045,14 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
             </div>
 
             {/* Adicionar Item Personalizado */}
-            <div className="pt-3 border-t border-slate-200/80">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Não localizou algum equipamento ou bem?
+            <div className="pt-4 border-t border-slate-200">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                Não localizou algum equipamento?
               </span>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col sm:flex-row gap-2.5">
                 <input
                   type="text"
-                  placeholder="Nome do novo bem (Ex: Gerador, Roçadeira, Sino, Microfones Especiais...)"
+                  placeholder="Nome do novo bem (Ex: Gerador, Roçadeira, Sino...)"
                   value={novoItemNome}
                   onChange={(e) => setNovoItemNome(e.target.value)}
                   onKeyDown={(e) => {
@@ -1048,14 +1061,14 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                       handleAddCustomItem();
                     }
                   }}
-                  className="flex-1 text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  className="flex-1 h-12 text-sm font-bold px-4 bg-slate-50 border-2 border-slate-300 rounded-2xl focus:bg-white focus:border-indigo-600 focus:outline-hidden"
                 />
                 <button
                   type="button"
                   onClick={handleAddCustomItem}
-                  className="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-12 px-5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-2 border-indigo-200 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-5 w-5" />
                   <span>Adicionar Item</span>
                 </button>
               </div>
@@ -1064,188 +1077,96 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         )}
 
         {/* ======================================================== */}
-        {/* ETAPA 3: Upload de Fotos / Documentos                    */}
+        {/* ETAPA 3: Envio e Confirmação                             */}
         {/* ======================================================== */}
-        {etapaAtual === 3 && (
-          <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-5 sm:p-7 space-y-6 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <ImageIcon className="h-5 w-5 text-indigo-600" />
+        {etapaAtual === 3 && church && (
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <FileCheck2 className="h-7 w-7 text-indigo-600 shrink-0" />
               <div>
-                <h3 className="font-extrabold text-slate-900 text-base">
-                  Etapa 3: Fotos e Comprovantes dos Bens (Opcional)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Tire fotos pelo celular ou anexe imagens dos principais equipamentos e instalações.
-                </p>
-              </div>
-            </div>
-
-            {/* Drag and drop / file input box */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-3xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-1">
-                <Upload className="h-6 w-6" />
-              </div>
-              <h4 className="font-bold text-slate-800 text-sm">
-                Toque para selecionar ou tirar foto
-              </h4>
-              <p className="text-slate-500 text-xs max-w-sm">
-                Envie fotos dos equipamentos de som, púlpito, instrumentos musicais ou visão geral da igreja.
-              </p>
-              <span className="text-[10px] text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-full font-medium">
-                JPG, PNG, WebP (até 10MB cada)
-              </span>
-            </div>
-
-            {/* Galeria de Fotos Carregadas */}
-            {fotos.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <BadgeCheck className="h-4 w-4 text-emerald-600" />
-                  Fotos Selecionadas ({fotos.length})
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {fotos.map((foto) => (
-                    <div
-                      key={foto.id}
-                      className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex gap-3 items-center relative group"
-                    >
-                      <img
-                        src={foto.previewUrl}
-                        alt={foto.nome}
-                        className="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-bold text-slate-800 truncate block">
-                          {foto.nome}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono block mb-1">
-                          {(foto.tamanho / (1024 * 1024)).toFixed(2)} MB
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Legenda (ex: Mesa de som)"
-                          value={foto.legenda || ''}
-                          onChange={(e) => handleLegendaFotoChange(foto.id, e.target.value)}
-                          className="w-full text-[11px] px-2 py-1 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-indigo-400 text-slate-700"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFoto(foto.id)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                        title="Remover foto"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ======================================================== */}
-        {/* ETAPA 4: Revisão dos dados e Confirmação de envio         */}
-        {/* ======================================================== */}
-        {etapaAtual === 4 && (
-          <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-5 sm:p-7 space-y-6 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <FileCheck2 className="h-5 w-5 text-indigo-600" />
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-base">
-                  Etapa 4: Revisão dos Dados e Confirmação
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Revise atentamente todas as informações antes de transmitir o inventário oficial.
+                <h2 className="font-black text-slate-900 text-lg sm:text-xl">
+                  Etapa 3: Revisão e Envio do Inventário
+                </h2>
+                <p className="text-sm text-slate-600 font-medium">
+                  Revise as informações da congregação antes do envio definitivo.
                 </p>
               </div>
             </div>
 
             {/* Resumo Card 1: Igreja e Dirigente */}
-            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Building2 className="h-4 w-4 text-indigo-600" />
-                  Dados da Igreja e Responsável
-                </h4>
+            <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-5 space-y-3">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-indigo-600" />
+                  Dados da Igreja e Dirigente Local
+                </h3>
                 <button
                   type="button"
                   onClick={() => setEtapaAtual(1)}
-                  className="text-indigo-600 hover:text-indigo-800 text-xs font-bold transition-colors cursor-pointer"
+                  className="text-indigo-600 hover:text-indigo-900 text-xs sm:text-sm font-extrabold transition-colors cursor-pointer"
                 >
                   Alterar
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                 <div>
-                  <span className="text-slate-400 font-bold block text-[10px] uppercase">Igreja / TOTVS</span>
-                  <span className="font-bold text-slate-900">{church.desc_igreja} (TOTVS {church.codigo_totvs})</span>
+                  <span className="text-slate-500 font-bold block text-xs uppercase">Congregação / TOTVS</span>
+                  <span className="font-extrabold text-slate-900">{church.desc_igreja} (TOTVS {church.codigo_totvs})</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-bold block text-[10px] uppercase">Endereço</span>
-                  <span className="text-slate-700">{church.endereco}, {church.bairro} - {church.municipio}/{church.estado}</span>
+                  <span className="text-slate-500 font-bold block text-xs uppercase">Endereço</span>
+                  <span className="text-slate-800 font-medium">
+                    {church.endereco ? `${church.endereco}, ` : ''}{church.bairro} - {church.municipio}/{church.estado}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-bold block text-[10px] uppercase">Responsável</span>
-                  <span className="font-bold text-slate-900">{nomeResponsavel} ({cargoResponsavel})</span>
+                  <span className="text-slate-500 font-bold block text-xs uppercase">Dirigente Local</span>
+                  <span className="font-extrabold text-slate-900">{nomeResponsavel}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-bold block text-[10px] uppercase">Contato WhatsApp</span>
-                  <span className="font-mono text-slate-700">{telefoneResponsavel}</span>
+                  <span className="text-slate-500 font-bold block text-xs uppercase">Contato WhatsApp</span>
+                  <span className="font-mono font-bold text-slate-800">{telefoneResponsavel}</span>
                 </div>
               </div>
             </div>
 
             {/* Resumo Card 2: Bens Declarados */}
-            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Armchair className="h-4 w-4 text-indigo-600" />
-                  Bens e Equipamentos Declarados ({totalBensDeclarados})
-                </h4>
+            <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-5 space-y-3">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <Armchair className="h-5 w-5 text-indigo-600" />
+                  Bens Marcados ({totalBensDeclarados})
+                </h3>
                 <button
                   type="button"
                   onClick={() => setEtapaAtual(2)}
-                  className="text-indigo-600 hover:text-indigo-800 text-xs font-bold transition-colors cursor-pointer"
+                  className="text-indigo-600 hover:text-indigo-900 text-xs sm:text-sm font-extrabold transition-colors cursor-pointer"
                 >
                   Alterar
                 </button>
               </div>
 
               {totalBensDeclarados === 0 ? (
-                <p className="text-slate-400 text-xs italic">Nenhum bem marcado como existente.</p>
+                <p className="text-slate-500 text-sm italic">Nenhum bem marcado como existente.</p>
               ) : (
-                <div className="max-h-52 overflow-y-auto divide-y divide-slate-200/60 text-xs pr-1">
+                <div className="max-h-60 overflow-y-auto divide-y divide-slate-200 text-xs sm:text-sm pr-1">
                   {itens
                     .filter((it) => it.possui)
                     .map((it) => (
-                      <div key={it.id} className="py-2 flex items-center justify-between">
+                      <div key={it.id} className="py-2.5 flex items-center justify-between">
                         <div>
-                          <span className="font-bold text-slate-900">{it.item_nome}</span>
-                          <span className="text-[10px] text-slate-400 ml-2 bg-white border border-slate-200 px-1.5 py-0.5 rounded font-medium">
+                          <span className="font-extrabold text-slate-900">{it.item_nome}</span>
+                          <span className="text-xs text-slate-500 ml-2 bg-white border border-slate-200 px-2 py-0.5 rounded font-bold">
                             {it.conservacao}
                           </span>
                           {it.observacao && (
-                            <p className="text-[11px] text-slate-500 italic mt-0.5">
+                            <p className="text-xs text-slate-600 italic mt-0.5">
                               Obs: {it.observacao}
                             </p>
                           )}
                         </div>
-                        <span className="font-mono font-bold text-indigo-700 bg-indigo-100/60 px-2 py-0.5 rounded">
+                        <span className="font-mono font-black text-indigo-900 bg-indigo-100 px-3 py-1 rounded-xl">
                           Qtd: {it.quantidade}
                         </span>
                       </div>
@@ -1254,99 +1175,70 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               )}
             </div>
 
-            {/* Resumo Card 3: Fotos Anexadas */}
-            {fotos.length > 0 && (
-              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <ImageIcon className="h-4 w-4 text-indigo-600" />
-                    Fotos Anexadas ({fotos.length})
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setEtapaAtual(3)}
-                    className="text-indigo-600 hover:text-indigo-800 text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    Alterar
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                  {fotos.map((f) => (
-                    <img
-                      key={f.id}
-                      src={f.previewUrl}
-                      alt={f.nome}
-                      className="w-full h-14 object-cover rounded-xl border border-slate-200"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Observações Finais */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700">
+              <label className="block text-sm font-extrabold text-slate-900">
                 Observações Finais sobre a Igreja ou Patrimônio (Opcional)
               </label>
               <textarea
                 rows={3}
-                placeholder="Informe aqui observações sobre reformas necessárias, itens emprestados ou doações..."
+                placeholder="Informe observações sobre reformas necessárias, bens emprestados ou doações..."
                 value={observacoesGerais}
                 onChange={(e) => setObservacoesGerais(e.target.value)}
-                className="w-full text-xs sm:text-sm p-3.5 bg-slate-50 border border-slate-300 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                className="w-full text-sm p-4 bg-slate-50 border-2 border-slate-300 rounded-2xl focus:bg-white focus:border-indigo-600 focus:outline-hidden font-medium"
               />
             </div>
           </div>
         )}
 
         {/* ======================================================== */}
-        {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD                     */}
+        {/* BARRA DE NAVEGAÇÃO NO FLUXO NORMAL (NÃO FIXO/ABSOLUTO)    */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-3xl shadow-md border border-slate-200/80 p-4 sm:p-5 flex items-center justify-between gap-3 sticky bottom-4 z-20">
+        <div className="mt-8 border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             type="button"
             onClick={handleVoltarEtapa}
             disabled={etapaAtual === 1 || submitting}
-            className={`px-5 py-3 rounded-2xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`w-full sm:w-auto h-14 px-8 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 transition-all cursor-pointer ${
               etapaAtual === 1
-                ? 'opacity-40 cursor-not-allowed text-slate-400'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                ? 'opacity-40 cursor-not-allowed text-slate-400 bg-slate-100'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
             }`}
           >
-            <ChevronLeft className="h-4 w-4" />
-            <span>Voltar</span>
+            <ChevronLeft className="h-5 w-5" />
+            <span>Voltar Passo</span>
           </button>
 
-          <span className="text-xs font-mono font-bold text-slate-400 hidden sm:inline-block">
-            Etapa {etapaAtual} de 4
+          <span className="text-sm font-mono font-extrabold text-slate-500 hidden sm:inline-block">
+            Etapa {etapaAtual} de 3
           </span>
 
-          {etapaAtual < 4 ? (
+          {etapaAtual < 3 ? (
             <button
               type="button"
               onClick={handleAvancarEtapa}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-2xl font-black text-xs sm:text-sm shadow-md shadow-indigo-600/20 flex items-center gap-2 transition-all cursor-pointer"
+              disabled={!isFormularioLiberado || searchingChurch}
+              className="w-full sm:w-auto h-14 px-8 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-2xl font-black text-base shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <span>Avançar</span>
-              <ChevronRight className="h-4 w-4" />
+              <span>Avançar para Próxima Etapa</span>
+              <ChevronRight className="h-5 w-5" />
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setIsModalConfirmacaoAberto(true)}
-              disabled={submitting}
-              className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-2xl font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={submitting || !isFormularioLiberado}
+              className="w-full sm:w-auto h-14 px-8 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-2xl font-black text-base shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Gravando...</span>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Transmitindo...</span>
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4" />
-                  <span>Confirmar e Enviar</span>
+                  <Send className="h-5 w-5" />
+                  <span>Confirmar e Finalizar Envio</span>
                 </>
               )}
             </button>
@@ -1354,50 +1246,50 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         </div>
 
         {/* Modal de Confirmação Final */}
-        {isModalConfirmacaoAberto && (
+        {isModalConfirmacaoAberto && church && (
           <div className="fixed inset-0 z-[3000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 p-6 space-y-4 animate-in zoom-in-95 duration-200">
-              <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-                <ShieldCheck className="h-8 w-8" />
+            <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 p-6 sm:p-8 space-y-5 animate-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                <Send className="h-8 w-8" />
               </div>
 
-              <div className="text-center space-y-1">
-                <h3 className="text-lg font-black text-slate-900">
-                  Confirmar Envio do Inventário?
+              <div className="text-center space-y-1.5">
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                  Confirmar Envio Oficial?
                 </h3>
-                <p className="text-slate-500 text-xs leading-relaxed">
-                  Os dados declarados serão gravados oficialmente na base de patrimônio da igreja TOTVS{' '}
-                  <strong className="text-slate-800 font-mono">{church.codigo_totvs}</strong>.
+                <p className="text-slate-600 text-sm font-medium leading-relaxed">
+                  Os dados declarados serão gravados no cadastro da igreja TOTVS{' '}
+                  <strong className="text-slate-900 font-mono">{church.codigo_totvs}</strong> ({church.desc_igreja}).
                 </p>
               </div>
 
-              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 text-xs space-y-1">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-xs sm:text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">Bens declarados:</span>
-                  <span className="font-bold text-slate-900">{totalBensDeclarados} itens</span>
+                  <span className="text-slate-500 font-bold">Bens marcados:</span>
+                  <span className="font-extrabold text-slate-900">{totalBensDeclarados} itens</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">Fotos anexadas:</span>
-                  <span className="font-bold text-slate-900">{fotos.length} foto(s)</span>
+                  <span className="text-slate-500 font-bold">Dirigente Local:</span>
+                  <span className="font-extrabold text-slate-900">{nomeResponsavel}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">Responsável:</span>
-                  <span className="font-bold text-slate-900">{nomeResponsavel}</span>
+                  <span className="text-slate-500 font-bold">Telefone/WhatsApp:</span>
+                  <span className="font-mono font-extrabold text-slate-900">{telefoneResponsavel}</span>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalConfirmacaoAberto(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                  className="flex-1 h-12 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl font-bold text-sm transition-colors cursor-pointer"
                 >
-                  Revisar Mais
+                  Revisar Dados
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmarEnvio}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                  className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-extrabold text-sm shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                 >
                   Sim, Enviar Agora
                 </button>
@@ -1406,7 +1298,10 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
           </div>
         )}
 
-        <footer className="text-center text-xs text-slate-400 py-4">
+          </>
+        )}
+
+        <footer className="text-center text-xs sm:text-sm text-slate-500 py-6 font-medium">
           IPDA &copy; {new Date().getFullYear()} - Sistema de Gestão Georreferenciada e Patrimônio
         </footer>
       </div>
