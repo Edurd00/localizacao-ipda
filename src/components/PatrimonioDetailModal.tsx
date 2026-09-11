@@ -151,9 +151,9 @@ export default function PatrimonioDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4">
       <Toaster position="top-center" richColors />
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full shadow-2xl border border-zinc-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full shadow-2xl border border-zinc-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 max-h-[90vh] mt-12 md:mt-0">
         {/* Header */}
         <div className="p-5 border-b border-zinc-100 dark:border-slate-800 flex justify-between items-center bg-zinc-50/50 dark:bg-slate-800/40">
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
