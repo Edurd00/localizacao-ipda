@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { salvarSubmissaoPatrimonio, SalvarPatrimonioInput } from '@/lib/patrimonio';
+import { salvarSubmissaoPatrimonio, verificarSubmissaoAnual, SalvarPatrimonioInput } from '@/lib/patrimonio';
 import { validarTelefoneComDdd } from '@/lib/patrimonioValidation';
 import { revalidatePath } from 'next/cache';
 
@@ -36,6 +36,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Trava de duplicidade anual
+    const ano = Number(ano_referencia) || new Date().getFullYear();
+    const jaEnviado = await verificarSubmissaoAnual(cleanTotvs, ano);
+    if (jaEnviado) {
+      return NextResponse.json(
+        {
+          success: false,
+          ja_enviado: true,
+          mensagem: `Declaração de ${ano} já realizada para este TOTVS.`,
+          error: `Declaração de ${ano} já realizada para este TOTVS.`,
+        },
+        { status: 400 }
+      );
+    }
+
     // 2. Validação do responsável
     const cleanNome = String(nome_responsavel || '').trim();
     if (!cleanNome || cleanNome.length < 2) {
@@ -45,17 +60,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Validação do telefone com DDD (10 a 11 dígitos)
+    // 3. Validação do telefone com DDD (10 a 11 dígitos limpos)
     const validacaoTel = validarTelefoneComDdd(String(telefone_responsavel || ''));
-    if (!validacaoTel.valido) {
+    if (!validacaoTel.valido || !validacaoTel.digitos || validacaoTel.digitos.length < 10 || validacaoTel.digitos.length > 11) {
       return NextResponse.json(
-        { success: false, error: validacaoTel.erro || 'Telefone inválido.' },
+        { success: false, error: validacaoTel.erro || 'O telefone deve conter entre 10 e 11 dígitos numéricos limpos com DDD válido.' },
         { status: 400 }
       );
     }
-    const cleanTelefone = validacaoTel.digitos!;
+    const cleanTelefone = validacaoTel.digitos;
 
-    // 3. Validação dos itens
+    // 4. Validação dos itens
     if (!Array.isArray(itens) || itens.length === 0) {
       return NextResponse.json(
         { success: false, error: 'É necessário declarar ao menos um item de patrimônio.' },
@@ -68,7 +83,7 @@ export async function POST(request: NextRequest) {
       nome_responsavel: cleanNome,
       telefone_responsavel: cleanTelefone,
       cargo_responsavel: cargo_responsavel ? String(cargo_responsavel).trim() : null,
-      ano_referencia: Number(ano_referencia) || new Date().getFullYear(),
+      ano_referencia: ano,
       observacoes: observacoes ? String(observacoes).trim() : null,
       itens: itens.map((it: any) => ({
         item_nome: String(it.item_nome || it.item || it.nome_item || it.descricao || '').trim(),

@@ -425,13 +425,15 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
         itensCount++;
       }
 
-      // Sincronização do contato do dirigente na tabela public.igrejas dentro da mesma transação
+      // Sincronização condicional do contato do dirigente na tabela public.igrejas
+      // APENAS SE dirigente_nome ou dirigente_telefone estiverem nulos ou vazios
       await client.query(
         `UPDATE public.igrejas
-         SET dirigente_nome = $1,
-             dirigente_telefone = $2,
+         SET dirigente_nome = CASE WHEN dirigente_nome IS NULL OR TRIM(dirigente_nome) = '' THEN $1 ELSE dirigente_nome END,
+             dirigente_telefone = CASE WHEN dirigente_telefone IS NULL OR TRIM(dirigente_telefone) = '' THEN $2 ELSE dirigente_telefone END,
              updated_at = NOW()
-         WHERE LOWER(codigo_totvs) = $3`,
+         WHERE LOWER(codigo_totvs) = LOWER($3)
+           AND ((dirigente_nome IS NULL OR TRIM(dirigente_nome) = '') OR (dirigente_telefone IS NULL OR TRIM(dirigente_telefone) = ''))`,
         [nomeResponsavel, telefoneResponsavel, cleanTotvs]
       );
 
@@ -516,17 +518,30 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
         }
       }
 
-      // Sincroniza o dirigente na tabela igrejas no Supabase
+      // Sincroniza o dirigente na tabela igrejas no Supabase se estiver nulo ou vazio
       if (nomeResponsavel) {
         try {
-          await supabase
+          const { data: curIg } = await supabase
             .from('igrejas')
-            .update({
-              dirigente_nome: nomeResponsavel,
-              dirigente_telefone: telefoneResponsavel,
-              updated_at: new Date().toISOString(),
-            })
-            .ilike('codigo_totvs', cleanTotvs);
+            .select('dirigente_nome, dirigente_telefone')
+            .ilike('codigo_totvs', cleanTotvs)
+            .limit(1);
+
+          if (curIg && curIg.length > 0) {
+            const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+            if (!curIg[0].dirigente_nome || !curIg[0].dirigente_nome.trim()) {
+              updates.dirigente_nome = nomeResponsavel;
+            }
+            if (!curIg[0].dirigente_telefone || !curIg[0].dirigente_telefone.trim()) {
+              updates.dirigente_telefone = telefoneResponsavel;
+            }
+            if (Object.keys(updates).length > 1) {
+              await supabase
+                .from('igrejas')
+                .update(updates)
+                .ilike('codigo_totvs', cleanTotvs);
+            }
+          }
         } catch (dirErr) {
           console.warn('Aviso ao atualizar dirigente no Supabase:', dirErr);
         }
@@ -612,4 +627,114 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
     ano_referencia: anoReferencia,
     itens_salvos: itensCount,
   };
+}
+
+
+/**
+ * Verifica se já existe uma submissão de patrimônio para o TOTVS no ano informado
+ */
+export async function verificarSubmissaoAnual(totvs: string, ano: number = new Date().getFullYear()): Promise<boolean> {
+  const cleanTotvs = (totvs || '').trim();
+  if (!cleanTotvs) return false;
+
+  await ensurePatrimonioTables();
+
+  if (pool) {
+    try {
+      const res = await pool.query(
+        `SELECT id FROM patrimonio_submissoes
+         WHERE LOWER(codigo_totvs) = LOWER($1)
+           AND ano_referencia = $2
+         LIMIT 1`,
+        [cleanTotvs, ano]
+      );
+      return res.rows.length > 0;
+    } catch (err) {
+      console.error('Postgres error in verificarSubmissaoAnual:', err);
+    }
+  }
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('patrimonio_submissoes')
+        .select('id')
+        .ilike('codigo_totvs', cleanTotvs)
+        .eq('ano_referencia', ano)
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        return true;
+      }
+    } catch (supaErr) {
+      console.error('Supabase error in verificarSubmissaoAnual:', supaErr);
+    }
+  }
+
+  const found = memorySubmissoes.find(
+    (s) => s.codigo_totvs.toLowerCase() === cleanTotvs.toLowerCase() && s.ano_referencia === ano
+  );
+  return Boolean(found);
+}
+
+
+/**
+ * Corrige manualmente o Código TOTVS de uma submissão de patrimônio existente
+ */
+export async function corrigirTotvsPatrimonio(
+  submissaoId: string | number,
+  novoCodigoTotvs: string
+): Promise<{ success: boolean; message: string }> {
+  const cleanTotvs = (novoCodigoTotvs || '').trim();
+  if (!cleanTotvs) {
+    throw new Error('O novo código TOTVS é obrigatório.');
+  }
+
+  const igreja = await obterIgrejaPorTotvs(cleanTotvs);
+  if (!igreja) {
+    throw new Error(`A congregação com código TOTVS "${cleanTotvs}" não foi encontrada no sistema.`);
+  }
+
+  await ensurePatrimonioTables();
+
+  if (pool) {
+    const res = await pool.query(
+      `UPDATE patrimonio_submissoes
+       SET codigo_totvs = $1,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id`,
+      [cleanTotvs, submissaoId]
+    );
+
+    if (!res.rows || res.rows.length === 0) {
+      throw new Error(`Submissão de patrimônio #${submissaoId} não encontrada.`);
+    }
+
+    return { success: true, message: 'Código TOTVS corrigido com sucesso!' };
+  }
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('patrimonio_submissoes')
+      .update({ codigo_totvs: cleanTotvs, updated_at: new Date().toISOString() })
+      .eq('id', submissaoId)
+      .select('id');
+
+    if (error || !data || data.length === 0) {
+      throw new Error(error?.message || `Submissão de patrimônio #${submissaoId} não encontrada.`);
+    }
+
+    return { success: true, message: 'Código TOTVS corrigido com sucesso!' };
+  }
+
+  const sub = memorySubmissoes.find((s) => String(s.id) === String(submissaoId));
+  if (!sub) {
+    throw new Error(`Submissão de patrimônio #${submissaoId} não encontrada.`);
+  }
+  sub.codigo_totvs = cleanTotvs;
+
+  return { success: true, message: 'Código TOTVS corrigido com sucesso!' };
 }

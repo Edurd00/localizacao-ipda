@@ -119,6 +119,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
   const [searchingChurch, setSearchingChurch] = useState<boolean>(isUrlTotvs);
   const [church, setChurch] = useState<ChurchData | null>(null);
   const [churchNotFound, setChurchNotFound] = useState<boolean>(false);
+  const [jaEnviadoAnual, setJaEnviadoAnual] = useState<boolean>(false);
 
   // Etapa 1: Dados Gerais
   const [nomeResponsavel, setNomeResponsavel] = useState('');
@@ -165,11 +166,21 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
       .then((res) => res.json())
       .then((json) => {
         if (!isMounted) return;
+        if (json.ja_enviado) {
+          setChurch(json.igreja || null);
+          setJaEnviadoAnual(true);
+          setChurchNotFound(false);
+          toast.warning(json.mensagem || `Declaração de ${new Date().getFullYear()} já realizada para este TOTVS.`);
+          return;
+        }
+
         if (json.success && json.igreja) {
           setChurch(json.igreja);
+          setJaEnviadoAnual(false);
           setChurchNotFound(false);
         } else {
           setChurch(null);
+          setJaEnviadoAnual(false);
           setChurchNotFound(true);
           toast.warning('Código TOTVS não localizado. Verifique o número com a sua regional.');
         }
@@ -231,7 +242,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
   const validacaoTel = validarTelefoneComDdd(telefoneResponsavel);
   const isNomeValido = nomeResponsavel.trim().length >= 3;
   const isFormularioLiberado = Boolean(
-    church && !searchingChurch && !churchNotFound && isNomeValido && validacaoTel.valido
+    church && !searchingChurch && !churchNotFound && !jaEnviadoAnual && isNomeValido && validacaoTel.valido
   );
 
   // Handlers para Itens (Etapa 2)
@@ -674,8 +685,21 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
                 </div>
               )}
 
+              {/* Alerta quando a Declaração Anual já tiver sido enviada */}
+              {jaEnviadoAnual && (
+                <div className="mt-3 p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 animate-in fade-in duration-200">
+                  <AlertCircle className="h-6 w-6 text-amber-700 shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-950 space-y-1">
+                    <p className="font-extrabold text-base">Declaração Anual Já Realizada</p>
+                    <p className="text-amber-900 leading-relaxed font-medium">
+                      Declaração de {new Date().getFullYear()} já realizada para este TOTVS. Para alterações ou atualizações, entre em contato com a sua Regional.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Card de Confirmação quando a Igreja for Encontrada */}
-              {church && !searchingChurch && (
+              {church && !searchingChurch && !jaEnviadoAnual && (
                 <div className="mt-3 p-5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl space-y-2 animate-in fade-in zoom-in-95 duration-200 shadow-xs">
                   <div className="flex items-center gap-2 text-emerald-900 font-black text-xs uppercase tracking-wider">
                     <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
