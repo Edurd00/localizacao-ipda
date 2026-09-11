@@ -150,7 +150,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   useEffect(() => {
     if (!debouncedTotvs) {
       setChurch(null);
-      setChurchNotFound(true);
+      setChurchNotFound(false);
       setSearchingChurch(false);
       return;
     }
@@ -730,6 +730,19 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                   <p className="text-[11px] text-emerald-700 font-semibold pt-2 border-t border-emerald-200/70">
                     Confirme se o nome e o endereço acima pertencem à sua congregação antes de prosseguir.
                   </p>
+                </div>
+              )}
+
+              {/* Mensagem quando campo TOTVS estiver vazio */}
+              {!debouncedTotvs && !searchingChurch && (
+                <div className="mt-3 p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex items-start gap-3 animate-in fade-in duration-200">
+                  <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-indigo-950 space-y-1">
+                    <p className="font-bold">Informe o Código TOTVS da sua congregação</p>
+                    <p className="text-indigo-800 leading-relaxed">
+                      Digite o número TOTVS da igreja no campo acima para carregar o nome e o endereço oficial. Se não souber o código, consulte a sua Regional.
+                    </p>
+                  </div>
                 </div>
               )}
 
