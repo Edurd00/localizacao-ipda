@@ -117,6 +117,95 @@ async function ensurePatrimonioTables() {
   }
 }
 
+export interface IgrejaMinimaPublica {
+  codigo_totvs: string;
+  desc_igreja: string;
+  endereco: string;
+  bairro: string;
+  municipio: string;
+  estado: string;
+}
+
+/**
+ * Retorna exclusivamente os dados mínimos de endereço público da igreja.
+ * Não retorna telefones, e-mails ou nomes de dirigentes antigos.
+ */
+export async function obterIgrejaMinima(totvs: string): Promise<IgrejaMinimaPublica | null> {
+  const cleanTotvs = (totvs || '').trim();
+  if (!cleanTotvs) return null;
+
+  if (pool) {
+    try {
+      const res = await pool.query(
+        `SELECT codigo_totvs, desc_igreja, endereco, bairro, municipio, estado
+         FROM igrejas
+         WHERE codigo_totvs = $1
+         LIMIT 1`,
+        [cleanTotvs]
+      );
+      if (res.rows && res.rows.length > 0) {
+        const row = res.rows[0];
+        return {
+          codigo_totvs: row.codigo_totvs,
+          desc_igreja: row.desc_igreja,
+          endereco: row.endereco || '',
+          bairro: row.bairro || '',
+          municipio: row.municipio || '',
+          estado: row.estado || '',
+        };
+      }
+    } catch (err) {
+      console.error('Postgres error in obterIgrejaMinima:', err);
+    }
+  }
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('igrejas')
+        .select('codigo_totvs, desc_igreja, endereco, bairro, municipio, estado')
+        .eq('codigo_totvs', cleanTotvs)
+        .limit(1);
+      if (!error && data && data.length > 0) {
+        const row = data[0];
+        return {
+          codigo_totvs: row.codigo_totvs,
+          desc_igreja: row.desc_igreja,
+          endereco: row.endereco || '',
+          bairro: row.bairro || '',
+          municipio: row.municipio || '',
+          estado: row.estado || '',
+        };
+      }
+    } catch (supaErr) {
+      console.error('Supabase error in obterIgrejaMinima:', supaErr);
+    }
+  }
+
+  // Fallback via getIgrejas
+  try {
+    const list = await getIgrejas({ search: cleanTotvs });
+    const found = list.data.find(
+      (ig) => ig.codigo_totvs.toLowerCase() === cleanTotvs.toLowerCase()
+    );
+    if (found) {
+      return {
+        codigo_totvs: found.codigo_totvs,
+        desc_igreja: found.desc_igreja,
+        endereco: found.endereco || '',
+        bairro: found.bairro || '',
+        municipio: found.municipio || '',
+        estado: found.estado || '',
+      };
+    }
+  } catch (memErr) {
+    console.error('Fallback error in obterIgrejaMinima:', memErr);
+  }
+
+  return null;
+}
+
 /**
  * Busca os dados da igreja pelo código TOTVS
  */
@@ -275,22 +364,9 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
   const telefoneResponsavel = (input.telefone_responsavel || '').trim();
   const observacoes = input.observacoes?.trim() || null;
   const itens = input.itens || [];
-
-  // Se a igreja ainda não tiver dirigente cadastrado, atualizamos seus dados com base no responsável
-  if (nomeResponsavel && (!igreja.dirigente_nome || !igreja.dirigente_telefone)) {
-    try {
-      await saveIgrejaSingle(cleanTotvs, {
-        dirigente_nome: igreja.dirigente_nome || nomeResponsavel,
-        dirigente_telefone: igreja.dirigente_telefone || telefoneResponsavel,
-      });
-    } catch (dirigenteErr) {
-      console.warn('Aviso: Não foi possível atualizar dirigente na igreja:', dirigenteErr);
-    }
-  }
-
   await ensurePatrimonioTables();
 
-  // Tentativa 1: PostgreSQL via pool com transação segura
+  // Tentativa 1: PostgreSQL via pool com transação segura (BEGIN / COMMIT)
   if (pool) {
     const client = await pool.connect();
     try {
@@ -348,6 +424,16 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
         );
         itensCount++;
       }
+
+      // Sincronização do contato do dirigente na tabela public.igrejas dentro da mesma transação
+      await client.query(
+        `UPDATE public.igrejas
+         SET dirigente_nome = $1,
+             dirigente_telefone = $2,
+             updated_at = NOW()
+         WHERE codigo_totvs = $3`,
+        [nomeResponsavel, telefoneResponsavel, cleanTotvs]
+      );
 
       await client.query('COMMIT');
 
@@ -430,6 +516,22 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
         }
       }
 
+      // Sincroniza o dirigente na tabela igrejas no Supabase
+      if (nomeResponsavel) {
+        try {
+          await supabase
+            .from('igrejas')
+            .update({
+              dirigente_nome: nomeResponsavel,
+              dirigente_telefone: telefoneResponsavel,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('codigo_totvs', cleanTotvs);
+        } catch (dirErr) {
+          console.warn('Aviso ao atualizar dirigente no Supabase:', dirErr);
+        }
+      }
+
       return {
         submissao_id: submissaoId,
         codigo_totvs: cleanTotvs,
@@ -490,6 +592,19 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
     });
     itensCount++;
   });
+
+  // Sincroniza dirigente na memória (equivalente ao UPDATE public.igrejas no Postgres)
+  try {
+    await saveIgrejaSingle(
+      { codigo_totvs: cleanTotvs },
+      {
+        dirigente_nome: nomeResponsavel,
+        dirigente_telefone: telefoneResponsavel,
+      }
+    );
+  } catch {
+    // Não-crítico em modo in-memory; ignora silenciosamente
+  }
 
   return {
     submissao_id: subId,
