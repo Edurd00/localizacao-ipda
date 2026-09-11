@@ -15,10 +15,8 @@ import {
   Send,
   Calendar,
   Volume2,
-  Music,
-  Armchair,
   Wind,
-  Tv,
+  Armchair,
   Coffee,
   Check,
   Printer,
@@ -27,21 +25,18 @@ import {
   ChevronLeft,
   Upload,
   Image as ImageIcon,
-  X,
-  Eye,
   AlertTriangle,
   Info,
   Layers,
-  FileText,
   BadgeCheck,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import {
-  DadosGeraisForm,
   ItemPatrimonialForm,
   FotoPatrimonialForm,
   ErrosValidacao,
   validarDadosGerais,
+  validarTelefoneComDdd,
   formatarTelefone,
 } from '@/lib/patrimonioValidation';
 
@@ -52,13 +47,8 @@ interface ChurchData {
   bairro: string;
   municipio: string;
   estado: string;
-  cep: string;
-  porte?: string | null;
-  dirigente_nome?: string | null;
-  dirigente_telefone?: string | null;
 }
 
-// Lista base inspirada no formulario-patrimonio-completo-main
 const ITENS_PADRAO: Array<{ id: string; nome: string; categoria: string }> = [
   // Mobiliário e Estrutura
   { id: 'banco', nome: 'Bancos da Nave', categoria: 'Mobiliário e Estrutura' },
@@ -108,7 +98,7 @@ const CATEGORIAS_ICONES: Record<string, any> = {
 };
 
 const ETAPAS_WIZARD = [
-  { numero: 1, titulo: 'Dados Gerais', subtitulo: 'Igreja e Responsável' },
+  { numero: 1, titulo: 'Dados Gerais', subtitulo: 'Igreja e Dirigente' },
   { numero: 2, titulo: 'Bens e Itens', subtitulo: 'Equipamentos e Bens' },
   { numero: 3, titulo: 'Fotos e Anexos', subtitulo: 'Registro Visual' },
   { numero: 4, titulo: 'Revisão e Envio', subtitulo: 'Conferência Final' },
@@ -116,19 +106,22 @@ const ETAPAS_WIZARD = [
 
 export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   const [etapaAtual, setEtapaAtual] = useState<number>(1);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [church, setChurch] = useState<ChurchData | null>(null);
-  const [previousSubmission, setPreviousSubmission] = useState<any | null>(null);
-  const [notFound, setNotFound] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
   const [protocolo, setProtocolo] = useState<string | null>(null);
   const [isModalConfirmacaoAberto, setIsModalConfirmacaoAberto] = useState(false);
 
-  // Etapa 1: Dados Gerais
+  // Busca e validação dinâmica de TOTVS com debounce de 500ms
+  const [inputTotvs, setInputTotvs] = useState<string>(totvs || '');
+  const [debouncedTotvs, setDebouncedTotvs] = useState<string>(totvs || '');
+  const [searchingChurch, setSearchingChurch] = useState<boolean>(true);
+  const [church, setChurch] = useState<ChurchData | null>(null);
+  const [churchNotFound, setChurchNotFound] = useState<boolean>(false);
+
+  // Etapa 1: Dados Gerais (Fixo para Dirigente Local)
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
-  const [cargoResponsavel, setCargoResponsavel] = useState('Dirigente');
+  const cargoResponsavel = 'Dirigente Local'; // Fixo conforme especificação
   const [anoReferencia, setAnoReferencia] = useState(new Date().getFullYear());
   const [errosEtapa1, setErrosEtapa1] = useState<ErrosValidacao>({});
   const [camposTocadosEtapa1, setCamposTocadosEtapa1] = useState<Record<string, boolean>>({});
@@ -145,94 +138,72 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   // Etapa 4: Observações Gerais
   const [observacoesGerais, setObservacoesGerais] = useState('');
 
-  // Carregar dados iniciais da igreja via consulta pública mínima
+  // Debounce de 500ms no campo TOTVS
   useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/igrejas/public-lookup?totvs=${encodeURIComponent(totvs)}`);
-        const json = await res.json();
+    const handler = setTimeout(() => {
+      setDebouncedTotvs(inputTotvs.trim());
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [inputTotvs]);
 
-        if (!res.ok || !json.success || !json.igreja) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-
-        setChurch(json.igreja);
-
-        // Itens base
-        const baseItems: ItemPatrimonialForm[] = ITENS_PADRAO.map((it) => ({
-          id: it.id,
-          item_nome: it.nome,
-          categoria: it.categoria,
-          quantidade: 1,
-          possui: false,
-          conservacao: 'BOM',
-          observacao: '',
-        }));
-
-        // Se houver submissão anterior
-        if (json.data) {
-          setPreviousSubmission(json.data);
-          if (json.data.nome_responsavel) setNomeResponsavel(json.data.nome_responsavel);
-          if (json.data.telefone_responsavel) {
-            setTelefoneResponsavel(formatarTelefone(json.data.telefone_responsavel));
-          }
-          if (json.data.ano_referencia) setAnoReferencia(Number(json.data.ano_referencia));
-          if (json.data.observacoes) setObservacoesGerais(json.data.observacoes);
-
-          const existingItems = Array.isArray(json.data.patrimonio_itens)
-            ? json.data.patrimonio_itens
-            : [];
-
-          const existingMap = new Map<string, any>();
-          existingItems.forEach((it: any) => {
-            const name = (it.item_nome || it.item || it.nome_item || it.descricao || '').trim().toLowerCase();
-            if (name) existingMap.set(name, it);
-          });
-
-          baseItems.forEach((it) => {
-            const match = existingMap.get(it.item_nome.toLowerCase());
-            if (match) {
-              it.possui = String(match.possui).toLowerCase() === 'sim' || match.possui === true;
-              it.quantidade = Number(match.quantidade ?? match.qtd ?? 1);
-              it.conservacao = (match.conservacao || match.estado_conservacao || 'BOM').toUpperCase();
-              it.observacao = match.observacao || '';
-              existingMap.delete(it.item_nome.toLowerCase());
-            }
-          });
-
-          // Itens adicionais prévios
-          let customCount = 0;
-          existingMap.forEach((match) => {
-            customCount++;
-            baseItems.push({
-              id: `custom_${customCount}_${Date.now()}`,
-              item_nome: match.item_nome || match.item || match.nome_item || match.descricao,
-              categoria: 'Itens Adicionais',
-              quantidade: Number(match.quantidade ?? match.qtd ?? 1),
-              possui: String(match.possui).toLowerCase() === 'sim' || match.possui === true,
-              conservacao: (match.conservacao || match.estado_conservacao || 'BOM').toUpperCase(),
-              observacao: match.observacao || '',
-              isCustom: true,
-            });
-          });
-        }
-
-        setItens(baseItems);
-      } catch (err) {
-        console.error('Erro ao carregar dados da igreja:', err);
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
+  // Consulta pública por TOTVS sempre que debouncedTotvs mudar
+  useEffect(() => {
+    if (!debouncedTotvs) {
+      setChurch(null);
+      setChurchNotFound(true);
+      setSearchingChurch(false);
+      return;
     }
 
-    loadData();
-  }, [totvs]);
+    let isMounted = true;
+    setSearchingChurch(true);
 
-  // Validação em tempo real para a Etapa 1
+    fetch(`/api/igrejas/public-lookup?totvs=${encodeURIComponent(debouncedTotvs)}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!isMounted) return;
+        if (json.success && json.igreja) {
+          setChurch(json.igreja);
+          setChurchNotFound(false);
+        } else {
+          setChurch(null);
+          setChurchNotFound(true);
+          toast.warning('Código TOTVS não encontrado. Verifique o número digitado com a sua regional.');
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error('Erro ao consultar TOTVS:', err);
+        setChurch(null);
+        setChurchNotFound(true);
+        toast.warning('Código TOTVS não encontrado. Verifique o número digitado com a sua regional.');
+      })
+      .finally(() => {
+        if (isMounted) setSearchingChurch(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedTotvs]);
+
+  // Inicializa lista base de bens quando a igreja for identificada
+  useEffect(() => {
+    if (church && itens.length === 0) {
+      const baseItems: ItemPatrimonialForm[] = ITENS_PADRAO.map((it) => ({
+        id: it.id,
+        item_nome: it.nome,
+        categoria: it.categoria,
+        quantidade: 1,
+        possui: false,
+        conservacao: 'BOM',
+        observacao: '',
+      }));
+      setItens(baseItems);
+    }
+  }, [church, itens.length]);
+
+  // Validação dos dados da Etapa 1
   useEffect(() => {
     const erros = validarDadosGerais({
       nome_responsavel: nomeResponsavel,
@@ -242,7 +213,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     setErrosEtapa1(erros);
   }, [nomeResponsavel, telefoneResponsavel, anoReferencia]);
 
-  // Handlers para controle da Etapa 1
+  // Handler de alteração com máscara de telefone
   const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatado = formatarTelefone(e.target.value);
     setTelefoneResponsavel(formatado);
@@ -252,6 +223,13 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   const handleBlurCampoEtapa1 = (campo: string) => {
     setCamposTocadosEtapa1((prev) => ({ ...prev, [campo]: true }));
   };
+
+  // Validação estrita do telefone com DDD
+  const validacaoTel = validarTelefoneComDdd(telefoneResponsavel);
+  const isNomeValido = nomeResponsavel.trim().length >= 3;
+  const isFormularioLiberado = Boolean(
+    church && !searchingChurch && !churchNotFound && isNomeValido && validacaoTel.valido
+  );
 
   // Handlers para Itens (Etapa 2)
   const handleTogglePossui = (id: string) => {
@@ -355,7 +333,6 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
       reader.readAsDataURL(file);
     });
 
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -373,18 +350,20 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   // Controle de Navegação do Wizard
   const handleAvancarEtapa = () => {
     if (etapaAtual === 1) {
-      const erros = validarDadosGerais({
-        nome_responsavel: nomeResponsavel,
-        telefone_responsavel: telefoneResponsavel,
-        ano_referencia: anoReferencia,
-      });
-      if (Object.keys(erros).length > 0) {
-        setCamposTocadosEtapa1({
-          nome_responsavel: true,
-          telefone_responsavel: true,
-          ano_referencia: true,
-        });
-        toast.error('Por favor, preencha os dados obrigatórios do dirigente.');
+      if (!church || searchingChurch || churchNotFound) {
+        toast.error('Informe um código TOTVS válido e localizado antes de prosseguir.');
+        return;
+      }
+
+      if (!isNomeValido) {
+        setCamposTocadosEtapa1((prev) => ({ ...prev, nome_responsavel: true }));
+        toast.error('Informe o nome completo do Dirigente Local.');
+        return;
+      }
+
+      if (!validacaoTel.valido) {
+        setCamposTocadosEtapa1((prev) => ({ ...prev, telefone_responsavel: true }));
+        toast.error(validacaoTel.erro || 'Informe um número de telefone/WhatsApp válido com DDD.');
         return;
       }
     }
@@ -410,6 +389,11 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
 
   // Submissão Final (Etapa 4)
   const handleConfirmarEnvio = async () => {
+    if (!church || !isFormularioLiberado) {
+      toast.error('Preencha corretamente os dados do dirigente e certifique-se que a igreja é válida.');
+      return;
+    }
+
     setIsModalConfirmacaoAberto(false);
     setSubmitting(true);
 
@@ -423,7 +407,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
       }));
 
       const payload = {
-        codigo_totvs: totvs,
+        codigo_totvs: church.codigo_totvs,
         nome_responsavel: nomeResponsavel.trim(),
         telefone_responsavel: telefoneResponsavel.trim(),
         cargo_responsavel: cargoResponsavel,
@@ -449,7 +433,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         throw new Error(json.error || 'Erro ao processar o envio.');
       }
 
-      setProtocolo(`PAT-${totvs}-${Date.now().toString().slice(-6)}`);
+      setProtocolo(`PAT-${church.codigo_totvs}-${Date.now().toString().slice(-6)}`);
       setSubmittedSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       toast.success('Patrimônio registrado com sucesso!');
@@ -461,42 +445,8 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full text-center border border-slate-100 flex flex-col items-center gap-3">
-          <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
-          <h3 className="font-extrabold text-slate-800 text-base">Carregando Formulário...</h3>
-          <p className="text-slate-500 text-xs">Identificando igreja TOTVS {totvs}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (notFound || !church) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border border-rose-100 space-y-4">
-          <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-            <AlertCircle className="h-8 w-8" />
-          </div>
-          <h2 className="text-xl font-black text-slate-900">Igreja Não Encontrada</h2>
-          <p className="text-slate-600 text-sm leading-relaxed">
-            Não localizamos nenhuma igreja vinculada ao código TOTVS <strong>"{totvs}"</strong>.
-            Confira com sua Sede ou Administrador se o link compartilhado está correto.
-          </p>
-          <div className="pt-2">
-            <span className="inline-block text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl">
-              Código pesquisado: <code className="font-mono text-indigo-600">{totvs}</code>
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Tela de Sucesso
-  if (submittedSuccess) {
+  if (submittedSuccess && church) {
     const itensPositivos = itens.filter((i) => i.possui);
     return (
       <div className="min-h-screen bg-slate-50 py-8 px-4 flex items-center justify-center font-sans">
@@ -524,18 +474,19 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Igreja</span>
                   <h4 className="font-bold text-slate-900 text-sm">{church.desc_igreja}</h4>
                 </div>
-                <span className="bg-indigo-100 text-indigo-800 font-mono font-bold px-2 py-0.5 rounded-md">
+                <span className="bg-indigo-100 text-indigo-800 font-mono font-bold px-2.5 py-0.5 rounded-md">
                   TOTVS: {church.codigo_totvs}
                 </span>
               </div>
               <p className="text-slate-600 flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                {church.endereco}, {church.bairro} - {church.municipio}/{church.estado}
+                {church.endereco ? `${church.endereco}, ` : ''}{church.bairro} - {church.municipio}/{church.estado}
               </p>
               <div className="pt-2 border-t border-slate-200/60 grid grid-cols-2 gap-2 text-slate-700">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Dirigente</span>
-                  <span className="font-semibold">{nomeResponsavel} ({cargoResponsavel})</span>
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Dirigente Local</span>
+                  <span className="font-semibold">{nomeResponsavel}</span>
+                  <span className="block font-mono text-[11px] text-slate-500">{telefoneResponsavel}</span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 block uppercase">Ano Referência</span>
@@ -617,7 +568,6 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
     );
   }
 
-  // Filtragem de categorias na Etapa 2
   const categoriasEtapa2 = ['TODAS', ...Array.from(new Set(itens.map((i) => i.categoria)))];
   const itensExibidos =
     categoriaAtiva === 'TODAS'
@@ -651,36 +601,14 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               </p>
             </div>
 
-            <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-3 sm:text-right shrink-0">
-              <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wider">
-                Código TOTVS
-              </span>
-              <span className="text-lg font-mono font-black text-indigo-950">{church.codigo_totvs}</span>
-            </div>
-          </div>
-
-          {/* Card Resumo Igreja */}
-          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60">
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Nome da Igreja
-              </span>
-              <div className="font-black text-slate-900 text-sm flex items-center gap-1.5 mt-0.5">
-                <Building2 className="h-4 w-4 text-indigo-600 shrink-0" />
-                {church.desc_igreja}
+            {church && (
+              <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-3 sm:text-right shrink-0">
+                <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wider">
+                  Código TOTVS
+                </span>
+                <span className="text-lg font-mono font-black text-indigo-950">{church.codigo_totvs}</span>
               </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Localização
-              </span>
-              <p className="text-xs text-slate-600 flex items-center gap-1.5 mt-0.5">
-                <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-                {church.endereco || 'Endereço não informado'}, {church.bairro} - {church.municipio}/
-                {church.estado}
-              </p>
-            </div>
+            )}
           </div>
         </div>
 
@@ -690,16 +618,16 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
             {ETAPAS_WIZARD.map((step) => {
               const isConcluida = etapaAtual > step.numero;
               const isAtiva = etapaAtual === step.numero;
+              const isDesabilitada = step.numero > 1 && (!church || !isFormularioLiberado);
 
               return (
                 <button
                   key={step.numero}
                   type="button"
                   onClick={() => {
-                    // Permite voltar diretamente para etapas já alcançadas
                     if (step.numero < etapaAtual) setEtapaAtual(step.numero);
                   }}
-                  disabled={step.numero > etapaAtual}
+                  disabled={step.numero > etapaAtual || isDesabilitada}
                   className={`flex flex-col items-center sm:items-start p-2 sm:p-3 rounded-2xl transition-all text-left ${
                     isAtiva
                       ? 'bg-indigo-50/80 border border-indigo-200 shadow-2xs'
@@ -741,27 +669,90 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         </div>
 
         {/* ======================================================== */}
-        {/* ETAPA 1: Validação da Igreja e Dados Gerais              */}
+        {/* ETAPA 1: Validação por TOTVS e Dados do Dirigente        */}
         {/* ======================================================== */}
         {etapaAtual === 1 && (
           <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-5 sm:p-7 space-y-6 animate-in fade-in duration-200">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <User className="h-5 w-5 text-indigo-600" />
+              <Building2 className="h-5 w-5 text-indigo-600" />
               <div>
                 <h3 className="font-extrabold text-slate-900 text-base">
-                  Etapa 1: Validação da Igreja e Dados Gerais
+                  Etapa 1: Validação por TOTVS e Dirigente Local
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Confirme a identidade da congregação e os dados do dirigente responsável pelo preenchimento.
+                  Informe o Código TOTVS para localizar a congregação e confirme os dados do Dirigente Local.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Nome do Dirigente */}
+            {/* Campo TOTVS Editável com Debounce */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">
+                Código TOTVS da Igreja <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="Digite o código TOTVS (ex: 10452)"
+                  value={inputTotvs}
+                  onChange={(e) => setInputTotvs(e.target.value.toUpperCase())}
+                  className="w-full text-sm font-mono font-bold px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all text-slate-900"
+                />
+                {searchingChurch && (
+                  <div className="absolute right-3 top-2.5 flex items-center gap-1 text-indigo-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-[11px] font-semibold">Buscando...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Card de Confirmação quando a Igreja é Encontrada */}
+              {church && !searchingChurch && (
+                <div className="mt-3 p-4 bg-emerald-50/90 border border-emerald-200 rounded-2xl space-y-2 animate-in fade-in zoom-in-95 duration-200 shadow-2xs">
+                  <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-xs uppercase tracking-wider">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 shrink-0" />
+                    <span>Igreja Confirmada no Sistema</span>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 text-sm sm:text-base">
+                      {church.desc_igreja}
+                    </h4>
+                    <p className="text-xs text-slate-700 flex items-start gap-1.5 mt-1 font-medium">
+                      <MapPin className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>
+                        {church.endereco ? `${church.endereco}, ` : ''}
+                        {church.bairro ? `${church.bairro} - ` : ''}
+                        {church.municipio}/{church.estado}
+                      </span>
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 font-semibold pt-2 border-t border-emerald-200/70">
+                    Confirme se o nome e o endereço acima pertencem à sua congregação antes de prosseguir.
+                  </p>
+                </div>
+              )}
+
+              {/* Alerta quando TOTVS NÃO for encontrado */}
+              {churchNotFound && !searchingChurch && (
+                <div className="mt-3 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 animate-in fade-in duration-200">
+                  <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-rose-900 space-y-1">
+                    <p className="font-bold">Código TOTVS não localizado</p>
+                    <p className="text-rose-700 leading-relaxed">
+                      Código TOTVS não encontrado. Verifique o número digitado com a sua regional. Os próximos passos permanecerão bloqueados até a confirmação de um código válido.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Dados do Dirigente Local */}
+            <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Nome Completo do Dirigente Local */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nome Completo do Dirigente Responsável <span className="text-rose-500">*</span>
+                  Nome Completo do Dirigente Local <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -786,8 +777,8 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                 </div>
               </div>
 
-              {/* Telefone / WhatsApp */}
-              <div>
+              {/* Telefone / WhatsApp com Máscara e Validação de DDD */}
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Telefone / WhatsApp com DDD <span className="text-rose-500">*</span>
                 </label>
@@ -801,41 +792,28 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                     onChange={handleTelefoneChange}
                     onBlur={() => handleBlurCampoEtapa1('telefone_responsavel')}
                     className={`w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:outline-hidden transition-all font-mono ${
-                      camposTocadosEtapa1.telefone_responsavel && errosEtapa1.telefone_responsavel
+                      camposTocadosEtapa1.telefone_responsavel && !validacaoTel.valido
                         ? 'border-rose-300 focus:ring-2 focus:ring-rose-500 text-rose-900 bg-rose-50/20'
                         : 'border-slate-300 focus:ring-2 focus:ring-indigo-500'
                     }`}
                   />
-                  {camposTocadosEtapa1.telefone_responsavel && errosEtapa1.telefone_responsavel && (
+                  {camposTocadosEtapa1.telefone_responsavel && !validacaoTel.valido && (
                     <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {errosEtapa1.telefone_responsavel}
+                      {validacaoTel.erro}
+                    </p>
+                  )}
+                  {validacaoTel.valido && telefoneResponsavel && (
+                    <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Número e DDD válidos
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Cargo / Função */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Função / Cargo na Igreja
-                </label>
-                <select
-                  value={cargoResponsavel}
-                  onChange={(e) => setCargoResponsavel(e.target.value)}
-                  className="w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                >
-                  <option value="Dirigente">Dirigente Local</option>
-                  <option value="Pastor">Pastor da Igreja</option>
-                  <option value="Presbítero / Cooperador">Presbítero / Cooperador</option>
-                  <option value="Tesoureiro">Tesoureiro / Financeiro</option>
-                  <option value="Secretário">Secretário(a)</option>
-                  <option value="Outro">Outro Responsável</option>
-                </select>
-              </div>
-
               {/* Ano de Referência */}
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Ano de Referência do Inventário
                 </label>
@@ -848,16 +826,14 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                   className="w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden font-mono"
                 />
               </div>
+            </div>
 
-              {/* Informação do Porte */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Classificação / Porte
-                </label>
-                <div className="h-10 px-3.5 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-xs font-bold text-slate-700">
-                  {church.porte || 'LOCAL'}
-                </div>
-              </div>
+            {/* Aviso Sutil sobre Atualização de Dados no Sistema */}
+            <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-amber-900">
+              <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong>Nota Importante:</strong> Os dados de contato inseridos acima (Nome do Dirigente Local e Telefone/WhatsApp) atualizarão o cadastro oficial da igreja no sistema central.
+              </p>
             </div>
           </div>
         )}
@@ -934,7 +910,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      {/* Lado Esquerdo: Checkbox / Toggle e Título */}
+                      {/* Checkbox e Título */}
                       <label className="flex items-start gap-3 cursor-pointer select-none">
                         <input
                           type="checkbox"
@@ -956,7 +932,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                         </div>
                       </label>
 
-                      {/* Lado Direito: Controles inline ao marcar Sim */}
+                      {/* Controles inline ao marcar Sim */}
                       {isChecked && (
                         <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap ml-8 sm:ml-0">
                           {/* Stepper de Quantidade */}
@@ -982,7 +958,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                             </button>
                           </div>
 
-                          {/* Dropdown de Estado de Conservação */}
+                          {/* Estado de Conservação */}
                           <select
                             value={item.conservacao}
                             onChange={(e) =>
@@ -999,7 +975,6 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                             <option value="RUIM">Estado: Ruim / Reparo</option>
                           </select>
 
-                          {/* Remover item personalizado */}
                           {item.isCustom && (
                             <button
                               type="button"
@@ -1014,7 +989,6 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                       )}
                     </div>
 
-                    {/* Observação opcional inline do item */}
                     {isChecked && (
                       <div className="mt-3 ml-8 pt-2.5 border-t border-indigo-100/70">
                         <input
@@ -1039,7 +1013,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
-                  placeholder="Nome do novo bem (Ex: Gerador, Roçadeira, Sino, Microfones Especiais...)"
+                  placeholder="Nome do novo bem (Ex: Gerador, Roçadeira, Sino...)"
                   value={novoItemNome}
                   onChange={(e) => setNovoItemNome(e.target.value)}
                   onKeyDown={(e) => {
@@ -1080,7 +1054,6 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               </div>
             </div>
 
-            {/* Drag and drop / file input box */}
             <div
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-3xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
@@ -1107,7 +1080,6 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               </span>
             </div>
 
-            {/* Galeria de Fotos Carregadas */}
             {fotos.length > 0 && (
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -1160,7 +1132,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         {/* ======================================================== */}
         {/* ETAPA 4: Revisão dos dados e Confirmação de envio         */}
         {/* ======================================================== */}
-        {etapaAtual === 4 && (
+        {etapaAtual === 4 && church && (
           <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-5 sm:p-7 space-y-6 animate-in fade-in duration-200">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <FileCheck2 className="h-5 w-5 text-indigo-600" />
@@ -1179,7 +1151,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <Building2 className="h-4 w-4 text-indigo-600" />
-                  Dados da Igreja e Responsável
+                  Dados da Igreja e Dirigente Local
                 </h4>
                 <button
                   type="button"
@@ -1197,11 +1169,13 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold block text-[10px] uppercase">Endereço</span>
-                  <span className="text-slate-700">{church.endereco}, {church.bairro} - {church.municipio}/{church.estado}</span>
+                  <span className="text-slate-700">
+                    {church.endereco ? `${church.endereco}, ` : ''}{church.bairro} - {church.municipio}/{church.estado}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-bold block text-[10px] uppercase">Responsável</span>
-                  <span className="font-bold text-slate-900">{nomeResponsavel} ({cargoResponsavel})</span>
+                  <span className="text-slate-400 font-bold block text-[10px] uppercase">Dirigente Local</span>
+                  <span className="font-bold text-slate-900">{nomeResponsavel}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold block text-[10px] uppercase">Contato WhatsApp</span>
@@ -1326,7 +1300,8 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
             <button
               type="button"
               onClick={handleAvancarEtapa}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-2xl font-black text-xs sm:text-sm shadow-md shadow-indigo-600/20 flex items-center gap-2 transition-all cursor-pointer"
+              disabled={!isFormularioLiberado || searchingChurch}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-2xl font-black text-xs sm:text-sm shadow-md shadow-indigo-600/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span>Avançar</span>
               <ChevronRight className="h-4 w-4" />
@@ -1335,7 +1310,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
             <button
               type="button"
               onClick={() => setIsModalConfirmacaoAberto(true)}
-              disabled={submitting}
+              disabled={submitting || !isFormularioLiberado}
               className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-2xl font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
@@ -1354,7 +1329,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
         </div>
 
         {/* Modal de Confirmação Final */}
-        {isModalConfirmacaoAberto && (
+        {isModalConfirmacaoAberto && church && (
           <div className="fixed inset-0 z-[3000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
             <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 p-6 space-y-4 animate-in zoom-in-95 duration-200">
               <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
@@ -1367,11 +1342,11 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                 </h3>
                 <p className="text-slate-500 text-xs leading-relaxed">
                   Os dados declarados serão gravados oficialmente na base de patrimônio da igreja TOTVS{' '}
-                  <strong className="text-slate-800 font-mono">{church.codigo_totvs}</strong>.
+                  <strong className="text-slate-800 font-mono">{church.codigo_totvs}</strong> ({church.desc_igreja}).
                 </p>
               </div>
 
-              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 text-xs space-y-1">
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 text-xs space-y-1.5">
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-medium">Bens declarados:</span>
                   <span className="font-bold text-slate-900">{totalBensDeclarados} itens</span>
@@ -1381,8 +1356,12 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
                   <span className="font-bold text-slate-900">{fotos.length} foto(s)</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 font-medium">Responsável:</span>
+                  <span className="text-slate-500 font-medium">Dirigente Local:</span>
                   <span className="font-bold text-slate-900">{nomeResponsavel}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-medium">Telefone/WhatsApp:</span>
+                  <span className="font-mono font-bold text-slate-900">{telefoneResponsavel}</span>
                 </div>
               </div>
 

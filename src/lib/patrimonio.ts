@@ -139,7 +139,7 @@ export async function obterIgrejaMinima(totvs: string): Promise<IgrejaMinimaPubl
       const res = await pool.query(
         `SELECT codigo_totvs, desc_igreja, endereco, bairro, municipio, estado
          FROM igrejas
-         WHERE codigo_totvs = $1
+         WHERE LOWER(codigo_totvs) = $1
          LIMIT 1`,
         [cleanTotvs]
       );
@@ -165,7 +165,7 @@ export async function obterIgrejaMinima(totvs: string): Promise<IgrejaMinimaPubl
       const { data, error } = await supabase
         .from('igrejas')
         .select('codigo_totvs, desc_igreja, endereco, bairro, municipio, estado')
-        .eq('codigo_totvs', cleanTotvs)
+        .ilike('codigo_totvs', cleanTotvs)
         .limit(1);
       if (!error && data && data.length > 0) {
         const row = data[0];
@@ -218,7 +218,7 @@ export async function obterIgrejaPorTotvs(totvs: string): Promise<IgrejaInfoPubl
       const res = await pool.query(
         `SELECT codigo_totvs, desc_igreja, endereco, bairro, municipio, estado, cep, porte, dirigente_nome, dirigente_telefone
          FROM igrejas
-         WHERE codigo_totvs = $1
+         WHERE LOWER(codigo_totvs) = $1
          LIMIT 1`,
         [cleanTotvs]
       );
@@ -236,7 +236,7 @@ export async function obterIgrejaPorTotvs(totvs: string): Promise<IgrejaInfoPubl
       const { data, error } = await supabase
         .from('igrejas')
         .select('codigo_totvs, desc_igreja, endereco, bairro, municipio, estado, cep, porte, dirigente_nome, dirigente_telefone')
-        .eq('codigo_totvs', cleanTotvs)
+        .ilike('codigo_totvs', cleanTotvs)
         .limit(1);
       if (!error && data && data.length > 0) {
         return data[0] as IgrejaInfoPublica;
@@ -288,7 +288,7 @@ export async function obterPatrimonioCompleto(totvs: string) {
       const { data, error } = await supabase
         .from('patrimonio_submissoes')
         .select('*, patrimonio_itens(*)')
-        .eq('codigo_totvs', cleanTotvs)
+        .ilike('codigo_totvs', cleanTotvs)
         .order('ano_referencia', { ascending: false })
         .limit(1);
 
@@ -310,7 +310,7 @@ export async function obterPatrimonioCompleto(totvs: string) {
           ) AS patrimonio_itens
         FROM patrimonio_submissoes s
         LEFT JOIN patrimonio_itens i ON s.id = i.submissao_id
-        WHERE s.codigo_totvs = $1
+        WHERE LOWER(s.codigo_totvs) = $1
         GROUP BY s.id
         ORDER BY s.ano_referencia DESC
         LIMIT 1
@@ -374,7 +374,7 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
 
       // Verifica se já existe submissão para este TOTVS no mesmo ano de referência
       const existingSubRes = await client.query(
-        `SELECT id FROM patrimonio_submissoes WHERE codigo_totvs = $1 AND ano_referencia = $2 LIMIT 1`,
+        `SELECT id FROM patrimonio_submissoes WHERE LOWER(codigo_totvs) = $1 AND ano_referencia = $2 LIMIT 1`,
         [cleanTotvs, anoReferencia]
       );
 
@@ -431,7 +431,7 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
          SET dirigente_nome = $1,
              dirigente_telefone = $2,
              updated_at = NOW()
-         WHERE codigo_totvs = $3`,
+         WHERE LOWER(codigo_totvs) = $3`,
         [nomeResponsavel, telefoneResponsavel, cleanTotvs]
       );
 
@@ -459,7 +459,7 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
       const { data: existingSub } = await supabase
         .from('patrimonio_submissoes')
         .select('id')
-        .eq('codigo_totvs', cleanTotvs)
+        .ilike('codigo_totvs', cleanTotvs)
         .eq('ano_referencia', anoReferencia)
         .limit(1);
 
@@ -526,7 +526,7 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
               dirigente_telefone: telefoneResponsavel,
               updated_at: new Date().toISOString(),
             })
-            .eq('codigo_totvs', cleanTotvs);
+            .ilike('codigo_totvs', cleanTotvs);
         } catch (dirErr) {
           console.warn('Aviso ao atualizar dirigente no Supabase:', dirErr);
         }
