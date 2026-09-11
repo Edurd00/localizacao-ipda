@@ -9,6 +9,17 @@ import {
   ChevronDown, Eye, Calendar, Phone, User, Package, Filter, Building2, CheckCircle2, Clock, MapPin, X
 } from 'lucide-react';
 import PatrimonioDetailModal from '@/components/PatrimonioDetailModal';
+import * as XLSX from 'xlsx';
+
+const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
+  ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual' },
+  SETORIAL: { name: 'SETORIAL', color: '#EAB308', label: 'Setorial' },
+  CENTRAL: { name: 'CENTRAL', color: '#F97316', label: 'Central' },
+  REGIONAL: { name: 'REGIONAL', color: '#22C55E', label: 'Regional' },
+  LOCAL: { name: 'LOCAL', color: '#6B7280', label: 'Local' },
+  'CASA DE ORAÇÃO': { name: 'CASA DE ORAÇÃO', color: '#EC4899', label: 'Casa de Oração' },
+  'ALDEIA INDIGENA': { name: 'ALDEIA INDIGENA', color: '#06B6D4', label: 'Aldeia Indígena' },
+};
 
 const REGIOES = [
   { value: 'ALL', label: 'Todas as Regiões Geográficas' },
@@ -109,6 +120,224 @@ export default function GestaoPatrimonioPage() {
   }, [currentPage, searchTerm, filterRegiao, filterEstado, filterSede, filterPorte, filterStatus]);
 
   useEffect(() => { fetchDados(); }, [fetchDados]);
+
+  const handleExportFaltantes = () => {
+    const faltantes = submissoes.filter((sub) => !sub.submissao_id);
+    if (faltantes.length === 0) {
+      toast.info('Nenhuma igreja com envio pendente nesta listagem.');
+      return;
+    }
+
+    const dataToExport = faltantes.map((sub) => {
+      const cleanPhone = sub.dirigente_telefone ? sub.dirigente_telefone.replace(/\D/g, '') : '';
+      const whatsappUrl = cleanPhone ? `https://wa.me/55${cleanPhone}` : '';
+
+      return {
+        TOTVS: sub.codigo_totvs || '',
+        Igreja: sub.desc_igreja || '',
+        UF: sub.estado || '',
+        Município: sub.municipio || '',
+        Dirigente: sub.dirigente_nome || 'NÃO INFORMADO',
+        WhatsApp: whatsappUrl || (sub.dirigente_telefone || 'SEM CONTATO'),
+        'Sede Pai': sub.codigo_totvs_pai || '',
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Faltantes');
+    XLSX.writeFile(workbook, 'cobranca_patrimonio_faltantes.xlsx');
+    toast.success(`Relatório com ${faltantes.length} igrejas faltantes gerado com sucesso!`);
+  };
+
+  const renderHierarquia = (parentTotvs: string, level: number): React.ReactNode => {
+    const children = submissoes.filter(
+      (item) =>
+        String(item.codigo_totvs_pai || '').trim().toLowerCase() === String(parentTotvs || '').trim().toLowerCase() &&
+        String(item.codigo_totvs || '').trim().toLowerCase() !== String(parentTotvs || '').trim().toLowerCase()
+    );
+
+    if (children.length === 0) return null;
+
+    return (
+      <>
+        {children.map((sub) => (
+          <div key={sub.codigo_totvs} className="flex flex-col">
+            <div
+              className="p-3.5 bg-white border-b border-zinc-100 hover:bg-zinc-50/80 transition-colors flex flex-col md:flex-row items-start md:items-center justify-between gap-3"
+              style={{ paddingLeft: `${Math.max(16, level * 28)}px` }}
+            >
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-mono font-bold text-xs bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded text-zinc-700">
+                  {sub.codigo_totvs}
+                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sm text-zinc-800">{sub.desc_igreja}</span>
+                  {sub.porte && (
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider"
+                      style={{ backgroundColor: PORTE_INFO[sub.porte]?.color || '#A6A6A6' }}
+                    >
+                      {sub.porte}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-zinc-500">{sub.municipio} - {sub.estado}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-between md:justify-end">
+                {sub.dirigente_nome ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase text-zinc-700 flex items-center gap-1">
+                      <User className="h-3.5 w-3.5 text-indigo-500" /> {sub.dirigente_nome}
+                    </span>
+                    {sub.dirigente_telefone && (
+                      <a
+                        href={`https://wa.me/55${sub.dirigente_telefone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full hover:bg-emerald-100 transition-colors font-bold"
+                      >
+                        <Phone className="h-2.5 w-2.5" /> WhatsApp
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                    ⚠️ Acionar Sede
+                  </span>
+                )}
+
+                {sub.submissao_id ? (
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Recebido
+                  </span>
+                ) : (
+                  <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <X className="h-3.5 w-3.5" /> Pendente
+                  </span>
+                )}
+
+                {sub.submissao_id && (
+                  <button
+                    onClick={() => {
+                      setSelectedSubmissao(sub);
+                      setIsDetailModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Ver Detalhes
+                  </button>
+                )}
+              </div>
+            </div>
+            {renderHierarquia(sub.codigo_totvs, level + 1)}
+          </div>
+        ))}
+      </>
+    );
+  };
+
+  const renderTreeContainer = () => {
+    const trimmedSede = filterSede.trim().toLowerCase();
+    const rootSede = submissoes.find(
+      (item) => String(item.codigo_totvs || '').trim().toLowerCase() === trimmedSede
+    );
+
+    return (
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-indigo-600" />
+            <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wide">
+              Estrutura Hierárquica da Sede: <span className="font-mono text-indigo-700">{filterSede.toUpperCase()}</span>
+            </h3>
+          </div>
+          <span className="text-[10px] bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-full font-bold">
+            {submissoes.length} {submissoes.length === 1 ? 'Igreja' : 'Igrejas na malha'}
+          </span>
+        </div>
+
+        <div className="divide-y divide-zinc-100">
+          {rootSede ? (
+            <div className="flex flex-col">
+              <div
+                className="p-3.5 bg-indigo-50/30 border-b border-indigo-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 font-semibold"
+                style={{ paddingLeft: '16px' }}
+              >
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="font-mono font-black text-xs bg-indigo-600 text-white px-2 py-0.5 rounded">
+                    {rootSede.codigo_totvs}
+                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-sm text-zinc-900">{rootSede.desc_igreja}</span>
+                    {rootSede.porte && (
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider"
+                        style={{ backgroundColor: PORTE_INFO[rootSede.porte]?.color || '#A6A6A6' }}
+                      >
+                        {rootSede.porte}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-zinc-500">{rootSede.municipio} - {rootSede.estado}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-between md:justify-end">
+                  {rootSede.dirigente_nome ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase text-zinc-700 flex items-center gap-1">
+                        <User className="h-3.5 w-3.5 text-indigo-500" /> {rootSede.dirigente_nome}
+                      </span>
+                      {rootSede.dirigente_telefone && (
+                        <a
+                          href={`https://wa.me/55${rootSede.dirigente_telefone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full hover:bg-emerald-100 transition-colors font-bold"
+                        >
+                          <Phone className="h-2.5 w-2.5" /> WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                      ⚠️ Acionar Sede
+                    </span>
+                  )}
+
+                  {rootSede.submissao_id ? (
+                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Recebido
+                    </span>
+                  ) : (
+                    <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                      <X className="h-3.5 w-3.5" /> Pendente
+                    </span>
+                  )}
+
+                  {rootSede.submissao_id && (
+                    <button
+                      onClick={() => {
+                        setSelectedSubmissao(rootSede);
+                        setIsDetailModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Ver Detalhes
+                    </button>
+                  )}
+                </div>
+              </div>
+              {renderHierarquia(rootSede.codigo_totvs, 1)}
+            </div>
+          ) : (
+            renderHierarquia(filterSede.trim(), 1)
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
@@ -255,16 +484,25 @@ export default function GestaoPatrimonioPage() {
 
         {/* Advanced Filters Panel */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-indigo-600"/>
               <h2 className="text-sm font-black text-zinc-900 uppercase tracking-wide">Painel de Filtros Avançados</h2>
             </div>
-            {isSyncing && (
-              <span className="flex items-center gap-1 text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100 animate-pulse">
-                <RefreshCw className="h-3 w-3 animate-spin"/> Atualizando...
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportFaltantes}
+                className="px-3 py-1.5 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              >
+                📥 Exportar Faltantes (Excel)
+              </button>
+              {isSyncing && (
+                <span className="flex items-center gap-1 text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100 animate-pulse">
+                  <RefreshCw className="h-3 w-3 animate-spin"/> Atualizando...
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -321,6 +559,8 @@ export default function GestaoPatrimonioPage() {
           <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-indigo-600"/></div>
         ) : submissoes.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl py-20 text-center"><Package className="h-12 w-12 text-zinc-300 mx-auto mb-3"/><h3 className="font-bold text-zinc-800">Nenhum registro encontrado</h3></div>
+        ) : filterSede.trim() !== '' ? (
+          renderTreeContainer()
         ) : (
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-x-auto">
@@ -339,8 +579,18 @@ export default function GestaoPatrimonioPage() {
                     <tr key={sub.codigo_totvs} className="hover:bg-zinc-50/50 transition-colors">
                       <td className="p-4 font-mono font-bold">{sub.codigo_totvs}</td>
                       <td className="p-4">
-                        <div className="font-bold text-sm">{sub.desc_igreja}</div>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="font-bold text-sm flex items-center gap-2 flex-wrap">
+                          <span>{sub.desc_igreja}</span>
+                          {sub.porte && (
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider"
+                              style={{ backgroundColor: PORTE_INFO[sub.porte]?.color || '#A6A6A6' }}
+                            >
+                              {sub.porte}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-[10px] text-zinc-500">{sub.municipio} - {sub.estado}</span>
                           {sub.codigo_totvs_pai && <span className="bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded text-[9px] font-mono text-zinc-600">Sede Pai: {sub.codigo_totvs_pai}</span>}
                         </div>
