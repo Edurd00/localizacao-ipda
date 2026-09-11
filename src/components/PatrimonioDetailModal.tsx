@@ -32,6 +32,7 @@ export interface PatrimonioItem {
   conservacao?: string;
   estado_conservacao?: string;
   estado?: string;
+  observacao?: string;
 }
 
 interface PatrimonioDetailModalProps {
@@ -309,6 +310,7 @@ export default function PatrimonioDetailModal({
                       <th className="px-3 py-2.5">Item</th>
                       <th className="px-3 py-2.5 text-center">Quantidade</th>
                       <th className="px-3 py-2.5">Conservação</th>
+                      <th className="px-3 py-2.5">Observação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-slate-800 text-zinc-800 dark:text-slate-200">
@@ -329,6 +331,9 @@ export default function PatrimonioDetailModal({
                         </td>
                         <td className="px-3 py-2.5 text-zinc-600 dark:text-slate-400">
                           {item.conservacao || item.estado_conservacao || item.estado || '---'}
+                        </td>
+                        <td className="px-3 py-2.5 text-zinc-500 dark:text-slate-400 italic">
+                          {item.observacao || '---'}
                         </td>
                       </tr>
                     ))}

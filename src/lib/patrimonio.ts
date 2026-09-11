@@ -70,6 +70,7 @@ interface MemoryPatrimonioItem {
   quantidade: number;
   possui: string;
   conservacao?: string | null;
+  estado_conservacao?: string | null;
   observacao?: string | null;
 }
 
@@ -418,8 +419,8 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
         const obs = item.observacao?.trim() || null;
 
         await client.query(
-          `INSERT INTO patrimonio_itens (submissao_id, item_nome, quantidade, possui, conservacao, observacao)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+          `INSERT INTO patrimonio_itens (submissao_id, item_nome, quantidade, possui, conservacao, estado_conservacao, observacao)
+           VALUES ($1, $2, $3, $4, $5, $5, $6)`,
           [submissaoId, itemNome, qtd, possui, conservacao, obs]
         );
         itensCount++;
@@ -508,6 +509,7 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
           quantidade: Number(it.quantidade) || 1,
           possui: it.possui?.trim() || 'Sim',
           conservacao: it.conservacao?.trim() || 'BOM',
+          estado_conservacao: it.conservacao?.trim() || 'BOM',
           observacao: it.observacao?.trim() || null,
         }));
 
@@ -603,6 +605,7 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
       quantidade: Number(it.quantidade) || 1,
       possui: it.possui?.trim() || 'Sim',
       conservacao: it.conservacao?.trim() || 'BOM',
+          estado_conservacao: it.conservacao?.trim() || 'BOM',
       observacao: it.observacao?.trim() || null,
     });
     itensCount++;
