@@ -170,7 +170,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
           setChurch(json.igreja || null);
           setJaEnviadoAnual(true);
           setChurchNotFound(false);
-          toast.warning(json.mensagem || `Declaração de ${new Date().getFullYear()} já realizada para este TOTVS.`);
+          toast.warning(`A declaração patrimonial referente ao ano de ${new Date().getFullYear()} desta igreja já foi recebida e consta no sistema.`);
           return;
         }
 
@@ -537,10 +537,16 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="bg-indigo-600 text-white text-xs font-black tracking-wider uppercase px-3 py-1 rounded-lg">
-                  IPDA
-                </span>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/img/logo.png"
+                  alt="IPDA Logo"
+                  className="h-8 w-auto object-contain"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                  }}
+                />
                 <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
                   Controle Patrimonial
                 </span>
@@ -623,7 +629,33 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
         {/* ======================================================== */}
         {/* ETAPA 1: Igreja e Dirigente Local                        */}
         {/* ======================================================== */}
-        {etapaAtual === 1 && (
+        {jaEnviadoAnual ? (
+          <div className="bg-white rounded-3xl shadow-sm border border-amber-200 p-8 sm:p-12 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="h-8 w-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              Declaração Anual Já Recebida
+            </h2>
+            <p className="text-slate-700 text-base sm:text-lg font-medium max-w-lg mx-auto leading-relaxed">
+              A declaração patrimonial referente ao ano de <strong>{new Date().getFullYear()}</strong> desta igreja já foi recebida e consta no sistema.
+            </p>
+            {church && (
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-800 font-semibold inline-block max-w-md my-2">
+                <p className="font-extrabold text-slate-900 text-base">{church.desc_igreja}</p>
+                <p className="text-slate-600 mt-1 font-mono">TOTVS: {church.codigo_totvs}</p>
+                <p className="text-slate-500 text-xs mt-1">
+                  {church.endereco ? `${church.endereco}, ` : ''}{church.bairro} - {church.municipio}/{church.estado}
+                </p>
+              </div>
+            )}
+            <p className="text-xs sm:text-sm text-slate-500 font-medium pt-2">
+              Caso precise de alterações ou retificações, entre em contato com a sua Regional.
+            </p>
+          </div>
+        ) : (
+          <>
+            {etapaAtual === 1 && (
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
             <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
               <Building2 className="h-7 w-7 text-indigo-600 shrink-0" />
@@ -821,7 +853,7 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs sm:text-sm text-amber-950 font-medium">
               <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
-                <strong>Nota Importante:</strong> O nome do Dirigente Local e o número de WhatsApp informados acima atualizarão o cadastro oficial da congregação no sistema central da IPDA.
+                <strong>Atenção:</strong> Os dados de contato informados acima (Nome e WhatsApp) serão cadastrados no sistema caso o registro oficial do dirigente da congregação não esteja presente.
               </p>
             </div>
           </div>
@@ -1264,6 +1296,9 @@ export default function PatrimonioClientForm({ totvs }: { totvs?: string }) {
               </div>
             </div>
           </div>
+        )}
+
+          </>
         )}
 
         <footer className="text-center text-xs sm:text-sm text-slate-500 py-6 font-medium">
