@@ -22,6 +22,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Layers,
+  Info,
+  CalendarCheck2,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import {
@@ -109,6 +111,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
   const [searchingChurch, setSearchingChurch] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [church, setChurch] = useState<ChurchData | null>(null);
+  const [alreadySubmitted, setAlreadySubmitted] = useState<boolean>(false);
   const [submittedSuccess, setSubmittedSuccess] = useState<boolean>(false);
   const [protocolo, setProtocolo] = useState<string | null>(null);
   const [isModalConfirmacaoAberto, setIsModalConfirmacaoAberto] = useState<boolean>(false);
@@ -144,15 +147,22 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
       fetch(`/api/igrejas/public-lookup?totvs=${encodeURIComponent(initialTotvs.trim())}`)
         .then((res) => res.json())
         .then((json) => {
-          if (json.success && json.igreja) {
+          if (json.ja_enviado) {
+            setChurch(json.igreja || null);
+            setAlreadySubmitted(true);
+            toast.info('A declaração patrimonial de 2026 para esta igreja já foi realizada.');
+          } else if (json.success && json.igreja) {
             setChurch(json.igreja);
+            setAlreadySubmitted(false);
           } else {
             setChurch(null);
+            setAlreadySubmitted(false);
             toast.error('Código TOTVS não localizado. Verifique o número com a sua regional.');
           }
         })
         .catch(() => {
           setChurch(null);
+          setAlreadySubmitted(false);
           toast.error('Código TOTVS não localizado. Verifique o número com a sua regional.');
         })
         .finally(() => {
@@ -168,6 +178,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
     const query = codigoTotvs.trim();
     if (!query) {
       setChurch(null);
+      setAlreadySubmitted(false);
       setSearchingChurch(false);
       return;
     }
@@ -177,15 +188,22 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
       fetch(`/api/igrejas/public-lookup?totvs=${encodeURIComponent(query)}`)
         .then((res) => res.json())
         .then((json) => {
-          if (json.success && json.igreja) {
+          if (json.ja_enviado) {
+            setChurch(json.igreja || null);
+            setAlreadySubmitted(true);
+            toast.info('A declaração patrimonial referente ao ano de 2026 desta igreja já foi recebida.');
+          } else if (json.success && json.igreja) {
             setChurch(json.igreja);
+            setAlreadySubmitted(false);
           } else {
             setChurch(null);
+            setAlreadySubmitted(false);
             toast.error('Código TOTVS não localizado. Verifique o número com a sua regional.');
           }
         })
         .catch(() => {
           setChurch(null);
+          setAlreadySubmitted(false);
           toast.error('Código TOTVS não localizado. Verifique o número com a sua regional.');
         })
         .finally(() => {
@@ -279,6 +297,8 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
 
       if (!codigoTotvs.trim()) {
         erros.codigo_totvs = 'Informe o Código TOTVS da igreja.';
+      } else if (alreadySubmitted) {
+        erros.codigo_totvs = 'A declaração de 2026 já foi enviada para esta igreja.';
       } else if (!church) {
         erros.codigo_totvs = 'Código TOTVS não localizado ou congregação não encontrada.';
       }
@@ -352,6 +372,12 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
 
       const json = await res.json();
 
+      if (json.ja_enviado) {
+        setAlreadySubmitted(true);
+        toast.info('A declaração patrimonial referente ao ano de 2026 desta igreja já foi recebida.');
+        return;
+      }
+
       if (!res.ok || !json.success) {
         throw new Error(json.error || 'Erro ao processar a submissão.');
       }
@@ -375,6 +401,45 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
           <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
           <h3 className="font-extrabold text-slate-900 text-lg">Carregando Formulário...</h3>
           <p className="text-slate-500 text-sm">Consultando congregação no sistema</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Card de Duplicidade Anual
+  if (alreadySubmitted && church) {
+    return (
+      <div className="w-full max-w-4xl mx-auto h-auto min-h-fit pb-16 pt-8 px-4 font-sans">
+        <Toaster position="top-center" richColors />
+        <div className="bg-white rounded-3xl shadow-xl border border-indigo-200 p-8 sm:p-10 space-y-6 text-center">
+          <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+            <CalendarCheck2 className="h-10 w-10" />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+              Declaração Anual de 2026 Já Recebida!
+            </h2>
+            <p className="text-slate-600 text-base max-w-lg mx-auto leading-relaxed">
+              A declaração patrimonial referente ao ano de <strong>2026</strong> da igreja{' '}
+              <strong>{church.desc_igreja}</strong> (TOTVS {church.codigo_totvs}) já foi recebida e consta registrada no sistema.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left text-sm max-w-lg mx-auto space-y-2">
+            <p className="font-bold text-slate-900 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-indigo-600 shrink-0" />
+              {church.desc_igreja}
+            </p>
+            <p className="text-slate-600 flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+              {church.endereco}, {church.bairro} - {church.municipio}/{church.estado}
+            </p>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Caso precise realizar retificações ou sanar dúvidas, entre em contato com a sua Sede Setorial.
+          </p>
         </div>
       </div>
     );
@@ -497,15 +562,21 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
       <Toaster position="top-center" richColors />
 
       <div className="space-y-6">
-        {/* Header Oficial */}
+        {/* Header Oficial com Logo */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 relative">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="bg-indigo-600 text-white text-xs font-black tracking-wider uppercase px-3 py-1 rounded-md">
-                  IPDA
-                </span>
-                <span className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/img/logo.png"
+                  alt="GeoManager / IPDA Logo"
+                  className="h-9 w-auto object-contain"
+                  onError={(e) => {
+                    // Fallback visual se a imagem não carregar
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+                <span className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
                   Controle Patrimonial
                 </span>
               </div>
@@ -626,7 +697,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
               </div>
 
               {/* Card Verde de Confirmação da Igreja */}
-              {church && (
+              {church && !alreadySubmitted && (
                 <div className="bg-emerald-50 border-2 border-emerald-400 rounded-3xl p-5 sm:p-6 text-emerald-950 space-y-2 shadow-sm animate-in fade-in duration-200">
                   <div className="flex items-center gap-2 text-emerald-700 font-black text-xs sm:text-sm uppercase tracking-wider">
                     <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" />
@@ -681,6 +752,14 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                     {errosEtapa1.telefone_responsavel}
                   </p>
                 )}
+              </div>
+
+              {/* Aviso sobre cadastro de contatos */}
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs flex items-start gap-2">
+                <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Nota sobre o cadastro de contatos:</strong> Os dados de nome e telefone informados acima serão registrados no cadastro da congregação caso o sistema ainda não possua o registro oficial do dirigente local.
+                </span>
               </div>
 
               {/* Cargo Pastoral Sem Select - Preenchimento Direto */}
@@ -1095,7 +1174,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                   Confirmar Envio da Declaração?
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  Os dados declarados serão gravados officially na base de patrimônio da igreja TOTVS{' '}
+                  Os dados declarados serão gravados oficialmente na base de patrimônio da igreja TOTVS{' '}
                   <strong className="text-slate-900 font-mono">{church?.codigo_totvs}</strong>.
                 </p>
               </div>

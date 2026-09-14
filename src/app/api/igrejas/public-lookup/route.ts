@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { obterIgrejaMinima } from '@/lib/patrimonio';
+import { obterIgrejaMinima, verificarSubmissaoAnual } from '@/lib/patrimonio';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +22,23 @@ export async function GET(request: NextRequest) {
         { success: false, message: 'Código TOTVS não encontrado.' },
         { status: 404 }
       );
+    }
+
+    const jaEnviado = await verificarSubmissaoAnual(totvs);
+    if (jaEnviado) {
+      return NextResponse.json({
+        success: false,
+        ja_enviado: true,
+        mensagem: 'Declaração de 2026 já realizada para este TOTVS.',
+        igreja: {
+          codigo_totvs: igreja.codigo_totvs,
+          desc_igreja: igreja.desc_igreja,
+          endereco: igreja.endereco,
+          bairro: igreja.bairro,
+          municipio: igreja.municipio,
+          estado: igreja.estado,
+        },
+      });
     }
 
     // Retorna EXCLUSIVAMENTE o endereço básico para segurança e privacidade

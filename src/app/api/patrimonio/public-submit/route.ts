@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { salvarSubmissaoPatrimonio, SalvarPatrimonioInput } from '@/lib/patrimonio';
+import { salvarSubmissaoPatrimonio, SalvarPatrimonioInput, verificarSubmissaoAnual } from '@/lib/patrimonio';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Validação do responsável
+    // 2. Trava de Duplicidade Anual
+    const anoAtual = Number(ano_referencia) || new Date().getFullYear();
+    const jaEnviado = await verificarSubmissaoAnual(cleanTotvs, anoAtual);
+    if (jaEnviado) {
+      return NextResponse.json(
+        {
+          success: false,
+          ja_enviado: true,
+          mensagem: `Declaração de ${anoAtual} já realizada para este TOTVS.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 3. Validação do responsável
     const cleanNome = String(nome_responsavel || '').trim();
     if (!cleanNome || cleanNome.length < 2) {
       return NextResponse.json(
@@ -44,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Validação do telefone com DDD (10 a 11 dígitos numéricos limpos)
+    // 4. Validação do telefone com DDD (10 a 11 dígitos numéricos limpos)
     const cleanTelefone = String(telefone_responsavel || '').replace(/\D/g, '');
     if (cleanTelefone.length < 10 || cleanTelefone.length > 11) {
       return NextResponse.json(
@@ -53,7 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Validação dos itens
+    // 5. Validação dos itens
     if (!Array.isArray(itens) || itens.length === 0) {
       return NextResponse.json(
         { success: false, error: 'É necessário declarar ao menos um item de patrimônio.' },
@@ -66,7 +80,7 @@ export async function POST(request: NextRequest) {
       nome_responsavel: cleanNome,
       telefone_responsavel: cleanTelefone,
       cargo_responsavel: cargo_responsavel ? String(cargo_responsavel).trim() : 'Dirigente Local',
-      ano_referencia: Number(ano_referencia) || new Date().getFullYear(),
+      ano_referencia: anoAtual,
       observacoes: observacoes ? String(observacoes).trim() : null,
       itens: itens.map((it: any) => ({
         item_nome: String(it.item_nome || it.item || it.nome_item || it.descricao || '').trim(),

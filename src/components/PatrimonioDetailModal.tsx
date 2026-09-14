@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Package, FileText } from 'lucide-react';
+import { X, Loader2, Package, FileText, Edit2, Check, AlertCircle } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PatrimonioPDF from '@/components/PatrimonioPDF';
+import { toast } from 'sonner';
 
 export interface PatrimonioSubmissao {
   id: string;
@@ -48,6 +49,12 @@ export default function PatrimonioDetailModal({
   const [loading, setLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  // Estado para correção manual de TOTVS
+  const [isEditingTotvs, setIsEditingTotvs] = useState(false);
+  const [novoTotvs, setNovoTotvs] = useState('');
+  const [savingTotvs, setSavingTotvs] = useState(false);
+  const [currentTotvs, setCurrentTotvs] = useState('');
+
   // Critical for Next.js SSR hydration prevention
   useEffect(() => {
     setIsClient(true);
@@ -55,13 +62,18 @@ export default function PatrimonioDetailModal({
 
   useEffect(() => {
     if (isOpen && submissao) {
-      setLoading(true);
+      setLoading(false);
       setItems([]);
+      setIsEditingTotvs(false);
+      setCurrentTotvs(submissao.codigo_totvs);
+      setNovoTotvs(submissao.codigo_totvs);
 
-      // First try fetching by submissao.id via /api/patrimonio/detalhes/[id]
+      const targetTotvs = submissao.codigo_totvs;
+      setLoading(true);
+
       const fetchUrl = submissao.id
         ? `/api/patrimonio/detalhes/${encodeURIComponent(submissao.id)}`
-        : `/api/patrimonio/${encodeURIComponent(submissao.codigo_totvs)}`;
+        : `/api/patrimonio/${encodeURIComponent(targetTotvs)}`;
 
       fetch(fetchUrl)
         .then((res) => res.json())
@@ -71,8 +83,7 @@ export default function PatrimonioDetailModal({
           } else if (json.data && Array.isArray(json.data.patrimonio_itens)) {
             setItems(json.data.patrimonio_itens);
           } else {
-            // Fallback to totvs endpoint
-            return fetch(`/api/patrimonio/${encodeURIComponent(submissao.codigo_totvs)}`)
+            return fetch(`/api/patrimonio/${encodeURIComponent(targetTotvs)}`)
               .then((res) => res.json())
               .then((jsonFallback) => {
                 if (jsonFallback.data && Array.isArray(jsonFallback.data.patrimonio_itens)) {
@@ -91,6 +102,40 @@ export default function PatrimonioDetailModal({
   }, [isOpen, submissao]);
 
   if (!isOpen || !submissao) return null;
+
+  const handleSalvarNovoTotvs = async () => {
+    const cleanNovo = novoTotvs.trim();
+    if (!cleanNovo) {
+      toast.warning('Digite o novo código TOTVS.');
+      return;
+    }
+
+    setSavingTotvs(true);
+    try {
+      const res = await fetch('/api/patrimonio/corrigir-totvs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissao_id: submissao.id,
+          novo_codigo_totvs: cleanNovo,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || json.message || 'Erro ao corrigir TOTVS.');
+      }
+
+      setCurrentTotvs(cleanNovo);
+      submissao.codigo_totvs = cleanNovo;
+      setIsEditingTotvs(false);
+      toast.success(`Código TOTVS corrigido para ${cleanNovo}!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao corrigir TOTVS.');
+    } finally {
+      setSavingTotvs(false);
+    }
+  };
 
   // Filter: Hide any item where possui is 'Não', 'nao', or empty/null
   const validItems = items.filter((item) => {
@@ -116,15 +161,15 @@ export default function PatrimonioDetailModal({
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
             <Package className="h-5 w-5" />
             <h3 className="font-extrabold text-sm uppercase tracking-wider">
-              Relatório de Patrimônio - TOTVS {submissao.codigo_totvs}
+              Relatório de Patrimônio - TOTVS {currentTotvs}
             </h3>
           </div>
 
           <div className="flex items-center gap-2">
             {isClient ? (
               <PDFDownloadLink
-                document={<PatrimonioPDF submissao={submissao} itens={items} />}
-                fileName={`relatorio-patrimonio-${submissao.codigo_totvs}.pdf`}
+                document={<PatrimonioPDF submissao={{ ...submissao, codigo_totvs: currentTotvs }} itens={items} />}
+                fileName={`relatorio-patrimonio-${currentTotvs}.pdf`}
                 className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 {({ loading: pdfLoading }) =>
@@ -164,21 +209,62 @@ export default function PatrimonioDetailModal({
         {/* Content */}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           {/* Submission summary */}
-          <div className="bg-zinc-50 dark:bg-slate-800/60 p-4 rounded-xl border border-zinc-200 dark:border-slate-700 space-y-2 text-xs">
+          <div className="bg-zinc-50 dark:bg-slate-800/60 p-4 rounded-xl border border-zinc-200 dark:border-slate-700 space-y-3 text-xs">
             <div className="flex justify-between items-start">
               <div>
                 <h4 className="font-bold text-zinc-900 dark:text-white text-sm">
-                  {submissao.desc_igreja || `Igreja TOTVS ${submissao.codigo_totvs}`}
+                  {submissao.desc_igreja || `Igreja TOTVS ${currentTotvs}`}
                 </h4>
                 {submissao.municipio && (
                   <p className="text-zinc-500 dark:text-slate-400 font-medium">📍 {submissao.municipio}</p>
                 )}
               </div>
-              {submissao.ano_referencia && (
-                <span className="bg-indigo-100 text-indigo-800 dark:bg-slate-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-mono font-bold text-[10px]">
-                  Ref: {submissao.ano_referencia}
-                </span>
-              )}
+
+              <div className="flex items-center gap-2">
+                {!isEditingTotvs ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingTotvs(true)}
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 bg-indigo-50 dark:bg-slate-700/80 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-slate-600 transition-colors cursor-pointer"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                    <span>Corrigir Código TOTVS</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1 rounded-xl border border-indigo-300">
+                    <input
+                      type="text"
+                      value={novoTotvs}
+                      onChange={(e) => setNovoTotvs(e.target.value)}
+                      placeholder="Novo TOTVS"
+                      className="w-24 text-xs font-mono font-bold px-2 py-1 bg-zinc-50 dark:bg-slate-800 rounded-lg border border-zinc-200 dark:border-slate-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSalvarNovoTotvs}
+                      disabled={savingTotvs}
+                      className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer"
+                      title="Confirmar"
+                    >
+                      {savingTotvs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingTotvs(false)}
+                      className="p-1.5 bg-zinc-200 dark:bg-slate-700 text-zinc-700 dark:text-slate-300 rounded-lg transition-colors cursor-pointer"
+                      title="Cancelar"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {submissao.ano_referencia && (
+                  <span className="bg-indigo-100 text-indigo-800 dark:bg-slate-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-mono font-bold text-[10px]">
+                    Ref: {submissao.ano_referencia}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-200/60 dark:border-slate-700/60 text-zinc-700 dark:text-slate-300">
