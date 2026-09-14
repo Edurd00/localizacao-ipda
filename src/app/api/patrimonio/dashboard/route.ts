@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const sede = searchParams.get('sede') || undefined;
     const porte = searchParams.get('porte') || undefined;
     const estadoItem = searchParams.get('estadoItem') || searchParams.get('estado_conservacao') || undefined;
+    const page = searchParams.get('page') || undefined;
+    const limit = searchParams.get('limit') || undefined;
 
     const result = await obterEstatisticasPatrimonio({
       regiao,
@@ -18,6 +20,8 @@ export async function GET(request: NextRequest) {
       sede,
       porte,
       estadoItem: estadoItem || (searchParams.get('estado') === 'RUIM' ? 'RUIM' : undefined),
+      page,
+      limit,
     });
 
     return NextResponse.json(result);
