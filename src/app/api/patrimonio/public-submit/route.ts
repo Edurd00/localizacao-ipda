@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { salvarSubmissaoPatrimonio, SalvarPatrimonioInput } from '@/lib/patrimonio';
-import { validarTelefoneComDdd } from '@/lib/patrimonioValidation';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
@@ -45,15 +44,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Validação do telefone com DDD (10 a 11 dígitos)
-    const validacaoTel = validarTelefoneComDdd(String(telefone_responsavel || ''));
-    if (!validacaoTel.valido) {
+    const cleanTelefone = String(telefone_responsavel || '').trim();
+    if (!cleanTelefone || cleanTelefone.replace(/\D/g, '').length < 8) {
       return NextResponse.json(
-        { success: false, error: validacaoTel.erro || 'Telefone inválido.' },
+        { success: false, error: 'Informe um telefone/WhatsApp válido para contato.' },
         { status: 400 }
       );
     }
-    const cleanTelefone = validacaoTel.digitos!;
 
     // 3. Validação dos itens
     if (!Array.isArray(itens) || itens.length === 0) {
