@@ -752,6 +752,8 @@ export interface EstatisticasPatrimonioFiltros {
   sede?: string;
   porte?: string;
   estadoItem?: string;
+  page?: number | string;
+  limit?: number | string;
 }
 
 const REGIAO_MAPPING: Record<string, string[]> = {
@@ -925,6 +927,13 @@ export async function obterEstatisticasPatrimonio(
         ORDER BY quantidade DESC
       `;
 
+      // Configuração de Paginação
+      const pageNum = Math.max(1, parseInt(String(filtros.page || 1), 10) || 1);
+      const limitNum = Math.max(1, parseInt(String(filtros.limit || 50), 10) || 50);
+      const offset = (pageNum - 1) * limitNum;
+
+      const matrixParams = [...params, limitNum, offset];
+
       // 4. Matrix query for congregações
       const matrixQuery = `${cte}
         SELECT
@@ -946,29 +955,28 @@ export async function obterEstatisticasPatrimonio(
           COALESCE(
             json_agg(
               json_build_object(
-                'id', pi.id,
                 'item_nome', pi.item_nome,
                 'quantidade', pi.quantidade,
-                'conservacao', COALESCE(pi.estado_conservacao, pi.conservacao),
+                'estado_conservacao', COALESCE(pi.estado_conservacao, pi.conservacao),
                 'observacao', pi.observacao
               )
             ) FILTER (WHERE pi.id IS NOT NULL),
             '[]'::json
-          ) AS itens
+          ) AS patrimonio_itens
         FROM ${baseFromIgrejas}
         JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
         LEFT JOIN patrimonio_itens pi ON ps.id = pi.submissao_id ${apenasRuim ? "AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'" : ""}
         ${whereIgreja} AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
         GROUP BY i.codigo_totvs, i.desc_igreja, i.dirigente_nome, i.dirigente_telefone, i.porte, i.estado, i.municipio, ps.id, ps.data_envio
         ORDER BY total_geral DESC, i.desc_igreja ASC
-        LIMIT 300
+        LIMIT $${paramIdx} OFFSET $${paramIdx + 1}
       `;
 
       const [totalsRes, categoriesRes, conservationRes, matrixRes] = await Promise.all([
         pool.query(totalsQuery, params),
         pool.query(categoriesQuery, params),
         pool.query(conservationQuery, params),
-        pool.query(matrixQuery, params),
+        pool.query(matrixQuery, matrixParams),
       ]);
 
       const tRow = totalsRes.rows[0] || {};
@@ -980,6 +988,14 @@ export async function obterEstatisticasPatrimonio(
 
       const mediaPorTemplo = totalSubmissoes > 0 ? Math.round((totalItens / totalSubmissoes) * 10) / 10 : 0;
       const percentualCobertura = totalIgrejasAtivas > 0 ? Math.round((totalSubmissoes / totalIgrejasAtivas) * 100) : 0;
+      const totalPages = Math.ceil(totalSubmissoes / limitNum) || 1;
+
+      const metaObj = {
+        total: totalSubmissoes,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+      };
 
       const categoriasFormatted = categoriesRes.rows.map((row) => ({
         nome: row.categoria,
@@ -996,24 +1012,28 @@ export async function obterEstatisticasPatrimonio(
           conservacao: row.estado,
         }));
 
-      const congregacoesMatricial = matrixRes.rows.map((row) => ({
-        codigo_totvs: row.codigo_totvs,
-        desc_igreja: row.desc_igreja,
-        dirigente_nome: row.dirigente_nome,
-        dirigente_telefone: row.dirigente_telefone,
-        porte: row.porte,
-        estado: row.estado,
-        municipio: row.municipio,
-        submissao_id: row.submissao_id,
-        data_envio: row.data_envio,
-        mobiliario: parseInt(row.me || "0", 10),
-        eletronicos: parseInt(row.ec || "0", 10),
-        som_instrumentos: parseInt(row.si || "0", 10),
-        cozinha_seguranca: parseInt(row.cs || "0", 10),
-        adicionais: parseInt(row.ao || "0", 10),
-        total_geral: parseInt(row.total_geral || "0", 10),
-        itens: Array.isArray(row.itens) ? row.itens : [],
-      }));
+      const congregacoesMatricial = matrixRes.rows.map((row) => {
+        const itensArr = Array.isArray(row.patrimonio_itens) ? row.patrimonio_itens : [];
+        return {
+          codigo_totvs: row.codigo_totvs,
+          desc_igreja: row.desc_igreja,
+          dirigente_nome: row.dirigente_nome,
+          dirigente_telefone: row.dirigente_telefone,
+          porte: row.porte,
+          estado: row.estado,
+          municipio: row.municipio,
+          submissao_id: row.submissao_id,
+          data_envio: row.data_envio,
+          mobiliario: parseInt(row.me || "0", 10),
+          eletronicos: parseInt(row.ec || "0", 10),
+          som_instrumentos: parseInt(row.si || "0", 10),
+          cozinha_seguranca: parseInt(row.cs || "0", 10),
+          adicionais: parseInt(row.ao || "0", 10),
+          total_geral: parseInt(row.total_geral || "0", 10),
+          patrimonio_itens: itensArr,
+          itens: itensArr,
+        };
+      });
 
       const totaisObj = {
         total_itens: totalItens,
@@ -1037,6 +1057,7 @@ export async function obterEstatisticasPatrimonio(
         itens_por_categoria: categoriasFormatted,
         itens_por_conservacao: conservacaoFormatted,
         congregacoes: congregacoesMatricial,
+        meta: metaObj,
       };
 
       return {
@@ -1045,6 +1066,7 @@ export async function obterEstatisticasPatrimonio(
         categorias: categoriasFormatted,
         conservacao: conservacaoFormatted,
         congregacoes: congregacoesMatricial,
+        meta: metaObj,
         data: unifiedData,
       };
     } catch (err) {
