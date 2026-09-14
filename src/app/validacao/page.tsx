@@ -11,6 +11,7 @@ import SpreadsheetUpload from '@/components/SpreadsheetUpload';
 import MapWrapper from '@/components/MapWrapper';
 import DashboardView from '@/components/DashboardView';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ThemeToggle from '@/components/ThemeToggle';
 import type { Igreja } from '@/lib/db';
 import { normalizeUF, isResultInState } from '@/lib/geocoding';
 import {
@@ -1047,6 +1048,8 @@ export default function ValidacaoPage() {
                   Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
                 </span>
               )}
+
+              <ThemeToggle />
 
               <button
                 onClick={handleSyncPublicMap}

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import ThemeToggle from '@/components/ThemeToggle';
 import { Toaster, toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import {
@@ -516,6 +517,8 @@ export default function RelatoriosPage() {
                 Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
               </span>
             )}
+
+            <ThemeToggle />
 
             <button
               onClick={handleSyncPublicMap}

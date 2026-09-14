@@ -5,14 +5,11 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 519ms
+✓ Ready in 527ms
 
- GET /login 200 in 3.7s (next.js: 3.4s, application-code: 353ms)
- GET /login 200 in 98ms (next.js: 9ms, application-code: 88ms)
- POST /api/auth/login 401 in 472ms (next.js: 439ms, application-code: 33ms)
- GET /login 200 in 68ms (next.js: 5ms, application-code: 63ms)
- POST /api/auth/login 401 in 12ms (next.js: 5ms, application-code: 8ms)
- GET /login 200 in 68ms (next.js: 3ms, application-code: 65ms)
- GET /validacao 200 in 2.1s (next.js: 1760ms, proxy.ts: 12ms, application-code: 372ms)
- GET /api/igrejas?status=PENDENTE&page=1&limit=100&t=1788949508771 200 in 300ms (next.js: 285ms, application-code: 15ms)
- GET /api/auth/session 200 in 413ms (next.js: 392ms, application-code: 21ms)
+○ Compiling /mapa-geral ...
+ GET /mapa-geral 200 in 3.9s (next.js: 3.7s, application-code: 277ms)
+ GET /api/auth/session 200 in 871ms (next.js: 839ms, application-code: 32ms)
+ GET /api/igrejas/validadas 200 in 700ms (next.js: 691ms, application-code: 9ms)
+ GET /api/auth/session 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 7ms)

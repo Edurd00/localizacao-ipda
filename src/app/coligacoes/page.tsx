@@ -30,6 +30,7 @@ import {
 import type { Igreja } from '@/lib/db';
 import { parseWorkbook, getPorte } from '@/lib/parser';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ThemeToggle from '@/components/ThemeToggle';
 
 // Precise official colors mapping (high-contrast values matching the Map visualization)
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
@@ -844,6 +845,7 @@ export default function ColigacoesPage() {
                   Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
                 </span>
               )}
+              <ThemeToggle />
               {/* Block 1: Visualização */}
               <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 items-center">
                 <a

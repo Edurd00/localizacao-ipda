@@ -124,14 +124,14 @@ export default function ChurchDetailModal({
   const totalCascata = getDescendantCount(ig.codigo_totvs, igrejas);
 
   return (
-    <div className="w-[350px] p-4 bg-white rounded-2xl overflow-hidden text-slate-800 space-y-2 font-sans text-xs">
+    <div className="w-[350px] p-4 bg-white dark:bg-slate-900 rounded-2xl overflow-hidden text-slate-800 dark:text-slate-100 space-y-2 font-sans text-xs transition-colors duration-200">
       {/* Title & Header Badges */}
       <div>
-        <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
           {ig.desc_igreja}
         </h3>
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+          <span className="text-[9px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
             TOTVS: {ig.codigo_totvs}
           </span>
           <span
@@ -144,7 +144,7 @@ export default function ChurchDetailModal({
             {porte}
           </span>
           {totalCascata > 0 && (
-            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-bold rounded-full border border-indigo-200 inline-flex items-center gap-1">
+            <span className="px-2 py-0.5 bg-indigo-100 dark:bg-slate-800 text-indigo-800 dark:text-indigo-300 text-[10px] font-bold rounded-full border border-indigo-200 dark:border-slate-700 inline-flex items-center gap-1">
               🏛️ {totalCascata} na malha
             </span>
           )}
@@ -212,13 +212,13 @@ export default function ChurchDetailModal({
       {/* Tab Content */}
       <div className="pt-1">
         {activeTab === 'geral' && (
-          <div className="space-y-1.5 mt-2 text-[11px] leading-tight text-slate-700">
+          <div className="space-y-1.5 mt-2 text-[11px] leading-tight text-slate-700 dark:text-slate-300">
             {ig.tipo_imovel && (
               <p className="flex items-center gap-1.5">
                 <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
                 <span>
-                  <span className="font-semibold text-slate-400">Tipo de Imóvel:</span>{' '}
-                  <span className="font-bold text-slate-800">{ig.tipo_imovel}</span>
+                  <span className="font-semibold text-slate-400 dark:text-slate-400">Tipo de Imóvel:</span>{' '}
+                  <span className="font-bold text-slate-800 dark:text-white">{ig.tipo_imovel}</span>
                 </span>
               </p>
             )}
@@ -226,8 +226,8 @@ export default function ChurchDetailModal({
             <p className="flex items-start gap-1.5">
               <MapPin className="h-3 w-3 text-slate-400 mt-0.5 shrink-0" />
               <span>
-                <span className="font-semibold text-slate-400">Endereço:</span>{' '}
-                <span className="text-slate-800 font-medium">
+                <span className="font-semibold text-slate-400 dark:text-slate-400">Endereço:</span>{' '}
+                <span className="text-slate-800 dark:text-slate-200 font-medium">
                   {ig.endereco}
                   {ig.bairro ? `, ${ig.bairro}` : ''}, {ig.municipio} - {ig.estado}
                   {ig.cep ? ` (${ig.cep})` : ''}
@@ -239,26 +239,26 @@ export default function ChurchDetailModal({
               <p className="flex items-start gap-1.5">
                 <Link className="h-3 w-3 text-slate-400 mt-0.5 shrink-0" />
                 <span>
-                  <span className="font-semibold text-slate-400">Coligada a:</span>{' '}
-                  <span className="text-slate-800 font-medium">{parentChurch.desc_igreja} ({ig.codigo_totvs_pai})</span>
+                  <span className="font-semibold text-slate-400 dark:text-slate-400">Coligada a:</span>{' '}
+                  <span className="text-slate-800 dark:text-slate-200 font-medium">{parentChurch.desc_igreja} ({ig.codigo_totvs_pai})</span>
                 </span>
               </p>
             )}
 
             {((ig.qtd_membros !== null && ig.qtd_membros !== undefined && ig.qtd_membros > 0) ||
               (ig.qtd_jovens !== null && ig.qtd_jovens !== undefined && ig.qtd_jovens > 0)) && (
-              <div className="flex items-center gap-2 font-bold text-slate-800 bg-slate-100 p-1.5 rounded-lg border border-slate-200 text-[10px] mt-1.5">
+              <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] mt-1.5">
                 <span>👥 {ig.qtd_membros || 0} Membros</span>
-                <span className="text-slate-300">|</span>
+                <span className="text-slate-300 dark:text-slate-600">|</span>
                 <span>⚡ {ig.qtd_jovens || 0} Jovens</span>
               </div>
             )}
 
-            <div className="pt-1.5 border-t border-slate-100">
+            <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800">
               {comparisonMode ? (
                 String(fixedDest?.codigo_totvs) === String(ig.codigo_totvs) ? (
                   <div className="space-y-1.5 my-2">
-                    <div className="h-7 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center justify-center gap-1">
+                    <div className="h-7 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border border-indigo-200 dark:border-slate-700 rounded-lg flex items-center justify-center gap-1">
                       <span>📍 Alvo de Análise</span>
                     </div>
 
@@ -272,7 +272,7 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(null);
                           toast.info('Modo comparativo desativado.');
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-800 rounded-lg transition-all cursor-pointer"
                       >
                         <span className="text-xs">📐</span>
                         <span className="truncate font-semibold">Cancelar Comp.</span>
@@ -283,8 +283,8 @@ export default function ChurchDetailModal({
                         onClick={() => handleTraceConnectionMesh(ig)}
                         className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
                           String(connectionPathSource) === String(ig.codigo_totvs)
-                            ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                            : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                            ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
+                            : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
                         }`}
                       >
                         <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
@@ -304,7 +304,7 @@ export default function ChurchDetailModal({
                         className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
                           String(sedeCandidataA?.codigo_totvs) === String(ig.codigo_totvs)
                             ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
-                            : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                            : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300'
                         }`}
                       >
                         <span className="text-xs">🟢</span>
@@ -320,7 +320,7 @@ export default function ChurchDetailModal({
                         className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
                           String(sedeCandidataB?.codigo_totvs) === String(ig.codigo_totvs)
                             ? 'border-cyan-500 bg-cyan-500 text-white hover:bg-cyan-600'
-                            : 'border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-800'
+                            : 'border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 text-cyan-800 dark:text-cyan-300'
                         }`}
                       >
                         <span className="text-xs">🔵</span>
@@ -338,7 +338,7 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(null);
                           toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-all cursor-pointer"
                       >
                         <span className="text-xs">📐</span>
                         <span className="truncate font-semibold">Comparar Rotas</span>
@@ -349,8 +349,8 @@ export default function ChurchDetailModal({
                         onClick={() => handleTraceConnectionMesh(ig)}
                         className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
                           String(connectionPathSource) === String(ig.codigo_totvs)
-                            ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                            : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                            ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
+                            : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
                         }`}
                       >
                         <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
@@ -368,7 +368,7 @@ export default function ChurchDetailModal({
                       type="button"
                       disabled={!(ig.codigo_totvs_pai && parentChurch)}
                       onClick={() => fetchTerrestrialRoute(ig, parentChurch!)}
-                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       title={ig.codigo_totvs_pai && parentChurch ? `Rota para Sede Superior: ${parentChurch.desc_igreja}` : 'Sem coligação superior registrada'}
                     >
                       <span className="text-xs">🚗</span>
@@ -383,7 +383,7 @@ export default function ChurchDetailModal({
                           setPontoOrigem(ig);
                           toast.success(`Origem definida: ${ig.desc_igreja}`);
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-all cursor-pointer"
                       >
                         <span className="text-xs">📍</span>
                         <span className="truncate font-semibold">Definir Origem</span>
@@ -397,7 +397,7 @@ export default function ChurchDetailModal({
                             setPontoOrigem(null);
                           }
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-emerald-900 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
                         title={`Traçar rota a partir de ${pontoOrigem.desc_igreja}`}
                       >
                         <span className="text-xs">🏁</span>
@@ -410,7 +410,7 @@ export default function ChurchDetailModal({
                           setPontoOrigem(null);
                           toast.info('Origem de rota cancelada.');
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-lg hover:bg-rose-100 transition-all cursor-pointer"
                       >
                         <span className="text-xs">❌</span>
                         <span className="truncate font-semibold">Cancelar Origem</span>
@@ -427,7 +427,7 @@ export default function ChurchDetailModal({
                         setSedeCandidataB(null);
                         toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino.`);
                       }}
-                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer"
+                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-all cursor-pointer"
                     >
                       <span className="text-xs">📐</span>
                       <span className="truncate font-semibold">Comparar Rotas</span>
@@ -439,8 +439,8 @@ export default function ChurchDetailModal({
                       onClick={() => handleTraceConnectionMesh(ig)}
                       className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
                         String(connectionPathSource) === String(ig.codigo_totvs)
-                          ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                          : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                          ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
+                          : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
                       }`}
                     >
                       <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
@@ -455,7 +455,7 @@ export default function ChurchDetailModal({
                 href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all"
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-slate-700 border border-indigo-200 dark:border-slate-700 rounded-lg transition-all"
               >
                 <span>🗺️</span>
                 <span>Abrir no Google Maps ↗</span>
@@ -467,28 +467,28 @@ export default function ChurchDetailModal({
         {isAuthenticated && activeTab === 'lideranca' && (
           <div className="space-y-2">
             {loadingLideranca ? (
-              <div className="flex items-center justify-center p-6 text-indigo-600 gap-2 font-medium">
+              <div className="flex items-center justify-center p-6 text-indigo-600 dark:text-indigo-400 gap-2 font-medium">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span>Carregando dados de liderança...</span>
               </div>
             ) : liderancaData && (liderancaData.dirigente_nome || liderancaData.financeira_nome) ? (
               <>
                 {liderancaData.dirigente_nome && (
-                  <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-lg my-1 text-xs shadow-sm">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
+                        <p className="font-bold text-slate-800 dark:text-white text-xs truncate flex items-center gap-1">
                           <span>👔</span> {liderancaData.dirigente_nome}
                         </p>
                         <div className="flex items-center gap-1.5 my-1 flex-wrap">
-                          <span className="text-[10px] text-slate-500 font-medium">Dirigente Local</span>
-                          <span className="text-slate-300">•</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Dirigente Local</span>
+                          <span className="text-slate-300 dark:text-slate-600">•</span>
                           {liderancaData.tipo_prebenda === 'PREBENDADA' ? (
-                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                            <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
                               💼 Prebendado
                             </span>
                           ) : (
-                            <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-medium">
+                            <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 text-[10px] px-2 py-0.5 rounded-full font-medium">
                               🤝 Voluntário
                             </span>
                           )}
@@ -497,16 +497,16 @@ export default function ChurchDetailModal({
                     </div>
 
                     {liderancaData.dirigente_data_posse && (
-                      <p className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-150 font-bold mt-1.5">
+                      <p className="text-[10px] text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 px-2 py-1 rounded border border-indigo-150 dark:border-slate-700 font-bold mt-1.5">
                         📅 {formatLeadershipTenure(liderancaData.dirigente_data_posse)}
                       </p>
                     )}
 
                     {liderancaData.dirigente_telefone && (
-                      <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
+                      <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60 dark:border-slate-700/60">
                         <a
                           href={`tel:${liderancaData.dirigente_telefone.replace(/\D/g, '')}`}
-                          className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                          className="text-slate-700 dark:text-slate-300 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
                           title="Clique para ligar"
                         >
                           <span>📞</span> {liderancaData.dirigente_telefone}
@@ -526,21 +526,21 @@ export default function ChurchDetailModal({
                 )}
 
                 {liderancaData.financeira_nome && (
-                  <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg my-1 text-xs shadow-sm">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-lg my-1 text-xs shadow-sm">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
+                        <p className="font-bold text-slate-800 dark:text-white text-xs truncate flex items-center gap-1">
                           <span>💰</span> {liderancaData.financeira_nome}
                         </p>
-                        <span className="text-[10px] text-slate-500 font-medium">Voluntária Financeira</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Voluntária Financeira</span>
                       </div>
                     </div>
 
                     {liderancaData.financeira_telefone && (
-                      <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60">
+                      <div className="flex items-center justify-between gap-2 pt-1.5 mt-1.5 border-t border-slate-200/60 dark:border-slate-700/60">
                         <a
                           href={`tel:${liderancaData.financeira_telefone.replace(/\D/g, '')}`}
-                          className="text-slate-700 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                          className="text-slate-700 dark:text-slate-300 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1 transition-colors"
                           title="Clique para ligar"
                         >
                           <span>📞</span> {liderancaData.financeira_telefone}
@@ -569,23 +569,23 @@ export default function ChurchDetailModal({
         {isAuthenticated && activeTab === 'patrimonio' && (
           <div className="space-y-2 py-1">
             {isLoadingPatrimonio ? (
-              <div className="flex items-center justify-center p-6 text-indigo-600 gap-2 font-medium">
+              <div className="flex items-center justify-center p-6 text-indigo-600 dark:text-indigo-400 gap-2 font-medium">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span>Carregando dados de patrimônio...</span>
               </div>
             ) : !patrimonioData ? (
-              <div className="p-4 text-center text-slate-500 bg-slate-50 rounded-xl border border-slate-200/80 my-2">
+              <div className="p-4 text-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700 my-2">
                 <p className="text-xs italic">Nenhum relatório de patrimônio enviado para esta congregação.</p>
               </div>
             ) : (
               <div className="space-y-2.5">
                 {/* Cabeçalho com ano_referencia, nome_responsavel, telefone_responsavel e data_envio */}
-                <div className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-lg text-xs space-y-1 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                    <span className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700 rounded-lg text-xs space-y-1 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-1.5">
+                    <span className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1">
                       📅 Ref: {patrimonioData.ano_referencia || 'N/A'}
                     </span>
-                    <span className="text-[10px] text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded font-mono">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono">
                       Envio: {(() => {
                         const rawDate = patrimonioData.data_envio || patrimonioData.criado_em || patrimonioData.created_at;
                         if (!rawDate) return '---';
@@ -598,17 +598,17 @@ export default function ChurchDetailModal({
                       })()}
                     </span>
                   </div>
-                  <div className="pt-1 text-[11px] text-slate-700 space-y-0.5">
+                  <div className="pt-1 text-[11px] text-slate-700 dark:text-slate-300 space-y-0.5">
                     <p className="flex items-center gap-1">
                       <User className="h-3 w-3 text-slate-400 shrink-0" />
-                      <span className="font-semibold text-slate-500">Responsável:</span>{' '}
-                      <strong className="font-bold text-slate-800">{patrimonioData.nome_responsavel || '---'}</strong>
+                      <span className="font-semibold text-slate-500 dark:text-slate-400">Responsável:</span>{' '}
+                      <strong className="font-bold text-slate-800 dark:text-white">{patrimonioData.nome_responsavel || '---'}</strong>
                     </p>
                     {patrimonioData.telefone_responsavel && (
                       <p className="flex items-center gap-1">
                         <Phone className="h-3 w-3 text-slate-400 shrink-0" />
-                        <span className="font-semibold text-slate-500">Telefone:</span>{' '}
-                        <span className="text-slate-800 font-medium">{patrimonioData.telefone_responsavel}</span>
+                        <span className="font-semibold text-slate-500 dark:text-slate-400">Telefone:</span>{' '}
+                        <span className="text-slate-800 dark:text-slate-200 font-medium">{patrimonioData.telefone_responsavel}</span>
                       </p>
                     )}
                   </div>
@@ -629,25 +629,25 @@ export default function ChurchDetailModal({
                   }
 
                   return (
-                    <div className="max-h-[220px] overflow-y-auto border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                    <div className="max-h-[220px] overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm">
                       <table className="w-full text-left text-[11px]">
-                        <thead className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[9px] border-b border-slate-200 sticky top-0">
+                        <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[9px] border-b border-slate-200 dark:border-slate-700 sticky top-0">
                           <tr>
                             <th className="px-2 py-1.5">Item</th>
                             <th className="px-2 py-1.5 text-center">Quantidade</th>
                             <th className="px-2 py-1.5">Conservação</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 text-slate-800 bg-white">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">
                           {validItens.map((item: any, idx: number) => (
-                            <tr key={item.id || idx} className="hover:bg-slate-50 transition-colors">
+                            <tr key={item.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                               <td className="px-2 py-1.5 font-medium">{item.item_nome || item.item || item.nome_item || item.descricao || '---'}</td>
                               <td className="px-2 py-1.5 text-center">
-                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-1.5 py-0.5 rounded-md font-mono font-bold">
+                                <span className="bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-slate-700 px-1.5 py-0.5 rounded-md font-mono font-bold">
                                   {item.quantidade ?? item.qtd ?? '---'}
                                 </span>
                               </td>
-                              <td className="px-2 py-1.5 text-[10px] text-slate-500 font-medium">{item.conservacao || item.estado_conservacao || item.estado || '---'}</td>
+                              <td className="px-2 py-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-medium">{item.conservacao || item.estado_conservacao || item.estado || '---'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -663,12 +663,12 @@ export default function ChurchDetailModal({
         {isAuthenticated && activeTab === 'historico' && (
           <div className="space-y-3 py-1">
             {loadingHistorico ? (
-              <div className="flex items-center justify-center p-6 text-indigo-600 gap-2 font-medium">
+              <div className="flex items-center justify-center p-6 text-indigo-600 dark:text-indigo-400 gap-2 font-medium">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span>Carregando histórico de alterações...</span>
               </div>
             ) : historicoData && historicoData.length > 0 ? (
-              <div className="border-l-2 border-zinc-200 ml-2 pl-4 space-y-4 my-2 max-h-[280px] overflow-y-auto pr-1">
+              <div className="border-l-2 border-zinc-200 dark:border-slate-700 ml-2 pl-4 space-y-4 my-2 max-h-[280px] overflow-y-auto pr-1">
                 {historicoData.map((item, index) => {
                   const dateFormatted = item.criado_em
                     ? new Date(item.criado_em).toLocaleString('pt-BR', {
@@ -711,18 +711,18 @@ export default function ChurchDetailModal({
                   return (
                     <div key={item.id || index} className="relative group">
                       {/* Timeline Node Dot */}
-                      <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-indigo-600 border-2 border-white shadow-xs" />
+                      <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-indigo-600 border-2 border-white dark:border-slate-900 shadow-xs" />
 
                       <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-1 text-[10px] text-zinc-500 font-mono">
+                        <div className="flex items-center justify-between gap-1 text-[10px] text-zinc-500 dark:text-slate-400 font-mono">
                           <span>{dateFormatted}</span>
-                          <span className="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded uppercase border border-indigo-150">
+                          <span className="bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-bold px-1.5 py-0.5 rounded uppercase border border-indigo-150 dark:border-slate-700">
                             {item.acao || 'ALTERAÇÃO'}
                           </span>
                         </div>
 
-                        <p className="text-xs text-zinc-800 leading-snug">
-                          👤 <strong className="font-bold text-zinc-950">{item.usuario_nome || 'Usuário'}</strong> realizou uma alteração
+                        <p className="text-xs text-zinc-800 dark:text-slate-200 leading-snug">
+                          👤 <strong className="font-bold text-zinc-950 dark:text-white">{item.usuario_nome || 'Usuário'}</strong> realizou uma alteração
                         </p>
 
                         {modifiedKeys.length > 0 && (

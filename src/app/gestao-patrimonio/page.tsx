@@ -15,6 +15,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 import PatrimonioDetailModal from '@/components/PatrimonioDetailModal';
+import ThemeToggle from '@/components/ThemeToggle';
 import * as XLSX from 'xlsx';
 
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
@@ -617,11 +618,12 @@ export default function GestaoPatrimonioPage() {
 
         <div className="flex items-center gap-2">
           {userName && (
-            <span className="text-xs text-zinc-600 font-semibold hidden sm:inline-block bg-zinc-100 border border-zinc-200 px-3 py-1 rounded-full mr-2">
-              Olá, <strong className="text-indigo-600">{userName}</strong>
+            <span className="text-xs text-zinc-600 dark:text-slate-200 font-semibold hidden sm:inline-block bg-zinc-100 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 px-3 py-1 rounded-full mr-1">
+              Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
             </span>
           )}
-          <button onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).then(() => window.location.href = '/') }} className="text-red-600 text-xs font-bold px-3 py-1.5 hover:bg-red-50 rounded-lg flex items-center gap-1 cursor-pointer"><Power className="h-3.5 w-3.5"/> Sair</button>
+          <ThemeToggle />
+          <button onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).then(() => window.location.href = '/') }} className="text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200/50 dark:border-red-900/40 rounded-lg flex items-center gap-1 cursor-pointer"><Power className="h-3.5 w-3.5"/> Sair</button>
         </div>
       </header>
 

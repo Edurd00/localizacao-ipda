@@ -24,6 +24,7 @@ import useSWR from 'swr';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ChurchDetailModal from './ChurchDetailModal';
 import RouteCompareModal from './RouteCompareModal';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -2400,6 +2401,8 @@ export default function GeneralMapComponent({
           >
             <span>🏛️</span> <span className="hidden sm:inline">Organização</span>
           </a>
+
+          <ThemeToggle className="min-h-[44px]" />
 
           <button
             onClick={() => {

@@ -17,13 +17,6 @@
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #090d16;
-    --foreground: #f8fafc;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -36,6 +29,18 @@ body {
   overflow: hidden !important;
   border-radius: 1rem !important; /* 16px radius */
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+}
+
+.dark .leaflet-popup-tip {
+  background-color: #0f172a !important;
 }
 
 .leaflet-popup-content {

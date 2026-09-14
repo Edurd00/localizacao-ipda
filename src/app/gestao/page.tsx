@@ -23,6 +23,7 @@ import {
   Upload,
 } from 'lucide-react';
 import type { Igreja } from '@/lib/db';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const PORTE_INFO: Record<string, { name: string; color: string; label: string }> = {
   ESTADUAL: { name: 'ESTADUAL', color: '#3B82F6', label: 'Estadual (Azul)' },
@@ -623,6 +624,8 @@ export default function GestaoPage() {
                 Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
               </span>
             )}
+
+            <ThemeToggle />
 
             <button
               onClick={handleSyncPublicMap}
