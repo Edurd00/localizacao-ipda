@@ -145,28 +145,21 @@ export default function PatrimonioClientForm({ totvs }: { totvs: string }) {
   // Etapa 4: Observações Gerais
   const [observacoesGerais, setObservacoesGerais] = useState('');
 
-  // Carregar dados iniciais da igreja e submissão prévia
+  // Carregar dados iniciais da igreja via consulta pública mínima
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/patrimonio/${encodeURIComponent(totvs)}`);
+        const res = await fetch(`/api/igrejas/public-lookup?totvs=${encodeURIComponent(totvs)}`);
         const json = await res.json();
 
-        if (!res.ok || !json.igreja) {
+        if (!res.ok || !json.success || !json.igreja) {
           setNotFound(true);
           setLoading(false);
           return;
         }
 
         setChurch(json.igreja);
-
-        if (json.igreja.dirigente_nome) {
-          setNomeResponsavel(json.igreja.dirigente_nome);
-        }
-        if (json.igreja.dirigente_telefone) {
-          setTelefoneResponsavel(formatarTelefone(json.igreja.dirigente_telefone));
-        }
 
         // Itens base
         const baseItems: ItemPatrimonialForm[] = ITENS_PADRAO.map((it) => ({
