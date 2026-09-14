@@ -93,6 +93,8 @@ export default function GestaoPatrimonioPage() {
   const [biEstado, setBiEstado] = useState('ALL');
   const [biSede, setBiSede] = useState('');
   const [biPorte, setBiPorte] = useState('ALL');
+  const [biPage, setBiPage] = useState(1);
+  const [biMeta, setBiMeta] = useState({ total: 0, page: 1, limit: 50, totalPages: 1 });
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [statsBi, setStatsBi] = useState<any>({
     total_itens: 0,
@@ -183,11 +185,16 @@ export default function GestaoPatrimonioPage() {
     }
   }, [activeTab, fetchDados]);
 
+  // Reset BI page on filter changes
+  useEffect(() => {
+    setBiPage(1);
+  }, [biRegiao, biEstado, biSede, biPorte, apenasRuim]);
+
   // Fetch BI Statistics (Tab 2)
   const fetchStatsBi = useCallback(async () => {
     setLoadingBi(true);
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ page: String(biPage), limit: '50' });
       if (biRegiao !== 'ALL') params.set('regiao', biRegiao);
       if (biEstado !== 'ALL') params.set('estado', biEstado);
       if (biSede.trim()) params.set('sede', biSede.trim());
@@ -212,6 +219,15 @@ export default function GestaoPatrimonioPage() {
           congregacoes: json.congregacoes || [],
         };
         setStatsBi(dataPayload);
+        const meta = json.meta || json.data?.meta;
+        if (meta) {
+          setBiMeta({
+            total: meta.total,
+            page: meta.page,
+            limit: meta.limit,
+            totalPages: meta.totalPages,
+          });
+        }
       } else {
         toast.error(json.error || 'Erro ao carregar estatísticas.');
       }
@@ -221,7 +237,7 @@ export default function GestaoPatrimonioPage() {
     } finally {
       setLoadingBi(false);
     }
-  }, [apenasRuim, biRegiao, biEstado, biSede, biPorte]);
+  }, [apenasRuim, biRegiao, biEstado, biSede, biPorte, biPage]);
 
   useEffect(() => {
     if (activeTab === 'DASHBOARD_BI') {
@@ -1201,41 +1217,44 @@ export default function GestaoPatrimonioPage() {
                                             Itens Declarados - {cg.desc_igreja} ({cg.codigo_totvs})
                                           </h4>
                                           <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                                            {(cg.itens || []).length} item(ns)
+                                            {(cg.patrimonio_itens || cg.itens || []).length} item(ns)
                                           </span>
                                         </div>
 
-                                        {(cg.itens || []).length === 0 ? (
+                                        {(cg.patrimonio_itens || cg.itens || []).length === 0 ? (
                                           <p className="text-xs text-slate-400 italic">Nenhum item detalhado encontrado nesta submissão.</p>
                                         ) : (
                                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                            {cg.itens.map((it: any, idx: number) => (
-                                              <div key={`item-${idx}`} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between text-xs space-y-1">
-                                                <div className="flex items-start justify-between gap-1">
-                                                  <span className="font-bold text-slate-800">{it.item_nome}</span>
-                                                  <span className="bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black text-[10px]">
-                                                    x{it.quantidade}
-                                                  </span>
+                                            {(cg.patrimonio_itens || cg.itens).map((it: any, idx: number) => {
+                                              const conservacaoVal = it.estado_conservacao || it.conservacao || 'N/I';
+                                              return (
+                                                <div key={`item-${idx}`} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between text-xs space-y-1">
+                                                  <div className="flex items-start justify-between gap-1">
+                                                    <span className="font-bold text-slate-800">{it.item_nome}</span>
+                                                    <span className="bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black text-[10px]">
+                                                      x{it.quantidade}
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex items-center justify-between text-[10px]">
+                                                    <span className="text-slate-500 font-medium">Conservação:</span>
+                                                    <span
+                                                      className="font-extrabold px-1.5 py-0.5 rounded text-[9px]"
+                                                      style={{
+                                                        color: getConservationColor(conservacaoVal),
+                                                        backgroundColor: `${getConservationColor(conservacaoVal)}15`,
+                                                      }}
+                                                    >
+                                                      {conservacaoVal}
+                                                    </span>
+                                                  </div>
+                                                  {it.observacao && (
+                                                    <p className="text-[10px] text-slate-500 italic bg-white p-1 rounded border border-slate-100">
+                                                      "{it.observacao}"
+                                                    </p>
+                                                  )}
                                                 </div>
-                                                <div className="flex items-center justify-between text-[10px]">
-                                                  <span className="text-slate-500 font-medium">Conservação:</span>
-                                                  <span
-                                                    className="font-extrabold px-1.5 py-0.5 rounded text-[9px]"
-                                                    style={{
-                                                      color: getConservationColor(it.conservacao),
-                                                      backgroundColor: `${getConservationColor(it.conservacao)}15`,
-                                                    }}
-                                                  >
-                                                    {it.conservacao || 'N/I'}
-                                                  </span>
-                                                </div>
-                                                {it.observacao && (
-                                                  <p className="text-[10px] text-slate-500 italic bg-white p-1 rounded border border-slate-100">
-                                                    "{it.observacao}"
-                                                  </p>
-                                                )}
-                                              </div>
-                                            ))}
+                                              );
+                                            })}
                                           </div>
                                         )}
                                       </div>
@@ -1247,6 +1266,30 @@ export default function GestaoPatrimonioPage() {
                           })}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+
+                  {biMeta.totalPages > 1 && (
+                    <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2 rounded-b-2xl">
+                      <span className="text-xs text-slate-600 font-semibold font-mono">
+                        Página {biMeta.page} de {biMeta.totalPages} ({biMeta.total} congregações)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={biMeta.page <= 1}
+                          onClick={() => setBiPage(prev => Math.max(1, prev - 1))}
+                          className="px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                        >
+                          <ChevronLeft className="h-4 w-4" /> Anterior
+                        </button>
+                        <button
+                          disabled={biMeta.page >= biMeta.totalPages}
+                          onClick={() => setBiPage(prev => prev + 1)}
+                          className="px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                        >
+                          Próxima <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
