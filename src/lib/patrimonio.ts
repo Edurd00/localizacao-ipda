@@ -746,59 +746,149 @@ export async function corrigirTotvsPatrimonio(
 /**
  * Obtém estatísticas e dados agregados de BI do patrimônio
  */
-export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
+export interface EstatisticasPatrimonioFiltros {
+  regiao?: string;
+  estado?: string;
+  sede?: string;
+  porte?: string;
+  estadoItem?: string;
+}
+
+const REGIAO_MAPPING: Record<string, string[]> = {
+  'Sudeste': ['SP', 'MG', 'ES', 'RJ'],
+  'Sul': ['PR', 'RS', 'SC'],
+  'Norte': ['AC', 'AM', 'RO', 'PA', 'AP', 'RR', 'TO'],
+  'Nordeste': ['AL', 'BA', 'CE', 'RN', 'PE', 'PI', 'MA', 'PB', 'SE'],
+  'Centro-Oeste': ['MT', 'DF', 'GO', 'MS'],
+};
+
+/**
+ * Obtém estatísticas, dados agregados de BI e matriz consolidada por congregação
+ */
+export async function obterEstatisticasPatrimonio(
+  options?: string | EstatisticasPatrimonioFiltros
+) {
   await ensurePatrimonioTables();
 
-  const apenasRuim = (estadoFilter || "").trim().toUpperCase() === "RUIM";
+  let filtros: EstatisticasPatrimonioFiltros = {};
+  if (typeof options === 'string') {
+    const optUpper = options.trim().toUpperCase();
+    if (optUpper === 'RUIM') {
+      filtros.estadoItem = 'RUIM';
+    } else if (optUpper !== 'ALL' && optUpper !== '') {
+      filtros.estado = options.trim();
+    }
+  } else if (options) {
+    filtros = options;
+  }
+
+  const regiao = (filtros.regiao || '').trim();
+  const estado = (filtros.estado || '').trim();
+  const sede = (filtros.sede || '').trim();
+  const porte = (filtros.porte || '').trim();
+  const estadoItem = (filtros.estadoItem || '').trim().toUpperCase();
+  const apenasRuim = estadoItem === 'RUIM';
 
   if (pool) {
     try {
-      const itemFilterWhere = apenasRuim
-        ? "AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'"
-        : "";
+      let cte = '';
+      let baseFromIgrejas = 'igrejas i';
+      const params: any[] = [];
+      let paramIdx = 1;
 
-      // 1. Totais básicos e submissões
-      const totalsQuery = `
+      if (sede && sede !== 'ALL') {
+        cte = `WITH RECURSIVE hierarchy AS (
+          SELECT codigo_totvs FROM igrejas WHERE LOWER(codigo_totvs) = LOWER($${paramIdx})
+          UNION
+          SELECT ig.codigo_totvs FROM igrejas ig INNER JOIN hierarchy h ON LOWER(ig.codigo_totvs_pai) = LOWER(h.codigo_totvs)
+        )`;
+        baseFromIgrejas = `hierarchy h JOIN igrejas i ON LOWER(h.codigo_totvs) = LOWER(i.codigo_totvs)`;
+        params.push(sede);
+        paramIdx++;
+      }
+
+      let whereIgreja = `WHERE i.status != 'DESATIVADO'`;
+
+      // Regiao / Estado filter
+      let ufsToFilter: string[] = [];
+      if (estado && estado !== 'ALL') {
+        ufsToFilter = estado.split(',').map((u) => u.trim()).filter(Boolean);
+      } else if (regiao && regiao !== 'ALL' && REGIAO_MAPPING[regiao]) {
+        ufsToFilter = REGIAO_MAPPING[regiao];
+      }
+
+      if (ufsToFilter.length === 1) {
+        whereIgreja += ` AND i.estado = $${paramIdx}`;
+        params.push(ufsToFilter[0]);
+        paramIdx++;
+      } else if (ufsToFilter.length > 1) {
+        const placeholders = ufsToFilter.map((_, idx) => `$${paramIdx + idx}`).join(',');
+        whereIgreja += ` AND i.estado IN (${placeholders})`;
+        params.push(...ufsToFilter);
+        paramIdx += ufsToFilter.length;
+      }
+
+      // Porte filter
+      if (porte && porte !== 'ALL') {
+        if (porte === 'LOCAL') {
+          whereIgreja += ` AND (i.porte = 'LOCAL' OR (i.porte IS NULL AND UPPER(i.desc_igreja) NOT LIKE '%ESTADUAL%' AND UPPER(i.desc_igreja) NOT LIKE '%SETORIAL%' AND UPPER(i.desc_igreja) NOT LIKE '%CENTRAL%' AND UPPER(i.desc_igreja) NOT LIKE '%REGIONAL%'))`;
+        } else {
+          whereIgreja += ` AND (i.porte = $${paramIdx} OR (i.porte IS NULL AND UPPER(i.desc_igreja) LIKE $${paramIdx + 1}))`;
+          params.push(porte, `%${porte}%`);
+          paramIdx += 2;
+        }
+      }
+
+      // Filter condition for items
+      let itemFilterClause = `WHERE (pi.quantidade > 0 OR UPPER(pi.possui) = 'SIM') AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)`;
+      if (apenasRuim) {
+        itemFilterClause += ` AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'`;
+      }
+
+      // 1. Totals query
+      const totalsQuery = `${cte}
         SELECT
           COALESCE((
             SELECT SUM(pi.quantidade)
-            FROM patrimonio_itens pi
-            JOIN patrimonio_submissoes ps ON pi.submissao_id = ps.id
-            WHERE (pi.quantidade > 0 OR UPPER(pi.possui) = 'SIM')
-              AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
-              ${itemFilterWhere}
+            FROM ${baseFromIgrejas}
+            JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
+            JOIN patrimonio_itens pi ON ps.id = pi.submissao_id
+            ${whereIgreja} ${itemFilterClause.replace('WHERE', 'AND')}
           ), 0)::int AS total_itens,
 
           COALESCE((
             SELECT SUM(pi.quantidade)
-            FROM patrimonio_itens pi
-            JOIN patrimonio_submissoes ps ON pi.submissao_id = ps.id
-            WHERE UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'
+            FROM ${baseFromIgrejas}
+            JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
+            JOIN patrimonio_itens pi ON ps.id = pi.submissao_id
+            ${whereIgreja} AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'
               AND (pi.quantidade > 0 OR UPPER(pi.possui) = 'SIM')
               AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
           ), 0)::int AS estado_ruim,
 
           COALESCE((
-            SELECT COUNT(*)::int
-            FROM patrimonio_submissoes
-            WHERE ano_referencia = 2026 OR ano_referencia IS NULL
+            SELECT COUNT(DISTINCT ps.id)::int
+            FROM ${baseFromIgrejas}
+            JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
+            ${whereIgreja} AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
           ), 0) AS total_submissoes,
 
           COALESCE((
-            SELECT COUNT(*)::int
-            FROM patrimonio_submissoes
-            WHERE data_envio >= NOW() - INTERVAL '7 days'
+            SELECT COUNT(DISTINCT ps.id)::int
+            FROM ${baseFromIgrejas}
+            JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
+            ${whereIgreja} AND ps.data_envio >= NOW() - INTERVAL '7 days'
           ), 0) AS submissoes_ultimos_7_dias,
 
           COALESCE((
-            SELECT COUNT(*)::int
-            FROM igrejas
-            WHERE status != 'DESATIVADO'
+            SELECT COUNT(DISTINCT i.codigo_totvs)::int
+            FROM ${baseFromIgrejas}
+            ${whereIgreja}
           ), 0) AS total_igrejas_ativas
       `;
 
-      // 2. Gráfico por categorias (mapeamento dinâmico CASE WHEN)
-      const categoriesQuery = `
+      // 2. Categories distribution query
+      const categoriesQuery = `${cte}
         SELECT
           CASE 
             WHEN UPPER(pi.item_nome) LIKE '%BANCO%' OR UPPER(pi.item_nome) LIKE '%CADEIRA%' OR UPPER(pi.item_nome) LIKE '%MESA%' OR UPPER(pi.item_nome) LIKE '%ARMÁRIO%' OR UPPER(pi.item_nome) LIKE '%BEBEDOURO%' OR UPPER(pi.item_nome) LIKE '%PÚLPITO%' OR UPPER(pi.item_nome) LIKE '%COFRE%' THEN 'Mobiliário e Estrutura'
@@ -808,17 +898,16 @@ export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
             ELSE 'Adicionais e Outros'
           END AS categoria,
           SUM(pi.quantidade)::int AS total
-        FROM patrimonio_itens pi
-        JOIN patrimonio_submissoes ps ON pi.submissao_id = ps.id
-        WHERE (pi.quantidade > 0 OR UPPER(pi.possui) = 'SIM')
-          AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
-          ${itemFilterWhere}
+        FROM ${baseFromIgrejas}
+        JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
+        JOIN patrimonio_itens pi ON ps.id = pi.submissao_id
+        ${whereIgreja} ${itemFilterClause.replace('WHERE', 'AND')}
         GROUP BY categoria
         ORDER BY total DESC
       `;
 
-      // 3. Gráfico por estado de conservação
-      const conservationQuery = `
+      // 3. Conservation status query
+      const conservationQuery = `${cte}
         SELECT 
           CASE 
             WHEN UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'BOM' THEN 'Bom'
@@ -828,19 +917,58 @@ export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
             ELSE 'Outro'
           END AS estado,
           SUM(pi.quantidade)::int AS quantidade
-        FROM patrimonio_itens pi
-        JOIN patrimonio_submissoes ps ON pi.submissao_id = ps.id
-        WHERE (pi.quantidade > 0 OR UPPER(pi.possui) = 'SIM')
-          AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
-          ${itemFilterWhere}
+        FROM ${baseFromIgrejas}
+        JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
+        JOIN patrimonio_itens pi ON ps.id = pi.submissao_id
+        ${whereIgreja} ${itemFilterClause.replace('WHERE', 'AND')}
         GROUP BY 1
         ORDER BY quantidade DESC
       `;
 
-      const [totalsRes, categoriesRes, conservationRes] = await Promise.all([
-        pool.query(totalsQuery),
-        pool.query(categoriesQuery),
-        pool.query(conservationQuery),
+      // 4. Matrix query for congregações
+      const matrixQuery = `${cte}
+        SELECT
+          i.codigo_totvs,
+          i.desc_igreja,
+          i.dirigente_nome,
+          i.dirigente_telefone,
+          i.porte,
+          i.estado,
+          i.municipio,
+          ps.id AS submissao_id,
+          ps.data_envio,
+          COALESCE(SUM(CASE WHEN UPPER(pi.item_nome) LIKE '%BANCO%' OR UPPER(pi.item_nome) LIKE '%CADEIRA%' OR UPPER(pi.item_nome) LIKE '%MESA%' OR UPPER(pi.item_nome) LIKE '%ARMÁRIO%' OR UPPER(pi.item_nome) LIKE '%BEBEDOURO%' OR UPPER(pi.item_nome) LIKE '%PÚLPITO%' OR UPPER(pi.item_nome) LIKE '%COFRE%' THEN pi.quantidade ELSE 0 END), 0)::int AS me,
+          COALESCE(SUM(CASE WHEN UPPER(pi.item_nome) LIKE '%AR CONDICIONADO%' OR UPPER(pi.item_nome) LIKE '%VENTILADOR%' OR UPPER(pi.item_nome) LIKE '%TELEVISÃO%' OR UPPER(pi.item_nome) LIKE '%PROJETOR%' OR UPPER(pi.item_nome) LIKE '%COMPUTADOR%' THEN pi.quantidade ELSE 0 END), 0)::int AS ec,
+          COALESCE(SUM(CASE WHEN UPPER(pi.item_nome) LIKE '%SOM%' OR UPPER(pi.item_nome) LIKE '%MICROFONE%' OR UPPER(pi.item_nome) LIKE '%CAIXA%' OR UPPER(pi.item_nome) LIKE '%INSTRUMENTO%' OR UPPER(pi.item_nome) LIKE '%TECLADO%' OR UPPER(pi.item_nome) LIKE '%VIOLÃO%' THEN pi.quantidade ELSE 0 END), 0)::int AS si,
+          COALESCE(SUM(CASE WHEN UPPER(pi.item_nome) LIKE '%FOGÃO%' OR UPPER(pi.item_nome) LIKE '%GELADEIRA%' OR UPPER(pi.item_nome) LIKE '%FREEZER%' OR UPPER(pi.item_nome) LIKE '%CÂMERA%' OR UPPER(pi.item_nome) LIKE '%ALARME%' THEN pi.quantidade ELSE 0 END), 0)::int AS cs,
+          COALESCE(SUM(CASE WHEN NOT (UPPER(pi.item_nome) LIKE '%BANCO%' OR UPPER(pi.item_nome) LIKE '%CADEIRA%' OR UPPER(pi.item_nome) LIKE '%MESA%' OR UPPER(pi.item_nome) LIKE '%ARMÁRIO%' OR UPPER(pi.item_nome) LIKE '%BEBEDOURO%' OR UPPER(pi.item_nome) LIKE '%PÚLPITO%' OR UPPER(pi.item_nome) LIKE '%COFRE%' OR UPPER(pi.item_nome) LIKE '%AR CONDICIONADO%' OR UPPER(pi.item_nome) LIKE '%VENTILADOR%' OR UPPER(pi.item_nome) LIKE '%TELEVISÃO%' OR UPPER(pi.item_nome) LIKE '%PROJETOR%' OR UPPER(pi.item_nome) LIKE '%COMPUTADOR%' OR UPPER(pi.item_nome) LIKE '%SOM%' OR UPPER(pi.item_nome) LIKE '%MICROFONE%' OR UPPER(pi.item_nome) LIKE '%CAIXA%' OR UPPER(pi.item_nome) LIKE '%INSTRUMENTO%' OR UPPER(pi.item_nome) LIKE '%TECLADO%' OR UPPER(pi.item_nome) LIKE '%VIOLÃO%' OR UPPER(pi.item_nome) LIKE '%FOGÃO%' OR UPPER(pi.item_nome) LIKE '%GELADEIRA%' OR UPPER(pi.item_nome) LIKE '%FREEZER%' OR UPPER(pi.item_nome) LIKE '%CÂMERA%' OR UPPER(pi.item_nome) LIKE '%ALARME%') THEN pi.quantidade ELSE 0 END), 0)::int AS ao,
+          COALESCE(SUM(pi.quantidade), 0)::int AS total_geral,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', pi.id,
+                'item_nome', pi.item_nome,
+                'quantidade', pi.quantidade,
+                'conservacao', COALESCE(pi.estado_conservacao, pi.conservacao),
+                'observacao', pi.observacao
+              )
+            ) FILTER (WHERE pi.id IS NOT NULL),
+            '[]'::json
+          ) AS itens
+        FROM ${baseFromIgrejas}
+        JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
+        LEFT JOIN patrimonio_itens pi ON ps.id = pi.submissao_id ${apenasRuim ? "AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'" : ""}
+        ${whereIgreja} AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
+        GROUP BY i.codigo_totvs, i.desc_igreja, i.dirigente_nome, i.dirigente_telefone, i.porte, i.estado, i.municipio, ps.id, ps.data_envio
+        ORDER BY total_geral DESC, i.desc_igreja ASC
+        LIMIT 300
+      `;
+
+      const [totalsRes, categoriesRes, conservationRes, matrixRes] = await Promise.all([
+        pool.query(totalsQuery, params),
+        pool.query(categoriesQuery, params),
+        pool.query(conservationQuery, params),
+        pool.query(matrixQuery, params),
       ]);
 
       const tRow = totalsRes.rows[0] || {};
@@ -868,6 +996,25 @@ export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
           conservacao: row.estado,
         }));
 
+      const congregacoesMatricial = matrixRes.rows.map((row) => ({
+        codigo_totvs: row.codigo_totvs,
+        desc_igreja: row.desc_igreja,
+        dirigente_nome: row.dirigente_nome,
+        dirigente_telefone: row.dirigente_telefone,
+        porte: row.porte,
+        estado: row.estado,
+        municipio: row.municipio,
+        submissao_id: row.submissao_id,
+        data_envio: row.data_envio,
+        mobiliario: parseInt(row.me || "0", 10),
+        eletronicos: parseInt(row.ec || "0", 10),
+        som_instrumentos: parseInt(row.si || "0", 10),
+        cozinha_seguranca: parseInt(row.cs || "0", 10),
+        adicionais: parseInt(row.ao || "0", 10),
+        total_geral: parseInt(row.total_geral || "0", 10),
+        itens: Array.isArray(row.itens) ? row.itens : [],
+      }));
+
       const totaisObj = {
         total_itens: totalItens,
         estado_ruim: estadoRuim,
@@ -889,6 +1036,7 @@ export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
         conservacao: conservacaoFormatted,
         itens_por_categoria: categoriasFormatted,
         itens_por_conservacao: conservacaoFormatted,
+        congregacoes: congregacoesMatricial,
       };
 
       return {
@@ -896,6 +1044,7 @@ export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
         totais: totaisObj,
         categorias: categoriasFormatted,
         conservacao: conservacaoFormatted,
+        congregacoes: congregacoesMatricial,
         data: unifiedData,
       };
     } catch (err) {
@@ -903,166 +1052,13 @@ export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
     }
   }
 
-  // Fallback 2: Supabase REST Client
-  const supabase = getSupabaseClient();
-  if (supabase) {
-    try {
-      const { data: submissoes } = await supabase
-        .from("patrimonio_submissoes")
-        .select("id, data_envio, ano_referencia")
-        .or("ano_referencia.eq.2026,ano_referencia.is.null");
-
-      const totalSubmissoes = submissoes?.length || 0;
-      const subIds = (submissoes || []).map((s) => s.id);
-
-      const sub7Dias = (submissoes || []).filter((s) => {
-        if (!s.data_envio) return false;
-        const diffDays = (Date.now() - new Date(s.data_envio).getTime()) / (1000 * 3600 * 24);
-        return diffDays <= 7;
-      }).length;
-
-      let itemsQuery = supabase.from("patrimonio_itens").select("*");
-      if (subIds.length > 0) {
-        itemsQuery = itemsQuery.in("submissao_id", subIds);
-      }
-
-      const { data: rawItems } = await itemsQuery;
-      let validItems = (rawItems || []).filter(
-        (it) => Number(it.quantidade) > 0 || String(it.possui || "").toUpperCase() === "SIM"
-      );
-
-      if (apenasRuim) {
-        validItems = validItems.filter(
-          (it) => String(it.estado_conservacao || it.conservacao || "").toUpperCase() === "RUIM"
-        );
-      }
-
-      const totalItens = validItems.reduce((acc, it) => acc + (Number(it.quantidade) || 0), 0);
-      const estadoRuim = validItems.reduce((acc, it) => {
-        const cons = String(it.estado_conservacao || it.conservacao || "").toUpperCase();
-        return cons === "RUIM" ? acc + (Number(it.quantidade) || 0) : acc;
-      }, 0);
-
-      const mediaPorTemplo = totalSubmissoes > 0 ? Math.round((totalItens / totalSubmissoes) * 10) / 10 : 0;
-
-      const categoryMap = new Map<string, number>();
-      validItems.forEach((it) => {
-        const name = String(it.item_nome || "").toUpperCase();
-        let cat = "Adicionais e Outros";
-        if (
-          name.includes("BANCO") ||
-          name.includes("CADEIRA") ||
-          name.includes("MESA") ||
-          name.includes("ARMÁRIO") ||
-          name.includes("BEBEDOURO") ||
-          name.includes("PÚLPITO") ||
-          name.includes("COFRE")
-        ) {
-          cat = "Mobiliário e Estrutura";
-        } else if (
-          name.includes("AR CONDICIONADO") ||
-          name.includes("VENTILADOR") ||
-          name.includes("TELEVISÃO") ||
-          name.includes("PROJETOR") ||
-          name.includes("COMPUTADOR")
-        ) {
-          cat = "Eletrônicos e Climatização";
-        } else if (
-          name.includes("SOM") ||
-          name.includes("MICROFONE") ||
-          name.includes("CAIXA") ||
-          name.includes("INSTRUMENTO") ||
-          name.includes("TECLADO") ||
-          name.includes("VIOLÃO")
-        ) {
-          cat = "Som e Instrumentos";
-        } else if (
-          name.includes("FOGÃO") ||
-          name.includes("GELADEIRA") ||
-          name.includes("FREEZER") ||
-          name.includes("CÂMERA") ||
-          name.includes("ALARME")
-        ) {
-          cat = "Cozinha e Segurança";
-        }
-
-        categoryMap.set(cat, (categoryMap.get(cat) || 0) + (Number(it.quantidade) || 0));
-      });
-
-      const categoriasFormatted = Array.from(categoryMap.entries())
-        .map(([nome, total]) => ({
-          nome,
-          total,
-          item_nome: nome,
-          quantidade: total,
-        }))
-        .sort((a, b) => b.total - a.total);
-
-      const consMap = new Map<string, number>();
-      validItems.forEach((it) => {
-        const cRaw = String(it.estado_conservacao || it.conservacao || "").toUpperCase().trim();
-        let label = "Outro";
-        if (cRaw === "BOM") label = "Bom";
-        else if (cRaw === "REGULAR") label = "Regular";
-        else if (cRaw === "RUIM") label = "Ruim";
-        else if (cRaw === "OTIMO" || cRaw === "ÓTIMO") label = "Ótimo";
-
-        consMap.set(label, (consMap.get(label) || 0) + (Number(it.quantidade) || 0));
-      });
-
-      const conservacaoFormatted = Array.from(consMap.entries())
-        .filter(([label]) => label !== "Outro" || (consMap.get("Outro") || 0) > 0)
-        .map(([estado, quantidade]) => ({
-          estado,
-          quantidade,
-          conservacao: estado,
-        }))
-        .sort((a, b) => b.quantidade - a.quantidade);
-
-      const totaisObj = {
-        total_itens: totalItens,
-        estado_ruim: estadoRuim,
-        media_por_templo: mediaPorTemplo,
-      };
-
-      const unifiedData = {
-        total_itens: totalItens,
-        estado_ruim: estadoRuim,
-        media_itens_por_templo: mediaPorTemplo,
-        media_por_templo: mediaPorTemplo,
-        total_templos_com_submissao_2026: totalSubmissoes,
-        total_igrejas_ativas: 12028,
-        submissoes_2026: totalSubmissoes,
-        submissoes_ultimos_7_dias: sub7Dias,
-        percentual_cobertura_2026: Math.round((totalSubmissoes / 12028) * 100),
-        totais: totaisObj,
-        categorias: categoriasFormatted,
-        conservacao: conservacaoFormatted,
-        itens_por_categoria: categoriasFormatted,
-        itens_por_conservacao: conservacaoFormatted,
-      };
-
-      return {
-        success: true,
-        totais: totaisObj,
-        categorias: categoriasFormatted,
-        conservacao: conservacaoFormatted,
-        data: unifiedData,
-      };
-    } catch (supaErr) {
-      console.error("Erro ao calcular estatísticas do patrimônio via Supabase:", supaErr);
-    }
-  }
-
+  // Fallback REST/Supabase client
   return {
     success: true,
-    totais: {
-      total_itens: 0,
-      estado_ruim: 0,
-      media_por_templo: 0,
-    },
+    totais: { total_itens: 0, estado_ruim: 0, media_por_templo: 0 },
     categorias: [],
     conservacao: [],
+    congregacoes: [],
     data: {
       total_itens: 0,
       estado_ruim: 0,
@@ -1078,6 +1074,7 @@ export async function obterEstatisticasPatrimonio(estadoFilter?: string) {
       conservacao: [],
       itens_por_categoria: [],
       itens_por_conservacao: [],
+      congregacoes: [],
     },
   };
 }
