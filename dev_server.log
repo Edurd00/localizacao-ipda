@@ -13,3 +13,8 @@
  GET /api/igrejas/public-lookup?totvs=7513 404 in 1007ms (next.js: 985ms, application-code: 22ms)
  GET /patrimonio/7513 200 in 1864ms (next.js: 1750ms, application-code: 114ms)
  GET /api/igrejas/public-lookup?totvs=7513 404 in 10ms (next.js: 4ms, application-code: 6ms)
+ GET /patrimonio/7513 200 in 198ms (next.js: 48ms, application-code: 150ms)
+ GET /api/igrejas/public-lookup?totvs=7513 404 in 15ms (next.js: 6ms, application-code: 9ms)
+ GET /patrimonio/7513 200 in 93ms (next.js: 27ms, application-code: 66ms)
+ GET /api/igrejas/public-lookup?totvs=7513 404 in 12ms (next.js: 6ms, application-code: 6ms)
+ GET /patrimonio/7513 200 in 96ms (next.js: 25ms, application-code: 71ms)

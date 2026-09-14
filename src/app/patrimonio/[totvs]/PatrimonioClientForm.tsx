@@ -22,7 +22,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Layers,
-  Search,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import {
@@ -94,6 +93,13 @@ const ETAPAS_WIZARD = [
   { numero: 3, titulo: '3. Envio e Confirmação', subtitulo: 'Revisão e Transmissão' },
 ];
 
+const OPCOES_CONSERVACAO: Array<{ value: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'; label: string }> = [
+  { value: 'ÓTIMO', label: 'Ótimo' },
+  { value: 'BOM', label: 'Bom' },
+  { value: 'REGULAR', label: 'Regular' },
+  { value: 'RUIM', label: 'Ruim' },
+];
+
 export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: string }) {
   const isDirectLink = Boolean(initialTotvs && initialTotvs.trim().length > 0);
   const [codigoTotvs, setCodigoTotvs] = useState<string>(initialTotvs?.trim() || '');
@@ -107,7 +113,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
   const [protocolo, setProtocolo] = useState<string | null>(null);
   const [isModalConfirmacaoAberto, setIsModalConfirmacaoAberto] = useState<boolean>(false);
 
-  // Etapa 1: Dados do Responsável
+  // Etapa 1: Responsável
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
   const [anoReferencia] = useState(new Date().getFullYear());
@@ -131,7 +137,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
   // Etapa 3: Observações
   const [observacoesGerais, setObservacoesGerais] = useState('');
 
-  // Busca inicial caso a rota contenha o parâmetro TOTVS direto
+  // Rota direta TOTVS
   useEffect(() => {
     if (isDirectLink && initialTotvs) {
       setLoading(true);
@@ -155,7 +161,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
     }
   }, [isDirectLink, initialTotvs]);
 
-  // Busca com debounce de 500ms para digitação manual no link geral
+  // Digitação manual TOTVS
   useEffect(() => {
     if (isDirectLink) return;
 
@@ -378,9 +384,9 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
   if (submittedSuccess) {
     const itensPositivos = itens.filter((i) => i.possui);
     return (
-      <div className="min-h-screen bg-slate-100/90 py-10 px-4 flex items-center justify-center font-sans pb-16">
+      <div className="w-full max-w-4xl mx-auto h-auto min-h-fit pb-16 pt-8 px-4 font-sans">
         <Toaster position="top-center" richColors />
-        <div className="bg-white max-w-2xl w-full rounded-3xl shadow-2xl border border-emerald-200 overflow-hidden">
+        <div className="bg-white w-full rounded-3xl shadow-2xl border border-emerald-200 overflow-hidden">
           <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-white text-center">
             <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 ring-8 ring-white/10">
               <CheckCircle2 className="h-10 w-10 text-white" />
@@ -487,12 +493,12 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
   const totalBensDeclarados = itens.filter((i) => i.possui).length;
 
   return (
-    <div className="min-h-screen bg-slate-100 py-8 px-3 sm:px-8 font-sans text-slate-900 pb-16">
+    <div className="w-full max-w-4xl mx-auto h-auto min-h-fit pb-16 pt-6 px-3 sm:px-6 font-sans text-slate-900">
       <Toaster position="top-center" richColors />
 
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header Oficial */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 relative overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 relative">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -707,7 +713,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                   Etapa 2: Bens e Equipamentos
                 </h3>
                 <p className="text-sm text-slate-600">
-                  Marque os bens que a igreja possui, a quantidade e o estado de conservação.
+                  Toque nos cards para selecionar os bens que a igreja possui e indique a quantidade e estado.
                 </p>
               </div>
 
@@ -716,8 +722,8 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
               </span>
             </div>
 
-            {/* Filtro por Categorias */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none">
+            {/* Pílulas de Categorias Flex-Wrap sem cortes */}
+            <div className="flex flex-wrap gap-2 md:gap-3 my-4">
               {categoriasEtapa2.map((cat) => {
                 const IconComp = CATEGORIAS_ICONES[cat] || Layers;
                 const isActive = categoriaAtiva === cat;
@@ -730,10 +736,10 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                     key={cat}
                     type="button"
                     onClick={() => setCategoriaAtiva(cat)}
-                    className={`h-12 px-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shrink-0 flex items-center gap-2 cursor-pointer ${
+                    className={`h-11 px-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shrink-0 flex items-center gap-2 cursor-pointer ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
                     }`}
                   >
                     <IconComp className="h-4 w-4" />
@@ -752,7 +758,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
               })}
             </div>
 
-            {/* Lista dos Itens */}
+            {/* Lista dos Itens: Cards Inteiros Clicáveis */}
             <div className="space-y-4">
               {itensExibidos.map((item) => {
                 const isChecked = item.possui;
@@ -760,19 +766,23 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                 return (
                   <div
                     key={item.id}
-                    className={`p-5 rounded-3xl border-2 transition-all ${
+                    onClick={() => handleTogglePossui(item.id)}
+                    className={`cursor-pointer rounded-2xl border-2 p-4 sm:p-5 transition-all ${
                       isChecked
-                        ? 'bg-indigo-50/60 border-indigo-500 shadow-sm'
-                        : 'bg-slate-50/70 border-slate-200 hover:bg-slate-50'
+                        ? 'border-indigo-600 bg-indigo-50/60 shadow-md'
+                        : 'border-slate-200 bg-slate-50/60 hover:bg-slate-100/80 hover:border-slate-300'
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      {/* Lado Esquerdo: Checkbox/Toggle e Nome */}
-                      <label className="flex items-center gap-4 cursor-pointer select-none">
+                      {/* Checkbox e Título */}
+                      <div className="flex items-center gap-4 select-none">
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleTogglePossui(item.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleTogglePossui(item.id);
+                          }}
                           className="h-7 w-7 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer accent-indigo-600 shrink-0"
                         />
                         <div>
@@ -787,54 +797,39 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                             {item.categoria}
                           </span>
                         </div>
-                      </label>
+                      </div>
 
-                      {/* Lado Direito: Quantidade e Estado de Conservação quando marcado */}
+                      {/* Stepper de Quantidade com botões grandes h-10 w-10 text-xl font-bold */}
                       {isChecked && (
-                        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap pl-11 sm:pl-0">
-                          {/* Stepper de Quantidade */}
-                          <div className="flex items-center bg-white border-2 border-slate-300 rounded-2xl overflow-hidden shadow-xs">
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-3 flex-wrap sm:flex-nowrap pl-11 sm:pl-0"
+                        >
+                          <div className="flex items-center bg-white border-2 border-indigo-200 rounded-2xl overflow-hidden shadow-xs">
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, -1)}
-                              className="h-10 w-10 text-slate-700 hover:bg-slate-100 text-lg font-black cursor-pointer transition-colors flex items-center justify-center"
+                              className="h-10 w-10 text-slate-800 hover:bg-slate-100 text-xl font-black cursor-pointer transition-colors flex items-center justify-center shrink-0"
                             >
                               -
                             </button>
-                            <span className="px-3 text-base font-mono font-black text-slate-900 min-w-10 text-center">
+                            <span className="px-3 text-lg font-mono font-black text-indigo-950 min-w-10 text-center">
                               {item.quantidade}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, 1)}
-                              className="h-10 w-10 text-slate-700 hover:bg-slate-100 text-lg font-black cursor-pointer transition-colors flex items-center justify-center"
+                              className="h-10 w-10 text-slate-800 hover:bg-slate-100 text-xl font-black cursor-pointer transition-colors flex items-center justify-center shrink-0"
                             >
                               +
                             </button>
                           </div>
 
-                          {/* Estado de Conservação */}
-                          <select
-                            value={item.conservacao}
-                            onChange={(e) =>
-                              handleConservacaoChange(
-                                item.id,
-                                e.target.value as 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM'
-                              )
-                            }
-                            className="h-11 bg-white text-xs sm:text-sm font-extrabold text-slate-800 border-2 border-slate-300 rounded-2xl px-3 focus:ring-2 focus:ring-indigo-600 focus:outline-hidden"
-                          >
-                            <option value="ÓTIMO">Estado: Ótimo</option>
-                            <option value="BOM">Estado: Bom</option>
-                            <option value="REGULAR">Estado: Regular</option>
-                            <option value="RUIM">Estado: Ruim / Reparo</option>
-                          </select>
-
                           {item.isCustom && (
                             <button
                               type="button"
                               onClick={() => handleRemoveCustomItem(item.id)}
-                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                              className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                               title="Remover item"
                             >
                               <Trash2 className="h-5 w-5" />
@@ -844,15 +839,43 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                       )}
                     </div>
 
-                    {/* Observação opcional */}
+                    {/* Expansão quando selecionado: Pílulas de Estado de Conservação e Observação */}
                     {isChecked && (
-                      <div className="mt-3 pl-11 sm:pl-11 pt-3 border-t border-indigo-200">
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-4 pl-11 sm:pl-11 pt-4 border-t border-indigo-200/80 space-y-3"
+                      >
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-extrabold text-indigo-900 uppercase tracking-wider">
+                            Estado de Conservação:
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {OPCOES_CONSERVACAO.map((opcao) => {
+                              const isSelected = item.conservacao === opcao.value;
+                              return (
+                                <button
+                                  key={opcao.value}
+                                  type="button"
+                                  onClick={() => handleConservacaoChange(item.id, opcao.value)}
+                                  className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer border ${
+                                    isSelected
+                                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {opcao.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         <input
                           type="text"
                           placeholder="Observação opcional (ex: marca, modelo ou detalhes)..."
                           value={item.observacao || ''}
                           onChange={(e) => handleObservacaoItemChange(item.id, e.target.value)}
-                          className="w-full text-xs sm:text-sm px-4 py-2 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-600 text-slate-800 placeholder:text-slate-400"
+                          className="w-full text-xs sm:text-sm px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-600 text-slate-800 placeholder:text-slate-400"
                         />
                       </div>
                     )}
@@ -1007,14 +1030,14 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
         )}
 
         {/* ======================================================== */}
-        {/* BARRA DE NAVEGAÇÃO DO WIZARD (NO FLUXO NORMAL DO DOCUMENTO) */}
+        {/* BOTÕES DE NAVEGAÇÃO NO RODAPÉ DO DOCUMENTO               */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-8 border-t border-slate-200 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <button
             type="button"
             onClick={handleVoltarEtapa}
             disabled={etapaAtual === 1 || submitting}
-            className={`w-full sm:w-auto h-14 px-8 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`w-full sm:w-auto h-12 sm:h-14 px-8 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all cursor-pointer ${
               etapaAtual === 1
                 ? 'opacity-40 cursor-not-allowed bg-slate-200 text-slate-400'
                 : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
@@ -1032,7 +1055,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
             <button
               type="button"
               onClick={handleAvancarEtapa}
-              className="w-full sm:w-auto h-14 px-10 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-2xl font-black text-base sm:text-lg shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full sm:w-auto h-12 sm:h-14 px-10 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-xl font-bold text-base sm:text-lg shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <span>Avançar</span>
               <ChevronRight className="h-5 w-5" />
@@ -1042,7 +1065,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
               type="button"
               onClick={() => setIsModalConfirmacaoAberto(true)}
               disabled={submitting}
-              className="w-full sm:w-auto h-14 px-10 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-2xl font-black text-base sm:text-lg shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto h-12 sm:h-14 px-10 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-xl font-bold text-base sm:text-lg shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
@@ -1072,7 +1095,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                   Confirmar Envio da Declaração?
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  Os dados declarados serão gravados oficialmente na base de patrimônio da igreja TOTVS{' '}
+                  Os dados declarados serão gravados officially na base de patrimônio da igreja TOTVS{' '}
                   <strong className="text-slate-900 font-mono">{church?.codigo_totvs}</strong>.
                 </p>
               </div>
