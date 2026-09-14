@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { salvarSubmissaoPatrimonio, SalvarPatrimonioInput } from '@/lib/patrimonio';
-import { validarTelefoneComDdd } from '@/lib/patrimonioValidation';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
@@ -45,17 +44,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Validação do telefone com DDD (10 a 11 dígitos)
-    const validacaoTel = validarTelefoneComDdd(String(telefone_responsavel || ''));
-    if (!validacaoTel.valido) {
+    // 3. Validação do telefone com DDD (10 a 11 dígitos numéricos limpos)
+    const cleanTelefone = String(telefone_responsavel || '').replace(/\D/g, '');
+    if (cleanTelefone.length < 10 || cleanTelefone.length > 11) {
       return NextResponse.json(
-        { success: false, error: validacaoTel.erro || 'Telefone inválido.' },
+        { success: false, error: 'O telefone deve conter entre 10 e 11 dígitos numéricos com DDD.' },
         { status: 400 }
       );
     }
-    const cleanTelefone = validacaoTel.digitos!;
 
-    // 3. Validação dos itens
+    // 4. Validação dos itens
     if (!Array.isArray(itens) || itens.length === 0) {
       return NextResponse.json(
         { success: false, error: 'É necessário declarar ao menos um item de patrimônio.' },
@@ -67,7 +65,7 @@ export async function POST(request: NextRequest) {
       codigo_totvs: cleanTotvs,
       nome_responsavel: cleanNome,
       telefone_responsavel: cleanTelefone,
-      cargo_responsavel: cargo_responsavel ? String(cargo_responsavel).trim() : null,
+      cargo_responsavel: cargo_responsavel ? String(cargo_responsavel).trim() : 'Dirigente Local',
       ano_referencia: Number(ano_referencia) || new Date().getFullYear(),
       observacoes: observacoes ? String(observacoes).trim() : null,
       itens: itens.map((it: any) => ({

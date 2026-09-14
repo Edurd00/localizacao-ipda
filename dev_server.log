@@ -5,14 +5,11 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 519ms
+✓ Ready in 537ms
 
- GET /login 200 in 3.7s (next.js: 3.4s, application-code: 353ms)
- GET /login 200 in 98ms (next.js: 9ms, application-code: 88ms)
- POST /api/auth/login 401 in 472ms (next.js: 439ms, application-code: 33ms)
- GET /login 200 in 68ms (next.js: 5ms, application-code: 63ms)
- POST /api/auth/login 401 in 12ms (next.js: 5ms, application-code: 8ms)
- GET /login 200 in 68ms (next.js: 3ms, application-code: 65ms)
- GET /validacao 200 in 2.1s (next.js: 1760ms, proxy.ts: 12ms, application-code: 372ms)
- GET /api/igrejas?status=PENDENTE&page=1&limit=100&t=1788949508771 200 in 300ms (next.js: 285ms, application-code: 15ms)
- GET /api/auth/session 200 in 413ms (next.js: 392ms, application-code: 21ms)
+○ Compiling /patrimonio ...
+ GET /patrimonio 200 in 3.8s (next.js: 3.5s, application-code: 265ms)
+ GET /patrimonio 200 in 118ms (next.js: 9ms, application-code: 109ms)
+ GET /api/igrejas/public-lookup?totvs=7513 404 in 1007ms (next.js: 985ms, application-code: 22ms)
+ GET /patrimonio/7513 200 in 1864ms (next.js: 1750ms, application-code: 114ms)
+ GET /api/igrejas/public-lookup?totvs=7513 404 in 10ms (next.js: 4ms, application-code: 6ms)

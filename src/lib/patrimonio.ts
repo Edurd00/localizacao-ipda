@@ -426,15 +426,13 @@ export async function salvarSubmissaoPatrimonio(input: SalvarPatrimonioInput): P
         itensCount++;
       }
 
-      // Sincronização condicional do contato do dirigente na tabela public.igrejas
-      // APENAS SE dirigente_nome ou dirigente_telefone estiverem nulos ou vazios
+      // Sincronização direta do contato do dirigente na tabela public.igrejas
       await client.query(
         `UPDATE public.igrejas
-         SET dirigente_nome = CASE WHEN dirigente_nome IS NULL OR TRIM(dirigente_nome) = '' THEN $1 ELSE dirigente_nome END,
-             dirigente_telefone = CASE WHEN dirigente_telefone IS NULL OR TRIM(dirigente_telefone) = '' THEN $2 ELSE dirigente_telefone END,
+         SET dirigente_nome = $1,
+             dirigente_telefone = $2,
              updated_at = NOW()
-         WHERE LOWER(codigo_totvs) = LOWER($3)
-           AND ((dirigente_nome IS NULL OR TRIM(dirigente_nome) = '') OR (dirigente_telefone IS NULL OR TRIM(dirigente_telefone) = ''))`,
+         WHERE LOWER(codigo_totvs) = LOWER($3)`,
         [nomeResponsavel, telefoneResponsavel, cleanTotvs]
       );
 
