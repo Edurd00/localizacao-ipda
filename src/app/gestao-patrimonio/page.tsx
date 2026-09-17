@@ -522,8 +522,8 @@ export default function GestaoPatrimonioPage() {
         <div className="flex items-center space-x-3">
           <Package className="h-6 w-6 text-indigo-600"/>
           <div>
-            <h1 className="text-base font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">GEO-VALIG IPDA <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100 font-bold">PATRIMÔNIO</span></h1>
-            <p className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider">Painel Administrativo de BI & Cobrança</p>
+            <h1 className="text-base font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">GEO-VALIG IPDA - Gestão de Patrimônio</h1>
+            <p className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider">Bens e inventário das igrejas</p>
           </div>
         </div>
 
@@ -560,15 +560,15 @@ export default function GestaoPatrimonioPage() {
                   <a href="/gestao" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
                     <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">👥</div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Gestão de Contatos</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Dirigentes e tesouraria local</span>
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Gestão Cadastral & Contatos</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Edição de endereços, padronização de nomes e novas igrejas</span>
                     </div>
                   </a>
                   <a href="/coligacoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
                     <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">🌳</div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Malha de Coligações</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Estrutura hierárquica e vínculos</span>
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Malha & Topologia Hierárquica</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Promoção de portes, encerramento e vínculos hierárquicos</span>
                     </div>
                   </a>
                 </div>
