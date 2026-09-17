@@ -773,32 +773,32 @@ export default function GestaoPatrimonioPage() {
                 <div className="relative">
                   <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Pesquisa Livre</label>
                   <Search className="absolute left-3 top-7 h-4 w-4 text-zinc-400 dark:text-slate-400"/>
-                  <input type="text" placeholder="Buscar por TOTVS, Igreja ou Dirigente..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 rounded-lg pl-9 pr-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
+                  <input type="text" placeholder="Buscar por TOTVS, Igreja ou Dirigente..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold text-xs rounded-lg pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div className="relative">
                   <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Sede Cascata (TOTVS)</label>
                   <MapPin className="absolute left-3 top-7 h-4 w-4 text-zinc-400 dark:text-slate-400"/>
-                  <input type="text" placeholder="TOTVS da Sede (Hierarquia)..." value={filterSede} onChange={(e) => { setFilterSede(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 rounded-lg pl-9 pr-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
+                  <input type="text" placeholder="TOTVS da Sede (Hierarquia)..." value={filterSede} onChange={(e) => { setFilterSede(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold text-xs rounded-lg pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Região Geográfica</label>
-                  <select value={filterRegiao} onChange={(e) => { setFilterRegiao(e.target.value); setFilterEstado('ALL'); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                  <select value={filterRegiao} onChange={(e) => { setFilterRegiao(e.target.value); setFilterEstado('ALL'); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-lg p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     {REGIOES.map(r => <option key={r.value} value={r.value} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{r.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Estado (UF)</label>
-                  <select value={filterEstado} onChange={(e) => { setFilterEstado(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                  <select value={filterEstado} onChange={(e) => { setFilterEstado(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-lg p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Estados</option>
                     {ESTADOS.map(st => <option key={st} value={st} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{st}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Porte da Igreja</label>
-                  <select value={filterPorte} onChange={(e) => { setFilterPorte(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                  <select value={filterPorte} onChange={(e) => { setFilterPorte(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-lg p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Portes</option>
                     <option value="ESTADUAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">ESTADUAL</option>
                     <option value="SETORIAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">SETORIAL</option>
@@ -809,7 +809,7 @@ export default function GestaoPatrimonioPage() {
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Status de Envio</label>
-                  <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                  <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-lg p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Status</option>
                     <option value="ENVIADO" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">✅ Entregues (Recebidos)</option>
                     <option value="PENDENTE" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">❌ Faltantes (Pendentes)</option>

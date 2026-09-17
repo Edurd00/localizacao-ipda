@@ -621,7 +621,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
             }
           }
         }}
-        className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-all"
+        className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl pl-9 pr-8 py-1.5 transition-all"
       />
       {inputValue && (
         <button
@@ -752,7 +752,7 @@ const FiltersModal = memo(function FiltersModal({
               <select
                 value={selectedRegionGeo}
                 onChange={(e) => onRegionGeoChange(e.target.value)}
-                className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                className="bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-[11px] rounded-xl p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full transition-colors duration-200"
               >
                 <option value="ALL">Todas as Regiões</option>
                 {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
@@ -771,7 +771,7 @@ const FiltersModal = memo(function FiltersModal({
               <select
                 value={selectedUF}
                 onChange={(e) => onUFChange(e.target.value)}
-                className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                className="bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-[11px] rounded-xl p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full transition-colors duration-200"
               >
                 <option value="ALL">Todos os Estados</option>
                 {distinctUFs.map((uf) => (
@@ -793,7 +793,7 @@ const FiltersModal = memo(function FiltersModal({
                 value={selectedEstadual}
                 disabled={selectedRegionGeo === 'ALL'}
                 onChange={(e) => onSelectEstadual(e.target.value)}
-                className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-[11px] rounded-xl p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 <option value="">Selecione...</option>
                 {selectedRegionGeo !== 'ALL' &&
@@ -815,7 +815,7 @@ const FiltersModal = memo(function FiltersModal({
               <select
                 value={selectedTipoImovel}
                 onChange={(e) => onTipoImovelChange(e.target.value)}
-                className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-[11px] rounded-xl p-2 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                className="bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-[11px] rounded-xl p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full transition-colors duration-200"
               >
                 <option value="ALL">Todos</option>
                 <option value="PROPRIO">Próprio</option>

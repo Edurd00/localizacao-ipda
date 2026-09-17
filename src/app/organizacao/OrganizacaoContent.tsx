@@ -845,7 +845,7 @@ export default function OrganizacaoContent() {
                       setSelectedStateFilter('ALL');
                       setExpandedNodes(new Set());
                     }}
-                    className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 text-zinc-900 dark:text-white text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-colors duration-200"
+                    className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
                   >
                     {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
                       <option key={reg} value={reg} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
@@ -870,7 +870,7 @@ export default function OrganizacaoContent() {
                         setSelectedStateFilter(e.target.value);
                         setExpandedNodes(new Set());
                       }}
-                      className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 text-zinc-900 dark:text-white text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-colors duration-200"
+                      className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
                     >
                       <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Estados</option>
                       {states.map((st) => (
@@ -896,7 +896,7 @@ export default function OrganizacaoContent() {
                     placeholder="Pesquisar por Código TOTVS, nome ou município..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
               )}

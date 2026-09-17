@@ -760,7 +760,7 @@ export default function ColigacoesPage() {
                   placeholder="Pesquise por código TOTVS ou nome da igreja..."
                   value={reorganizationParentSearch}
                   onChange={(e) => setReorganizationParentSearch(e.target.value)}
-                  className="pl-9 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 outline-none text-xs rounded-xl w-full font-medium"
+                    className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl"
                 />
               </div>
 
@@ -1136,7 +1136,7 @@ export default function ColigacoesPage() {
                   placeholder="Pesquisar por Código TOTVS ou Nome para expandir..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -1282,7 +1282,7 @@ export default function ColigacoesPage() {
                             setEditParentId(null);
                           }
                         }}
-                        className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl font-medium"
+                        className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl"
                       />
                     </div>
 
@@ -1325,7 +1325,7 @@ export default function ColigacoesPage() {
                     <select
                       value={editPorte}
                       onChange={(e) => setEditPorte(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-xl p-2.5 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       {Object.keys(PORTE_INFO).map((porte) => (
                         <option key={porte} value={porte} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
@@ -1340,8 +1340,8 @@ export default function ColigacoesPage() {
                         type="text"
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-xl p-2.5 mt-1 font-bold outline-none focus:ring-2 focus:ring-indigo-500"
-                        title="O nome pode ser personalizado, mas a classificação do porte será adjusted de forma inteligente."
+                        className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs rounded-xl p-2.5 mt-1 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        title="O nome pode ser personalizado, mas a classificação do porte será ajustada de forma inteligente."
                       />
                       <p className="text-[9px] text-zinc-400 mt-1.5 font-medium leading-relaxed">
                         Ao salvar, o sistema recalcula de forma inteligente a descrição para refletir perfeitamente o porte escolhido.

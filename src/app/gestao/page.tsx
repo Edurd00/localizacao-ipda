@@ -715,7 +715,7 @@ export default function GestaoPage() {
               placeholder="Filtrar por TOTVS, Nome, Município ou UF..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 text-sm text-zinc-900 dark:text-slate-100 placeholder-zinc-400 dark:placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800"
+              className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold text-sm rounded-xl pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -754,7 +754,7 @@ export default function GestaoPage() {
               setFilterContactStatus(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-zinc-900 dark:text-slate-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">Status de Contato: Todos</option>
             <option value="NO_DIRIGENTE">⚠️ Sem Dirigente Cadastrado</option>
@@ -770,7 +770,7 @@ export default function GestaoPage() {
               setFilterPorteGroup(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-zinc-900 dark:text-slate-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">Porte: Todos os Portes</option>
             <option value="ESTADUAL_SETORIAL">🔵 Estaduais & 🟡 Setoriais</option>
@@ -785,7 +785,7 @@ export default function GestaoPage() {
               setFilterPorte(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-zinc-900 dark:text-slate-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">Classificação Específica: Todas</option>
             {Object.keys(PORTE_INFO).map((porteKey) => (
