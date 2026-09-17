@@ -788,13 +788,13 @@ export default function RelatoriosPage() {
                   </div>
 
                   <div className="relative w-full sm:w-64 print:hidden">
-                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
+                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Filtrar por TOTVS ou nome..."
                       value={tableSearch}
                       onChange={(e) => setTableSearch(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-900 dark:text-slate-100 placeholder-zinc-400 dark:placeholder-slate-500 rounded-xl pl-9 pr-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
                     />
                   </div>
                 </div>

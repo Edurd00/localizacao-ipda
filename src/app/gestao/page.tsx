@@ -709,13 +709,13 @@ export default function GestaoPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           {/* Quick search input */}
           <div className="relative flex-1 w-full max-w-md">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400 pointer-events-none" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400 dark:text-slate-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Filtrar por TOTVS, Nome, Município ou UF..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white"
+              className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold text-sm rounded-xl pl-9 pr-4 outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -754,7 +754,7 @@ export default function GestaoPage() {
               setFilterContactStatus(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">Status de Contato: Todos</option>
             <option value="NO_DIRIGENTE">⚠️ Sem Dirigente Cadastrado</option>
@@ -770,7 +770,7 @@ export default function GestaoPage() {
               setFilterPorteGroup(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">Porte: Todos os Portes</option>
             <option value="ESTADUAL_SETORIAL">🔵 Estaduais & 🟡 Setoriais</option>
@@ -785,7 +785,7 @@ export default function GestaoPage() {
               setFilterPorte(e.target.value);
               setCurrentPage(1);
             }}
-            className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">Classificação Específica: Todas</option>
             {Object.keys(PORTE_INFO).map((porteKey) => (
@@ -1495,13 +1495,13 @@ export default function GestaoPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {/* Linha 1: Nome Completo (col-span-2) */}
                   <div className="col-span-2">
-                    <label className="text-[10px] font-bold text-zinc-500 block mb-1">Nome Completo</label>
+                    <label className="text-[10px] font-bold text-zinc-500 dark:text-slate-400 block mb-1">Nome Completo</label>
                     <input
                       type="text"
                       value={formDirigenteNome}
                       onChange={(e) => setFormDirigenteNome(e.target.value.toUpperCase())}
                       placeholder="Ex: PR. CARLOS ALBERTO"
-                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-zinc-900 dark:text-slate-100 placeholder-zinc-400 dark:placeholder-slate-500 rounded-xl p-2 text-xs font-semibold uppercase outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
                   {/* Linha 2: Telefone/WhatsApp | Email */}

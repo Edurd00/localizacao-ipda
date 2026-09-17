@@ -568,8 +568,8 @@ export default function ColigacoesPage() {
                 onClick={() => setSelectedChurch(child)}
                 className={`group flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer ${
                   selectedChurch?.codigo_totvs === child.codigo_totvs
-                    ? 'bg-indigo-50 border border-indigo-200 text-indigo-950'
-                    : 'hover:bg-zinc-50 border border-transparent hover:border-zinc-200'
+                    ? 'bg-white dark:bg-slate-800 border-indigo-500 dark:border-indigo-400 text-slate-900 dark:text-white shadow-md'
+                    : 'hover:bg-zinc-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-zinc-200 dark:hover:border-slate-700 text-slate-900 dark:text-slate-200'
                 }`}
               >
                 <div className="flex items-center space-x-2 min-w-0">
@@ -580,7 +580,7 @@ export default function ColigacoesPage() {
                         e.stopPropagation();
                         toggleNode(child.codigo_totvs);
                       }}
-                      className="p-1 hover:bg-zinc-200/60 rounded-md text-zinc-500 transition-transform"
+                      className="p-1 hover:bg-zinc-200/60 dark:hover:bg-slate-700 rounded-md text-zinc-500 dark:text-slate-400 transition-transform"
                     >
                       {isExpanded ? (
                         <ChevronDown className="h-3.5 w-3.5 shrink-0" />
@@ -594,16 +594,16 @@ export default function ColigacoesPage() {
 
                   {/* Porte Badge Indicator */}
                   <span
-                    className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                    className="w-2.5 h-2.5 rounded-full border border-black/10 dark:border-white/20 shrink-0"
                     style={{ backgroundColor: childColor }}
                     title={childPorte}
                   />
 
                   <div className="min-w-0 text-left">
-                    <span className="text-xs font-bold text-zinc-900 group-hover:text-indigo-600 block truncate">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 block truncate">
                       {child.desc_igreja}
                     </span>
-                    <span className="text-[9px] text-zinc-500 font-mono font-medium block">
+                    <span className="text-[9px] text-slate-600 dark:text-slate-300 font-mono font-medium block">
                       TOTVS: {child.codigo_totvs} • {child.municipio} - {child.estado}
                     </span>
                   </div>
@@ -663,18 +663,18 @@ export default function ColigacoesPage() {
         <div key={`state-group-${uf}`} className="space-y-1.5 border-b border-zinc-100 pb-2.5">
           <div
             onClick={() => toggleNode(uf)}
-            className="flex items-center justify-between p-2 bg-zinc-50 hover:bg-zinc-100/80 rounded-xl transition-all cursor-pointer border border-zinc-200"
+            className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-slate-800/80 hover:bg-zinc-100/80 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer border border-zinc-200 dark:border-slate-700"
           >
             <div className="flex items-center space-x-2">
-              <span className="w-6.5 h-6.5 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center font-mono font-bold text-xs shrink-0 shadow-xs">
+              <span className="w-6.5 h-6.5 rounded-lg bg-indigo-100 dark:bg-slate-700 text-indigo-800 dark:text-indigo-300 flex items-center justify-center font-mono font-bold text-xs shrink-0 shadow-xs">
                 {uf}
               </span>
-              <span className="text-xs font-black text-zinc-800 tracking-wide">
+              <span className="text-xs font-black text-zinc-800 dark:text-white tracking-wide">
                 Igrejas do Estado de {uf}
               </span>
             </div>
-            <div className="flex items-center space-x-2 text-zinc-500">
-              <span className="text-[10px] font-bold font-mono bg-white px-2 py-0.5 rounded-md border border-zinc-300">
+            <div className="flex items-center space-x-2 text-zinc-500 dark:text-slate-400">
+              <span className="text-[10px] font-bold font-mono bg-white dark:bg-slate-900 text-zinc-800 dark:text-slate-200 px-2 py-0.5 rounded-md border border-zinc-300 dark:border-slate-700">
                 {rootChurchesInUF.length} Estaduais/Sedes
               </span>
               {isStateExpanded ? (
@@ -760,7 +760,7 @@ export default function ColigacoesPage() {
                   placeholder="Pesquise por código TOTVS ou nome da igreja..."
                   value={reorganizationParentSearch}
                   onChange={(e) => setReorganizationParentSearch(e.target.value)}
-                  className="pl-9 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 outline-none text-xs rounded-xl w-full font-medium"
+                    className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl"
                 />
               </div>
 
@@ -1130,13 +1130,13 @@ export default function ColigacoesPage() {
 
               {/* Real-time search/filter inputs */}
               <div className="relative shrink-0">
-                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-400" />
                 <input
                   type="text"
                   placeholder="Pesquisar por Código TOTVS ou Nome para expandir..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white font-medium"
+                  className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -1209,13 +1209,13 @@ export default function ColigacoesPage() {
               {selectedChurch ? (
                 <div className="space-y-4 flex-1 overflow-y-auto pr-1">
                   {/* Title Header */}
-                  <div className="border-b border-zinc-150 pb-3 flex items-start justify-between">
+                  <div className="border-b border-zinc-150 dark:border-slate-800 pb-3 flex items-start justify-between">
                     <div>
-                      <h3 className="text-sm font-black text-zinc-900 tracking-tight leading-tight">
+                      <h3 className="text-sm font-black text-zinc-900 dark:text-white tracking-tight leading-tight">
                         {selectedChurch.desc_igreja}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="text-[10px] font-mono font-bold bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded border border-zinc-200 shadow-2xs">
+                        <span className="text-[10px] font-mono font-bold bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-200 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-slate-700 shadow-2xs">
                           TOTVS: {selectedChurch.codigo_totvs}
                         </span>
                         <span
@@ -1243,23 +1243,23 @@ export default function ColigacoesPage() {
                   </div>
 
                   {/* Church properties block */}
-                  <div className="space-y-2 text-xs text-zinc-700 bg-zinc-50/50 p-3 rounded-xl border border-zinc-200">
+                  <div className="space-y-2 text-xs text-zinc-700 dark:text-slate-300 bg-zinc-50/50 dark:bg-slate-800/50 p-3 rounded-xl border border-zinc-200 dark:border-slate-700">
                     <p className="flex items-center gap-1.5">
-                      <strong className="font-semibold text-zinc-400">Endereço:</strong>{' '}
-                      <span className="font-medium text-zinc-900">
+                      <strong className="font-semibold text-zinc-400 dark:text-slate-400">Endereço:</strong>{' '}
+                      <span className="font-medium text-zinc-900 dark:text-slate-100">
                         {selectedChurch.endereco ? `${selectedChurch.endereco}${selectedChurch.bairro ? ` - ${selectedChurch.bairro}` : ''}` : 'Endereço não informado'}
                       </span>
                     </p>
                     <p className="flex items-center gap-1.5">
-                      <strong className="font-semibold text-zinc-400">Cidade:</strong>{' '}
-                      <span className="font-medium text-zinc-900">
+                      <strong className="font-semibold text-zinc-400 dark:text-slate-400">Cidade:</strong>{' '}
+                      <span className="font-medium text-zinc-900 dark:text-slate-100">
                         {selectedChurch.municipio} - {selectedChurch.estado}
                       </span>
                     </p>
                     {selectedChurch.tipo_imovel && (
                       <p className="flex items-center gap-1.5">
-                        <strong className="font-semibold text-zinc-400">Imóvel:</strong>{' '}
-                        <span className="font-semibold text-zinc-800">{selectedChurch.tipo_imovel}</span>
+                        <strong className="font-semibold text-zinc-400 dark:text-slate-400">Imóvel:</strong>{' '}
+                        <span className="font-semibold text-zinc-800 dark:text-slate-200">{selectedChurch.tipo_imovel}</span>
                       </p>
                     )}
                   </div>
@@ -1282,7 +1282,7 @@ export default function ColigacoesPage() {
                             setEditParentId(null);
                           }
                         }}
-                        className="pl-8 pr-3 py-2 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 outline-none text-xs rounded-xl w-full font-medium"
+                        className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl"
                       />
                     </div>
 
@@ -1325,22 +1325,22 @@ export default function ColigacoesPage() {
                     <select
                       value={editPorte}
                       onChange={(e) => setEditPorte(e.target.value)}
-                      className="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs rounded-xl p-2.5 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                      className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs rounded-xl p-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       {Object.keys(PORTE_INFO).map((porte) => (
-                        <option key={porte} value={porte}>
+                        <option key={porte} value={porte} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                           {PORTE_INFO[porte].label}
                         </option>
                       ))}
                     </select>
 
                     <div className="mt-2.5">
-                      <label className="text-[10px] font-bold text-zinc-500 block">Nome Descritivo Atualizado:</label>
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-slate-400 block">Nome Descritivo Atualizado:</label>
                       <input
                         type="text"
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
-                        className="bg-zinc-50 border border-zinc-200 text-zinc-850 text-xs rounded-xl p-2.5 w-full mt-1 font-bold outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs rounded-xl p-2.5 mt-1 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         title="O nome pode ser personalizado, mas a classificação do porte será ajustada de forma inteligente."
                       />
                       <p className="text-[9px] text-zinc-400 mt-1.5 font-medium leading-relaxed">

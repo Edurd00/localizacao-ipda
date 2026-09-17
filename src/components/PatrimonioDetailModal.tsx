@@ -269,16 +269,16 @@ export default function PatrimonioDetailModal({
 
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-200/60 dark:border-slate-700/60 text-zinc-700 dark:text-slate-300">
               <div>
-                <span className="font-bold text-zinc-500 block text-[10px] uppercase">Responsável</span>
-                <span className="font-semibold">{submissao.nome_responsavel || '---'}</span>
+                <span className="font-bold text-zinc-500 dark:text-slate-400 block text-[10px] uppercase">Responsável</span>
+                <span className="font-semibold text-zinc-900 dark:text-slate-100">{submissao.nome_responsavel || '---'}</span>
               </div>
               <div>
-                <span className="font-bold text-zinc-500 block text-[10px] uppercase">Telefone</span>
-                <span className="font-mono">{submissao.telefone_responsavel || '---'}</span>
+                <span className="font-bold text-zinc-500 dark:text-slate-400 block text-[10px] uppercase">Telefone</span>
+                <span className="font-mono text-zinc-900 dark:text-slate-100">{submissao.telefone_responsavel || '---'}</span>
               </div>
               <div>
-                <span className="font-bold text-zinc-500 block text-[10px] uppercase">Data de Envio</span>
-                <span className="font-mono">
+                <span className="font-bold text-zinc-500 dark:text-slate-400 block text-[10px] uppercase">Data de Envio</span>
+                <span className="font-mono text-zinc-900 dark:text-slate-100">
                   {formatDate(submissao.data_envio || submissao.criado_em || submissao.created_at)}
                 </span>
               </div>

@@ -1144,7 +1144,7 @@ export default function ValidacaoPage() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-8 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-colors duration-200"
+                  className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold text-sm rounded-lg pl-8 pr-8 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
                 />
                 {searchQuery && (
                   <button
@@ -1167,7 +1167,7 @@ export default function ValidacaoPage() {
                   setFilterEstado(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-32 transition-colors duration-200"
+                className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-sm rounded-lg p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 w-32 transition-colors duration-200"
               >
                 <option value="ALL">Todos Estados</option>
                 {states.map((st) => (
@@ -1184,7 +1184,7 @@ export default function ValidacaoPage() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-36 transition-colors duration-200"
+                className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-sm rounded-lg p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 w-36 transition-colors duration-200"
               >
                 <option value="ALL">Todos Status</option>
                 <option value="PENDENTE">Pendentes</option>
@@ -1201,7 +1201,7 @@ export default function ValidacaoPage() {
                   setFilterPorte(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg p-2 font-medium focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-44 transition-colors duration-200"
+                className="h-10 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-sm rounded-lg p-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 w-44 transition-colors duration-200"
               >
                 <option value="ALL">Todos os Portes</option>
                 <option value="ESTADUAL">🔵 ESTADUAL</option>
@@ -1471,7 +1471,7 @@ export default function ValidacaoPage() {
                             onChange={(e) => setDirigenteLink(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && !dirigenteLoading && handleProcessDirigenteLink()}
                             placeholder="Cole o link ou mensagem aqui..."
-                            className="pl-8 pr-3 py-2 bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-violet-500 focus:border-violet-500 outline-none text-xs rounded-lg w-full font-medium placeholder:text-zinc-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </div>
                         <button
@@ -1533,7 +1533,7 @@ export default function ValidacaoPage() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[10px] font-bold text-zinc-500 block">LATITUDE</label>
+                          <label className="text-[10px] font-bold text-zinc-500 dark:text-slate-400 block">LATITUDE</label>
                           <input
                             type="number"
                             step="any"
@@ -1543,11 +1543,11 @@ export default function ValidacaoPage() {
                               setLatInput(e.target.value);
                               setPrecision('EXACT');
                             }}
-                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
+                            className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-mono font-semibold text-xs rounded-lg p-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold text-zinc-500 block">LONGITUDE</label>
+                          <label className="text-[10px] font-bold text-zinc-500 dark:text-slate-400 block">LONGITUDE</label>
                           <input
                             type="number"
                             step="any"
@@ -1557,7 +1557,7 @@ export default function ValidacaoPage() {
                               setLngInput(e.target.value);
                               setPrecision('EXACT');
                             }}
-                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
+                            className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-mono font-semibold text-xs rounded-lg p-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
                           />
                         </div>
                       </div>

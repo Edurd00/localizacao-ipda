@@ -571,8 +571,8 @@ export default function OrganizacaoContent() {
               <div
                 className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all relative z-10 ${
                   isExpanded && hasChildren
-                    ? 'bg-zinc-50 dark:bg-slate-800/60 border-indigo-200 dark:border-indigo-900/60'
-                    : 'bg-white dark:bg-slate-850 border-zinc-200 dark:border-slate-800 hover:border-zinc-300 dark:hover:border-slate-700'
+                    ? 'bg-white dark:bg-slate-800 border-indigo-500 dark:border-indigo-400 text-slate-900 dark:text-white shadow-md'
+                    : 'bg-white dark:bg-slate-800 border-zinc-200 dark:border-slate-700 text-slate-900 dark:text-white hover:border-zinc-300 dark:hover:border-slate-600'
                 }`}
               >
                 <div
@@ -602,18 +602,18 @@ export default function OrganizacaoContent() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-slate-550 leading-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                         {child.desc_igreja}
                       </span>
                       {coligadasCount > 0 && (
-                        <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/50 shrink-0">
+                        <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200/50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 shrink-0">
                           🏛️ {coligadasCount} {coligadasCount === 1 ? 'coligada' : 'coligadas'} na malha
                         </span>
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                      <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-slate-400 font-medium">
-                        TOTVS: <span className="font-mono font-bold text-zinc-700 dark:text-slate-300">{child.codigo_totvs}</span> • {child.endereco} • {child.municipio} - {child.estado}
+                      <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-300 font-medium">
+                        TOTVS: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{child.codigo_totvs}</span> • {child.endereco} • {child.municipio} - {child.estado}
                       </span>
                       {divisaState && (
                         <span className="inline-flex items-center gap-1.5 text-[10px] bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-400 font-bold px-2 py-0.5 rounded-md shadow-xs">
@@ -689,7 +689,7 @@ export default function OrganizacaoContent() {
           </div>
         </div>
 
-        {/* Centro: Botões de dropdown principais (Visível apenas em xl) */}
+        {/* Centro: Botões de dropdown principais (Visível apenas para usuários autenticados) */}
         <div className="hidden xl:flex items-center gap-1 bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold shrink-0 border border-zinc-200/80 dark:border-slate-700/80">
           <a
             href="/"
@@ -699,81 +699,85 @@ export default function OrganizacaoContent() {
             <span className="whitespace-nowrap">Mapa Geral</span>
           </a>
 
-          {userRole !== 'viewer' && (
-            <div className="relative group">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-zinc-700 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs whitespace-nowrap"
-              >
-                <span>📍</span>
-                <span className="whitespace-nowrap">Validação & Gestão</span>
-                <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200 shrink-0" />
-              </button>
+          {isAuthenticated && (
+            <>
+              {userRole !== 'viewer' && (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-zinc-700 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs whitespace-nowrap"
+                  >
+                    <span>📍</span>
+                    <span className="whitespace-nowrap">Validação & Gestão</span>
+                    <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200 shrink-0" />
+                  </button>
 
-              <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200 dark:before:border-slate-800 before:rotate-45">
-                  <a href="/validacao?tab=validation" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">📍</div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Validação de Igrejas</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Aprovação de coordenadas e status</span>
+                  <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200 dark:before:border-slate-800 before:rotate-45">
+                      <a href="/validacao?tab=validation" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                        <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">📍</div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Validação de Igrejas</span>
+                          <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Aprovação de coordenadas e status</span>
+                        </div>
+                      </a>
+                      <a href="/gestao" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                        <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">👥</div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Gestão Cadastral & Contatos</span>
+                          <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Edição de endereços e contatos</span>
+                        </div>
+                      </a>
+                      <a href="/coligacoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                        <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">🌳</div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Malha & Topologia Hierárquica</span>
+                          <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Vínculos e portes organizacionais</span>
+                        </div>
+                      </a>
                     </div>
-                  </a>
-                  <a href="/gestao" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">👥</div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Gestão Cadastral & Contatos</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Edição de endereços e contatos</span>
-                    </div>
-                  </a>
-                  <a href="/coligacoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">🌳</div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Malha & Topologia Hierárquica</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Vínculos e portes organizacionais</span>
-                    </div>
-                  </a>
+                  </div>
+                </div>
+              )}
+
+              <div className="relative group">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-zinc-700 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs whitespace-nowrap"
+                >
+                  <span>📊</span>
+                  <span className="whitespace-nowrap">Inteligência & BI</span>
+                  <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200 shrink-0" />
+                </button>
+
+                <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200 dark:before:border-slate-800 before:rotate-45">
+                    <a href="/validacao?tab=dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                      <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">📈</div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Dashboard Global</span>
+                        <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Métricas de geocodificação</span>
+                      </div>
+                    </a>
+                    <a href="/relatorios" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                      <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">📑</div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Relatórios de Matriz</span>
+                        <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Membresia e condição pastoral</span>
+                      </div>
+                    </a>
+                    <a href="/gestao-patrimonio" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                      <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">🪑</div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Gestão de Patrimônio</span>
+                        <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Bens e inventário das igrejas</span>
+                      </div>
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
-
-          <div className="relative group">
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-zinc-700 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs whitespace-nowrap"
-            >
-              <span>📊</span>
-              <span className="whitespace-nowrap">Inteligência & BI</span>
-              <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200 shrink-0" />
-            </button>
-
-            <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200 dark:before:border-slate-800 before:rotate-45">
-                <a href="/validacao?tab=dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">📈</div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Dashboard Global</span>
-                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Métricas de geocodificação</span>
-                  </div>
-                </a>
-                <a href="/relatorios" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">📑</div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Relatórios de Matriz</span>
-                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Membresia e condição pastoral</span>
-                  </div>
-                </a>
-                <a href="/gestao-patrimonio" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">🪑</div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Gestão de Patrimônio</span>
-                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Bens e inventário das igrejas</span>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Direita: Botão secundário de Importar + ThemeToggle + Badge usuário + Sair */}
@@ -841,10 +845,10 @@ export default function OrganizacaoContent() {
                       setSelectedStateFilter('ALL');
                       setExpandedNodes(new Set());
                     }}
-                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                    className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
                   >
                     {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
-                      <option key={reg} value={reg}>
+                      <option key={reg} value={reg} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                         {reg}
                       </option>
                     ))}
@@ -866,16 +870,16 @@ export default function OrganizacaoContent() {
                         setSelectedStateFilter(e.target.value);
                         setExpandedNodes(new Set());
                       }}
-                      className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                      className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
                     >
-                      <option value="ALL">Todos os Estados</option>
+                      <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Estados</option>
                       {states.map((st) => (
-                        <option key={st} value={st}>
+                        <option key={st} value={st} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                           {st}
                         </option>
                       ))}
                       {selectedStateFilter !== 'ALL' && !states.includes(selectedStateFilter) && (
-                        <option value={selectedStateFilter}>
+                        <option value={selectedStateFilter} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                           {selectedStateFilter}
                         </option>
                       )}
@@ -892,7 +896,7 @@ export default function OrganizacaoContent() {
                     placeholder="Pesquisar por Código TOTVS, nome ou município..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-750 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
               )}
