@@ -1130,13 +1130,13 @@ export default function ColigacoesPage() {
 
               {/* Real-time search/filter inputs */}
               <div className="relative shrink-0">
-                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500" />
                 <input
                   type="text"
                   placeholder="Pesquisar por Código TOTVS ou Nome para expandir..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white font-medium"
+                  className="w-full bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-900 dark:text-slate-100 placeholder-zinc-400 dark:placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 font-medium"
                 />
               </div>
 
@@ -1243,23 +1243,23 @@ export default function ColigacoesPage() {
                   </div>
 
                   {/* Church properties block */}
-                  <div className="space-y-2 text-xs text-zinc-700 bg-zinc-50/50 p-3 rounded-xl border border-zinc-200">
+                  <div className="space-y-2 text-xs text-zinc-700 dark:text-slate-300 bg-zinc-50/50 dark:bg-slate-800/50 p-3 rounded-xl border border-zinc-200 dark:border-slate-700">
                     <p className="flex items-center gap-1.5">
-                      <strong className="font-semibold text-zinc-400">Endereço:</strong>{' '}
-                      <span className="font-medium text-zinc-900">
+                      <strong className="font-semibold text-zinc-400 dark:text-slate-400">Endereço:</strong>{' '}
+                      <span className="font-medium text-zinc-900 dark:text-slate-100">
                         {selectedChurch.endereco ? `${selectedChurch.endereco}${selectedChurch.bairro ? ` - ${selectedChurch.bairro}` : ''}` : 'Endereço não informado'}
                       </span>
                     </p>
                     <p className="flex items-center gap-1.5">
-                      <strong className="font-semibold text-zinc-400">Cidade:</strong>{' '}
-                      <span className="font-medium text-zinc-900">
+                      <strong className="font-semibold text-zinc-400 dark:text-slate-400">Cidade:</strong>{' '}
+                      <span className="font-medium text-zinc-900 dark:text-slate-100">
                         {selectedChurch.municipio} - {selectedChurch.estado}
                       </span>
                     </p>
                     {selectedChurch.tipo_imovel && (
                       <p className="flex items-center gap-1.5">
-                        <strong className="font-semibold text-zinc-400">Imóvel:</strong>{' '}
-                        <span className="font-semibold text-zinc-800">{selectedChurch.tipo_imovel}</span>
+                        <strong className="font-semibold text-zinc-400 dark:text-slate-400">Imóvel:</strong>{' '}
+                        <span className="font-semibold text-zinc-800 dark:text-slate-200">{selectedChurch.tipo_imovel}</span>
                       </p>
                     )}
                   </div>

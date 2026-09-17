@@ -1144,7 +1144,7 @@ export default function ValidacaoPage() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-8 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-750 font-medium transition-colors duration-200"
+                  className="w-full h-10 bg-zinc-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-8 text-sm text-zinc-900 dark:text-slate-100 placeholder-zinc-400 dark:placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500 font-medium transition-colors duration-200"
                 />
                 {searchQuery && (
                   <button
@@ -1533,7 +1533,7 @@ export default function ValidacaoPage() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[10px] font-bold text-zinc-500 block">LATITUDE</label>
+                          <label className="text-[10px] font-bold text-zinc-500 dark:text-slate-400 block">LATITUDE</label>
                           <input
                             type="number"
                             step="any"
@@ -1543,11 +1543,11 @@ export default function ValidacaoPage() {
                               setLatInput(e.target.value);
                               setPrecision('EXACT');
                             }}
-                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
+                            className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold text-zinc-500 block">LONGITUDE</label>
+                          <label className="text-[10px] font-bold text-zinc-500 dark:text-slate-400 block">LONGITUDE</label>
                           <input
                             type="number"
                             step="any"
@@ -1557,7 +1557,7 @@ export default function ValidacaoPage() {
                               setLngInput(e.target.value);
                               setPrecision('EXACT');
                             }}
-                            className="bg-zinc-50 border border-zinc-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
+                            className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-xs rounded-lg p-2.5 w-full font-mono mt-1 disabled:opacity-60"
                           />
                         </div>
                       </div>
