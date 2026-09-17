@@ -670,7 +670,7 @@ export default function GestaoPatrimonioPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
 
         {/* NAVEGAÇÃO DE SUB-ABAS DE PATRIMÔNIO */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-1.5 shadow-2xs flex items-center gap-2 max-w-max">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1.5 shadow-2xs flex items-center gap-2 max-w-max">
           <button
             type="button"
             onClick={() => setActiveTab('VISAO_GERAL')}
@@ -747,22 +747,22 @@ export default function GestaoPatrimonioPage() {
             </div>
 
             {/* Advanced Filters Panel */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3 flex-wrap gap-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-indigo-600"/>
-                  <h2 className="text-sm font-black text-zinc-900 uppercase tracking-wide">Painel de Filtros Avançados</h2>
+                  <Filter className="h-4 w-4 text-indigo-600 dark:text-indigo-400"/>
+                  <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wide">Painel de Filtros Avançados</h2>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleExportFaltantes}
-                    className="px-3 py-1.5 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
                   >
                     📥 Exportar Faltantes (Excel)
                   </button>
                   {isSyncing && (
-                    <span className="flex items-center gap-1 text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100 animate-pulse">
+                    <span className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/60 animate-pulse">
                       <RefreshCw className="h-3 w-3 animate-spin"/> Atualizando...
                     </span>
                   )}
@@ -771,48 +771,48 @@ export default function GestaoPatrimonioPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Pesquisa Livre</label>
-                  <Search className="absolute left-3 top-7 h-4 w-4 text-zinc-400"/>
-                  <input type="text" placeholder="Buscar por TOTVS, Igreja ou Dirigente..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full h-10 bg-zinc-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs outline-none focus:ring-1 focus:ring-indigo-500" />
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Pesquisa Livre</label>
+                  <Search className="absolute left-3 top-7 h-4 w-4 text-zinc-400 dark:text-slate-400"/>
+                  <input type="text" placeholder="Buscar por TOTVS, Igreja ou Dirigente..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 rounded-lg pl-9 pr-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
                 </div>
                 <div className="relative">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Sede Cascata (TOTVS)</label>
-                  <MapPin className="absolute left-3 top-7 h-4 w-4 text-zinc-400"/>
-                  <input type="text" placeholder="TOTVS da Sede (Hierarquia)..." value={filterSede} onChange={(e) => { setFilterSede(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-zinc-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs outline-none focus:ring-1 focus:ring-indigo-500" />
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Sede Cascata (TOTVS)</label>
+                  <MapPin className="absolute left-3 top-7 h-4 w-4 text-zinc-400 dark:text-slate-400"/>
+                  <input type="text" placeholder="TOTVS da Sede (Hierarquia)..." value={filterSede} onChange={(e) => { setFilterSede(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 rounded-lg pl-9 pr-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Região Geográfica</label>
-                  <select value={filterRegiao} onChange={(e) => { setFilterRegiao(e.target.value); setFilterEstado('ALL'); setCurrentPage(1); }} className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500">
-                    {REGIOES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Região Geográfica</label>
+                  <select value={filterRegiao} onChange={(e) => { setFilterRegiao(e.target.value); setFilterEstado('ALL'); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                    {REGIOES.map(r => <option key={r.value} value={r.value} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{r.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Estado (UF)</label>
-                  <select value={filterEstado} onChange={(e) => { setFilterEstado(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500">
-                    <option value="ALL">Todos os Estados</option>
-                    {ESTADOS.map(st => <option key={st} value={st}>{st}</option>)}
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Estado (UF)</label>
+                  <select value={filterEstado} onChange={(e) => { setFilterEstado(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Estados</option>
+                    {ESTADOS.map(st => <option key={st} value={st} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{st}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Porte da Igreja</label>
-                  <select value={filterPorte} onChange={(e) => { setFilterPorte(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500">
-                    <option value="ALL">Todos os Portes</option>
-                    <option value="ESTADUAL">ESTADUAL</option>
-                    <option value="SETORIAL">SETORIAL</option>
-                    <option value="CENTRAL">CENTRAL</option>
-                    <option value="REGIONAL">REGIONAL</option>
-                    <option value="LOCAL">LOCAL</option>
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Porte da Igreja</label>
+                  <select value={filterPorte} onChange={(e) => { setFilterPorte(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Portes</option>
+                    <option value="ESTADUAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">ESTADUAL</option>
+                    <option value="SETORIAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">SETORIAL</option>
+                    <option value="CENTRAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">CENTRAL</option>
+                    <option value="REGIONAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">REGIONAL</option>
+                    <option value="LOCAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">LOCAL</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Status de Envio</label>
-                  <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500">
-                    <option value="ALL">Todos os Status</option>
-                    <option value="ENVIADO">✅ Entregues (Recebidos)</option>
-                    <option value="PENDENTE">❌ Faltantes (Pendentes)</option>
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Status de Envio</label>
+                  <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Status</option>
+                    <option value="ENVIADO" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">✅ Entregues (Recebidos)</option>
+                    <option value="PENDENTE" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">❌ Faltantes (Pendentes)</option>
                   </select>
                 </div>
               </div>
@@ -917,14 +917,14 @@ export default function GestaoPatrimonioPage() {
         {activeTab === 'DASHBOARD_BI' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Top Filter Bar Tab 2 */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3 flex-wrap gap-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-indigo-600"/>
-                  <h2 className="text-sm font-black text-zinc-900 uppercase tracking-wide">Filtros de Malha & Auditoria Patrimonial</h2>
+                  <Filter className="h-4 w-4 text-indigo-600 dark:text-indigo-400"/>
+                  <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wide">Filtros de Malha & Auditoria Patrimonial</h2>
                 </div>
                 {loadingBi && (
-                  <span className="flex items-center gap-1 text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100 animate-pulse">
+                  <span className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/60 animate-pulse">
                     <RefreshCw className="h-3 w-3 animate-spin"/> Atualizando Estatísticas...
                   </span>
                 )}
@@ -932,55 +932,55 @@ export default function GestaoPatrimonioPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Região Geográfica</label>
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Região Geográfica</label>
                   <select
                     value={biRegiao}
                     onChange={(e) => {
                       setBiRegiao(e.target.value);
                       setBiEstado('ALL');
                     }}
-                    className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    {REGIOES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    {REGIOES.map(r => <option key={r.value} value={r.value} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{r.label}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Estado (UF)</label>
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Estado (UF)</label>
                   <select
                     value={biEstado}
                     onChange={(e) => setBiEstado(e.target.value)}
-                    className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="ALL">Todos os Estados</option>
-                    {ESTADOS.map(st => <option key={st} value={st}>{st}</option>)}
+                    <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Estados</option>
+                    {ESTADOS.map(st => <option key={st} value={st} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{st}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Sede Estadual (TOTVS)</label>
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Sede Estadual (TOTVS)</label>
                   <input
                     type="text"
                     placeholder="TOTVS da Sede..."
                     value={biSede}
                     onChange={(e) => setBiSede(e.target.value)}
-                    className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg px-3 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 text-xs rounded-lg px-3 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Porte da Igreja</label>
+                  <label className="text-[10px] font-black text-zinc-400 dark:text-slate-400 uppercase block mb-1">Porte da Igreja</label>
                   <select
                     value={biPorte}
                     onChange={(e) => setBiPorte(e.target.value)}
-                    className="w-full h-10 bg-zinc-50 border border-slate-200 text-xs rounded-lg p-2 font-semibold outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full h-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg p-2 font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="ALL">Todos os Portes</option>
-                    <option value="ESTADUAL">ESTADUAL</option>
-                    <option value="SETORIAL">SETORIAL</option>
-                    <option value="CENTRAL">CENTRAL</option>
-                    <option value="REGIONAL">REGIONAL</option>
-                    <option value="LOCAL">LOCAL</option>
+                    <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Portes</option>
+                    <option value="ESTADUAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">ESTADUAL</option>
+                    <option value="SETORIAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">SETORIAL</option>
+                    <option value="CENTRAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">CENTRAL</option>
+                    <option value="REGIONAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">REGIONAL</option>
+                    <option value="LOCAL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">LOCAL</option>
                   </select>
                 </div>
               </div>

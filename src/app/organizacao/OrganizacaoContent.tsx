@@ -571,8 +571,8 @@ export default function OrganizacaoContent() {
               <div
                 className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all relative z-10 ${
                   isExpanded && hasChildren
-                    ? 'bg-zinc-50 dark:bg-slate-800/60 border-indigo-200 dark:border-indigo-900/60'
-                    : 'bg-white dark:bg-slate-850 border-zinc-200 dark:border-slate-800 hover:border-zinc-300 dark:hover:border-slate-700'
+                    ? 'bg-white dark:bg-slate-800 border-indigo-500 dark:border-indigo-400 text-slate-900 dark:text-white shadow-md'
+                    : 'bg-white dark:bg-slate-800 border-zinc-200 dark:border-slate-700 text-slate-900 dark:text-white hover:border-zinc-300 dark:hover:border-slate-600'
                 }`}
               >
                 <div
@@ -602,18 +602,18 @@ export default function OrganizacaoContent() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-slate-550 leading-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                         {child.desc_igreja}
                       </span>
                       {coligadasCount > 0 && (
-                        <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/50 shrink-0">
+                        <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200/50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 shrink-0">
                           🏛️ {coligadasCount} {coligadasCount === 1 ? 'coligada' : 'coligadas'} na malha
                         </span>
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                      <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-slate-400 font-medium">
-                        TOTVS: <span className="font-mono font-bold text-zinc-700 dark:text-slate-300">{child.codigo_totvs}</span> • {child.endereco} • {child.municipio} - {child.estado}
+                      <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-300 font-medium">
+                        TOTVS: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{child.codigo_totvs}</span> • {child.endereco} • {child.municipio} - {child.estado}
                       </span>
                       {divisaState && (
                         <span className="inline-flex items-center gap-1.5 text-[10px] bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-400 font-bold px-2 py-0.5 rounded-md shadow-xs">
@@ -845,10 +845,10 @@ export default function OrganizacaoContent() {
                       setSelectedStateFilter('ALL');
                       setExpandedNodes(new Set());
                     }}
-                    className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                    className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 text-zinc-900 dark:text-white text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-colors duration-200"
                   >
                     {Object.keys(REGIAO_GEOGRAFICA_MAPPING).map((reg) => (
-                      <option key={reg} value={reg}>
+                      <option key={reg} value={reg} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                         {reg}
                       </option>
                     ))}
@@ -870,16 +870,16 @@ export default function OrganizacaoContent() {
                         setSelectedStateFilter(e.target.value);
                         setExpandedNodes(new Set());
                       }}
-                      className="bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full transition-colors duration-200"
+                      className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 text-zinc-900 dark:text-white text-xs sm:text-sm rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-colors duration-200"
                     >
-                      <option value="ALL">Todos os Estados</option>
+                      <option value="ALL" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Todos os Estados</option>
                       {states.map((st) => (
-                        <option key={st} value={st}>
+                        <option key={st} value={st} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                           {st}
                         </option>
                       ))}
                       {selectedStateFilter !== 'ALL' && !states.includes(selectedStateFilter) && (
-                        <option value={selectedStateFilter}>
+                        <option value={selectedStateFilter} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                           {selectedStateFilter}
                         </option>
                       )}
@@ -896,7 +896,7 @@ export default function OrganizacaoContent() {
                     placeholder="Pesquisar por Código TOTVS, nome ou município..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-750 text-zinc-800 dark:text-slate-100 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full bg-white dark:bg-slate-800/90 border border-zinc-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
               )}
