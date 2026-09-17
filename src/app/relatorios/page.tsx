@@ -19,6 +19,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import ThemeToggle from '@/components/ThemeToggle';
 import {
   Building2,
   Users,
@@ -38,6 +39,7 @@ import {
   Search,
   GitBranch,
   Briefcase,
+  Upload,
 } from 'lucide-react';
 
 interface HierarchyNode {
@@ -408,133 +410,152 @@ export default function RelatoriosPage() {
       </div>
 
       {/* Application Restricted Area Header (Hidden on print) */}
-      <header className="relative z-[9999] h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 sticky top-0 shadow-xs transition-colors duration-200 flex items-center print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex justify-between items-center">
-          <div className="flex items-center space-x-3 shrink-0">
-            <img src="/img/logo.png" alt="GEO-VALIG IPDA" className="h-10 w-auto object-contain shadow-sm" />
-            <div className="hidden sm:block">
-              <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
-                GEO-VALIG IPDA - Relatórios de Matriz
-              </h1>
-              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-                Membresia e condição pastoral
-              </p>
-            </div>
+      <header className="sticky top-0 z-[9999] h-16 w-full bg-white/90 dark:bg-slate-900/90 border-b border-zinc-200 dark:border-slate-800 px-4 md:px-6 flex items-center justify-between gap-2 shrink-0 backdrop-blur-md transition-colors duration-200 print:hidden">
+        {/* Esquerda: Logo oficial + Título curto + Badge da aba */}
+        <div className="flex items-center gap-3 shrink-0">
+          <img
+            src="/img/logo.png"
+            alt="Localização IPDA"
+            className="h-9 w-auto object-contain shrink-0"
+          />
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <h1 className="text-sm md:text-base font-extrabold text-zinc-900 dark:text-white tracking-tight whitespace-nowrap">
+              GEO-VALIG IPDA
+            </h1>
+            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-slate-700 uppercase tracking-wider shrink-0 whitespace-nowrap">
+              Relatórios
+            </span>
           </div>
+        </div>
 
-          {/* Grouped Administrative Navigation Dropdowns */}
-          <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 gap-1 items-center font-semibold text-xs">
-            <a
-              href="/"
-              className="px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs"
-            >
-              <span className="text-sm">🗺️</span>
-              <span>Mapa Geral</span>
-            </a>
+        {/* Centro: Botões de dropdown principais (Visível apenas em xl) */}
+        <div className="hidden xl:flex items-center gap-1 bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold shrink-0 border border-zinc-200/80 dark:border-slate-700/80">
+          <a
+            href="/"
+            className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-zinc-700 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs whitespace-nowrap"
+          >
+            <span>🗺️</span>
+            <span className="whitespace-nowrap">Mapa Geral</span>
+          </a>
 
-            {userRole !== 'viewer' && (
-              <div className="relative group">
-                <button
-                  type="button"
-                  className="px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs"
-                >
-                  <span className="text-sm">📍</span>
-                  <span>Validação & Gestão</span>
-                  <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200"/>
-                </button>
-
-                {/* Invisible padding bridge prevents mouseleave dropoff */}
-                <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200/80 dark:before:border-slate-700/80 before:rotate-45">
-                    <a href="/validacao?tab=validation" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                      <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">📍</div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Validação de Igrejas</span>
-                        <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Aprovação de coordenadas e status</span>
-                      </div>
-                    </a>
-                    <a href="/gestao" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                      <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">👥</div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Gestão Cadastral & Contatos</span>
-                        <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Edição de endereços, padronização de nomes e novas igrejas</span>
-                      </div>
-                    </a>
-                    <a href="/coligacoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                      <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">🌳</div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Malha & Topologia Hierárquica</span>
-                        <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Promoção de portes, encerramento e vínculos hierárquicos</span>
-                      </div>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Inteligência & BI Dropdown */}
+          {userRole !== 'viewer' && (
             <div className="relative group">
               <button
                 type="button"
-                className="px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all text-zinc-650 dark:text-slate-350 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs"
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-zinc-700 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs whitespace-nowrap"
               >
-                <span className="text-sm">📊</span>
-                <span>Inteligência & BI</span>
-                <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200"/>
+                <span>📍</span>
+                <span className="whitespace-nowrap">Validação & Gestão</span>
+                <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200 shrink-0" />
               </button>
 
-              {/* Invisible padding bridge prevents mouseleave dropoff */}
               <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200/80 dark:before:border-slate-700/80 before:rotate-45">
-                  <a href="/validacao?tab=dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                    <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm">📈</div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400">Dashboard Global</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Métricas de geocodificação</span>
+                <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200 dark:before:border-slate-800 before:rotate-45">
+                  <a href="/validacao?tab=validation" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">📍</div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Validação de Igrejas</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Aprovação de coordenadas e status</span>
                     </div>
                   </a>
-                  <a href="/relatorios" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                    <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm">📑</div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400">Relatórios de Matriz</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Membresia e condição pastoral</span>
+                  <a href="/gestao" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">👥</div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Gestão Cadastral & Contatos</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Edição de endereços e contatos</span>
                     </div>
                   </a>
-                  <a href="/gestao-patrimonio" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
-                    <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm">🪑</div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400">Gestão de Patrimônio</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Bens e inventário das igrejas</span>
+                  <a href="/coligacoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                    <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm shrink-0">🌳</div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 whitespace-nowrap">Malha & Topologia Hierárquica</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Vínculos e portes organizacionais</span>
                     </div>
                   </a>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex items-center gap-2">
-            {userName && (
-              <span className="text-xs font-semibold text-zinc-700 dark:text-slate-200 hidden sm:inline-block bg-zinc-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-slate-700">
-                Olá, <strong className="text-indigo-600 dark:text-indigo-400">{userName}</strong>
-              </span>
-            )}
+          <div className="relative group">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-zinc-700 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs whitespace-nowrap"
+            >
+              <span>📊</span>
+              <span className="whitespace-nowrap">Inteligência & BI</span>
+              <ChevronDown className="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform duration-200 shrink-0" />
+            </button>
 
-            <button
-              onClick={handleSyncPublicMap}
-              disabled={syncLoading}
-              className="h-10 px-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all flex items-center justify-center shadow-sm border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-              title="Sincronizar dados e recarregar cache"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncLoading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="h-10 px-3.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-red-200/50 dark:border-red-900/40 bg-white dark:bg-slate-800"
-            >
-              <Power className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Sair</span>
-            </button>
+            <div className="absolute top-full left-0 pt-2 w-64 hidden group-hover:block z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 flex flex-col gap-1 relative before:absolute before:-top-1.5 before:left-8 before:w-3 before:h-3 before:bg-white dark:before:bg-slate-900 before:border-t before:border-l before:border-zinc-200 dark:before:border-slate-800 before:rotate-45">
+                <a href="/validacao?tab=dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">📈</div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Dashboard Global</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Métricas de geocodificação</span>
+                  </div>
+                </a>
+                <a href="/relatorios" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">📑</div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Relatórios de Matriz</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Membresia e condição pastoral</span>
+                  </div>
+                </a>
+                <a href="/gestao-patrimonio" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
+                  <div className="bg-emerald-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-emerald-200/50 transition-colors text-base shadow-sm shrink-0">🪑</div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-emerald-700 dark:group-hover/item:text-emerald-400 whitespace-nowrap">Gestão de Patrimônio</span>
+                    <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium whitespace-nowrap">Bens e inventário das igrejas</span>
+                  </div>
+                </a>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Direita: Botão secundário de Importar + ThemeToggle + Badge usuário + Sair */}
+        <div className="flex items-center gap-2 shrink-0">
+          {userRole !== 'viewer' && (
+            <a
+              href="/validacao?tab=upload"
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 border border-zinc-200 dark:border-slate-700 bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-slate-200 hover:bg-zinc-200 dark:hover:bg-slate-700"
+              title="Importar Planilha Excel"
+            >
+              <Upload className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Importar Planilha</span>
+              <span className="sm:hidden whitespace-nowrap">Importar</span>
+            </a>
+          )}
+
+          <ThemeToggle />
+
+          {userName && (
+            <span className="text-xs font-semibold text-zinc-700 dark:text-slate-200 hidden md:inline-block bg-zinc-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-slate-700 whitespace-nowrap shrink-0">
+              Olá, <strong className="text-indigo-600 dark:text-indigo-400 whitespace-nowrap">{userName}</strong>
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSyncPublicMap}
+            disabled={syncLoading}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] border border-zinc-200 dark:border-slate-800 cursor-pointer"
+            title="Sincronizar Mapa Público (Forçar revalidação de cache)"
+          >
+            <RefreshCw className={`h-4 w-4 shrink-0 ${syncLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="px-2.5 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 whitespace-nowrap border border-transparent hover:border-red-200 dark:hover:border-red-900/50 cursor-pointer"
+            title="Sair do painel administrativo"
+          >
+            <Power className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline whitespace-nowrap">Sair</span>
+          </button>
         </div>
       </header>
 

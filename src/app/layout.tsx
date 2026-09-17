@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Localizações IPDA | Geolocalização e Mapeamento Oficial",
@@ -16,8 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-white text-zinc-900 transition-colors duration-200">
-        {children}
+      <body className="min-h-full flex flex-col bg-white dark:bg-slate-950 text-zinc-900 dark:text-slate-100 transition-colors duration-200">
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
