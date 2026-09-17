@@ -24,6 +24,7 @@ import useSWR from 'swr';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ChurchDetailModal from './ChurchDetailModal';
 import RouteCompareModal from './RouteCompareModal';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -1371,16 +1372,19 @@ const MemoizedMapView = memo(function MapView({
       </MapContainer>
 
       {/* Floating Controls Container (Top Spacing Safe for Navigation Bar: top-36 md:top-24, z-[1025]) */}
-      <div className="absolute top-36 md:top-24 right-3 md:right-4 z-[1025] flex flex-col items-end gap-2.5">
+      <div className="absolute top-36 md:top-24 right-3 md:right-4 z-[1025] flex items-center gap-2">
+        {/* Botão de Tema Flutuante */}
+        <ThemeToggle className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md border border-zinc-200 dark:border-slate-700 backdrop-blur-md hover:scale-105 transition-all cursor-pointer shrink-0" />
+
         {/* Map Layer Overlay Selector */}
-        <div className="flex bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-zinc-200 overflow-hidden text-[11px] font-bold">
+        <div className="flex bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-zinc-200 dark:border-slate-800 overflow-hidden text-[11px] font-bold">
           <button
             type="button"
             onClick={() => setMapType('satellite')}
             className={`px-3 py-2 transition-all ${
               mapType === 'satellite'
                 ? 'bg-indigo-600 text-white'
-                : 'bg-white text-zinc-700 hover:bg-zinc-50'
+                : 'bg-white dark:bg-slate-900 text-zinc-700 dark:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-800'
             }`}
           >
             Satélite Esri
@@ -1391,7 +1395,7 @@ const MemoizedMapView = memo(function MapView({
             className={`px-3 py-2 transition-all ${
               mapType === 'osm'
                 ? 'bg-indigo-600 text-white'
-                : 'bg-white text-zinc-700 hover:bg-zinc-50'
+                : 'bg-white dark:bg-slate-900 text-zinc-700 dark:text-slate-200 hover:bg-zinc-50 dark:hover:bg-slate-800'
             }`}
           >
             Mapa (OSM)
