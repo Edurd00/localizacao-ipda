@@ -1,19 +1,16 @@
-
-> test-dir@0.1.0 dev
-> next dev
-
-▲ Next.js 16.2.11 (Turbopack)
-- Local:         http://localhost:3000
-- Network:       http://192.168.0.2:3000
-✓ Ready in 527ms
-
-○ Compiling / ...
- HEAD / 200 in 3.8s (next.js: 3.6s, application-code: 239ms)
- GET / 200 in 105ms (next.js: 9ms, application-code: 96ms)
- GET /api/igrejas/validadas 200 in 1049ms (next.js: 1037ms, application-code: 11ms)
- GET /api/auth/session 200 in 1059ms (next.js: 838ms, application-code: 222ms)
- GET /api/auth/session 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /organizacao 200 in 1106ms (next.js: 892ms, application-code: 214ms)
- GET /api/auth/session 200 in 13ms (next.js: 4ms, application-code: 9ms)
- GET /api/organizacao?estado=ALL 200 in 213ms (next.js: 203ms, application-code: 10ms)
- GET /api/organizacao 200 in 227ms (next.js: 219ms, application-code: 8ms)
+▲ Next.js 16.2.11
+- Local:         http://localhost:3005
+- Network:       http://192.168.0.2:3005
+✓ Ready in 193ms
+API Error in GET /api/igrejas: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
+    at d (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:1636)
+    at E (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:2819)
+    at s (.next/server/chunks/[root-of-the-server]__1sruibi._.js:1:1360)
+API Error in GET /api/coligacoes: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
+    at d (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:1636)
+    at E (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:2819)
+    at o (.next/server/chunks/[root-of-the-server]__0zof54k._.js:1:1109)
+API Error in GET /api/admin/igrejas-completas: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
+    at d (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:1636)
+    at E (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:2819)
+    at l (.next/server/chunks/[root-of-the-server]__0un35jj._.js:1:5215)

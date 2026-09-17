@@ -829,10 +829,10 @@ export default function ColigacoesPage() {
               </a>
               <div>
                 <h1 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
-                  🌳 Gestão de Coligações e Hierarquia
+                  🌳 Malha & Topologia Hierárquica
                 </h1>
                 <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-                  GEO-VALIG • Inteligência de Dados e Topologias
+                  Promoção de portes, encerramento e vínculos hierárquicos
                 </p>
               </div>
             </div>
@@ -888,15 +888,15 @@ export default function ColigacoesPage() {
                         <a href="/gestao" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
                           <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">👥</div>
                           <div className="flex flex-col">
-                            <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Gestão de Contatos</span>
-                            <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Dirigentes e tesouraria local</span>
+                            <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Gestão Cadastral & Contatos</span>
+                            <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Edição de endereços, padronização de nomes e novas igrejas</span>
                           </div>
                         </a>
                         <a href="/coligacoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-zinc-700 dark:text-slate-200 transition-colors group/item">
                           <div className="bg-indigo-100/50 dark:bg-slate-700 p-2 rounded-lg group-hover/item:bg-indigo-200/50 transition-colors text-base shadow-sm">🌳</div>
                           <div className="flex flex-col">
-                            <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Malha de Coligações</span>
-                            <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Estrutura hierárquica e vínculos</span>
+                            <span className="text-xs font-bold text-zinc-900 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400">Malha & Topologia Hierárquica</span>
+                            <span className="text-[9px] text-zinc-500 dark:text-slate-400 font-medium">Promoção de portes, encerramento e vínculos hierárquicos</span>
                           </div>
                         </a>
                       </div>
@@ -1229,7 +1229,9 @@ export default function ColigacoesPage() {
                   <div className="space-y-2 text-xs text-zinc-700 bg-zinc-50/50 p-3 rounded-xl border border-zinc-200">
                     <p className="flex items-center gap-1.5">
                       <strong className="font-semibold text-zinc-400">Endereço:</strong>{' '}
-                      <span className="font-medium text-zinc-900">{selectedChurch.endereco}</span>
+                      <span className="font-medium text-zinc-900">
+                        {selectedChurch.endereco ? `${selectedChurch.endereco}${selectedChurch.bairro ? ` - ${selectedChurch.bairro}` : ''}` : 'Endereço não informado'}
+                      </span>
                     </p>
                     <p className="flex items-center gap-1.5">
                       <strong className="font-semibold text-zinc-400">Cidade:</strong>{' '}

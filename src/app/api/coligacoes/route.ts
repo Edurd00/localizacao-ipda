@@ -13,7 +13,9 @@ export async function GET() {
       'porte',
       'status',
       'municipio',
-      'estado'
+      'estado',
+      'endereco',
+      'bairro'
     ]);
     const states = await getDistinctStates();
     return new NextResponse(
