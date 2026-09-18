@@ -1508,11 +1508,11 @@ const MemoizedMapView = memo(function MapView({
               setRouteMeta(null);
             }}
           />
-          <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:bottom-6 md:right-6 md:left-auto w-full md:w-80 rounded-t-3xl md:rounded-2xl border-t md:border border-zinc-200 bg-white/95 backdrop-blur-md p-5 shadow-2xl space-y-3 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-bottom-2 flex flex-col">
-            <div className="flex items-center justify-between border-b border-zinc-150 pb-2 gap-4 shrink-0">
-              <div className="flex items-center gap-1.5 text-zinc-900">
+          <div className="fixed bottom-0 left-0 right-0 top-auto md:absolute md:bottom-6 md:right-6 md:left-auto w-full md:w-80 rounded-t-3xl md:rounded-3xl border-t md:border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xl p-5 space-y-3 z-[1030] max-h-[85vh] overflow-y-auto duration-300 animate-in slide-in-from-bottom md:slide-in-from-bottom-2 flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 gap-4 shrink-0">
+              <div className="flex items-center gap-1.5 text-slate-900 dark:text-slate-100">
                 <span className="text-sm">🚗</span>
-                <h3 className="text-xs font-black uppercase tracking-wider">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
                   Rota Ativa
                 </h3>
               </div>
@@ -1522,41 +1522,41 @@ const MemoizedMapView = memo(function MapView({
                   setRouteMeta(null);
                   toast.info('Rota terrestre removida do mapa.');
                 }}
-                className="text-zinc-400 hover:text-zinc-650 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-100 rounded-full transition-all"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all"
                 title="Limpar Rota"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 text-slate-500 dark:text-slate-400" />
               </button>
             </div>
 
             <div className="space-y-2 text-xs pt-1 overflow-y-auto">
               <div>
-                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Origem</span>
-                <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.originName}>{routeMeta.originName}</span>
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">ORIGEM</span>
+                <span className="font-extrabold text-slate-900 dark:text-white block truncate max-w-[260px]" title={routeMeta.originName}>{routeMeta.originName}</span>
               </div>
               <div>
-                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Destino</span>
-                <span className="font-bold text-zinc-800 block truncate max-w-[260px]" title={routeMeta.destinationName}>{routeMeta.destinationName}</span>
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">DESTINO</span>
+                <span className="font-extrabold text-slate-900 dark:text-white block truncate max-w-[260px]" title={routeMeta.destinationName}>{routeMeta.destinationName}</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-zinc-100">
+              <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Distância Total</span>
-                  <span className="text-xs font-black text-indigo-650">{routeMeta.distance} km</span>
+                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">DISTÂNCIA TOTAL</span>
+                  <span className="text-xs font-extrabold text-slate-900 dark:text-white">{routeMeta.distance} km</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Tempo Estimado</span>
-                  <span className="text-xs font-black text-indigo-650">{routeMeta.duration}</span>
+                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">TEMPO ESTIMADO</span>
+                  <span className="text-xs font-extrabold text-slate-900 dark:text-white">{routeMeta.duration}</span>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-zinc-100 flex flex-col gap-2 shrink-0">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2 shrink-0">
               <a
                 href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}&travelmode=transit`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full text-center px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-250 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs min-h-[44px]"
+                className="w-full text-center px-4 py-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs min-h-[44px]"
                 title="Ver linhas de ônibus intermunicipais/urbanos, rodoviárias mais próximas, horários e custos de passagem para este destino específico"
               >
                 <span>🚌 Ver Opções de Ônibus / Transporte Público</span>
@@ -1565,7 +1565,7 @@ const MemoizedMapView = memo(function MapView({
                 href={`https://www.google.com/maps/dir/?api=1&origin=${routeMeta.originCoords[0]},${routeMeta.originCoords[1]}&destination=${routeMeta.destinationCoords[0]},${routeMeta.destinationCoords[1]}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full text-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs hover:shadow-sm min-h-[44px]"
+                className="w-full text-center px-4 py-2.5 bg-indigo-600 dark:bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md min-h-[44px]"
               >
                 <span>Abrir GPS / Google Maps ↗</span>
                 <ExternalLink className="h-3.5 w-3.5" />
