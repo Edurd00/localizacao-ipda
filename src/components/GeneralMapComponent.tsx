@@ -17,6 +17,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
   Lock,
+  HelpCircle,
 } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { Toaster, toast } from 'sonner';
@@ -24,6 +25,7 @@ import useSWR from 'swr';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ChurchDetailModal from './ChurchDetailModal';
 import RouteCompareModal from './RouteCompareModal';
+import HelpTutorialModal from './HelpTutorialModal';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export function normalizeText(text: string): string {
@@ -917,6 +919,8 @@ interface MapViewProps {
   setRegionLegendOpen: (val: boolean) => void;
   porteLegendMobileOpen: boolean;
   setPorteLegendMobileOpen: (val: boolean) => void;
+  isHelpModalOpen: boolean;
+  setIsHelpModalOpen: (val: boolean) => void;
 }
 
 const MemoizedMapView = memo(function MapView({
@@ -962,6 +966,8 @@ const MemoizedMapView = memo(function MapView({
   setRegionLegendOpen,
   porteLegendMobileOpen,
   setPorteLegendMobileOpen,
+  isHelpModalOpen,
+  setIsHelpModalOpen,
 }: MapViewProps) {
   const [activePopupChurch, setActivePopupChurch] = useState<Igreja | null>(null);
   const markerRefs = useRef<Record<string, L.Marker | null>>({});
@@ -1376,6 +1382,16 @@ const MemoizedMapView = memo(function MapView({
         {/* Botão de Tema Flutuante */}
         <ThemeToggle className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md border border-zinc-200 dark:border-slate-700 backdrop-blur-md hover:scale-105 transition-all cursor-pointer shrink-0" />
 
+        {/* Botão da Central de Ajuda e Tutorial */}
+        <button
+          type="button"
+          onClick={() => setIsHelpModalOpen(true)}
+          className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md border border-zinc-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:scale-105 transition-all cursor-pointer z-[1000]"
+          title="Central de Ajuda e Tutorial"
+        >
+          <HelpCircle className="h-5 w-5" />
+        </button>
+
         {/* Map Layer Overlay Selector */}
         <div className="flex bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-zinc-200 dark:border-slate-800 overflow-hidden text-[11px] font-bold">
           <button
@@ -1687,6 +1703,12 @@ const MemoizedMapView = memo(function MapView({
           </div>
         </>
       )}
+
+      {/* Central de Ajuda e Tutorial Modal */}
+      <HelpTutorialModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+      />
     </div>
   );
 });
@@ -2015,6 +2037,9 @@ export default function GeneralMapComponent({
   const [selectedConnectionPath, setSelectedConnectionPath] = useState<[number, number][] | null>(null);
   const [connectionPathSource, setConnectionPathSource] = useState<string | null>(null);
   const [activeChainCodes, setActiveChainCodes] = useState<string[]>([]);
+
+  // Help Modal state
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Floating Region Legend collapsible state
   const [regionLegendOpen, setRegionLegendOpen] = useState(false);
@@ -2552,6 +2577,8 @@ export default function GeneralMapComponent({
             setRegionLegendOpen={setRegionLegendOpen}
             porteLegendMobileOpen={porteLegendMobileOpen}
             setPorteLegendMobileOpen={setPorteLegendMobileOpen}
+            isHelpModalOpen={isHelpModalOpen}
+            setIsHelpModalOpen={setIsHelpModalOpen}
           />
         )}
       </div>
