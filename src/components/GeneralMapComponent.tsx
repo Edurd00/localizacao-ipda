@@ -639,7 +639,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
       )}
 
       {!suggestionsClosed && suggestions.length > 0 && (
-        <div className="absolute top-11 left-0 right-0 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[5000] divide-y divide-zinc-100 dark:divide-slate-800 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-2 z-[9999] max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 animate-in fade-in slide-in-from-top-1 duration-150">
           {suggestions.map((ig) => {
             const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
             const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
@@ -652,21 +652,21 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
                   setSuggestionsClosed(true);
                   onSelectSuggestion(ig);
                 }}
-                className="w-full text-left p-3 hover:bg-zinc-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-xs text-zinc-800 dark:text-slate-200 font-medium"
+                className="w-full text-left p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-between gap-2 text-xs font-medium cursor-pointer"
               >
-                <div className="min-w-0 pr-3">
-                  <span className="font-bold text-zinc-950 dark:text-white block truncate leading-tight">
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-slate-900 dark:text-white block truncate leading-snug">
                     {ig.desc_igreja}
                   </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-slate-500 mt-1 block">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block truncate font-mono">
                     TOTVS: {ig.codigo_totvs} • {ig.municipio} - {ig.estado}
                   </span>
                 </div>
                 <span
-                  className="text-[9px] font-bold px-2 py-0.5 rounded-full border text-white uppercase shrink-0"
+                  className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border text-white uppercase shrink-0"
                   style={{
                     backgroundColor: info.color,
-                    borderColor: 'rgba(0,0,0,0.1)',
+                    borderColor: 'rgba(255,255,255,0.2)',
                   }}
                 >
                   {porte}
@@ -1661,18 +1661,18 @@ const MemoizedMapView = memo(function MapView({
       {porteLegendMobileOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1025] md:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[2025] md:hidden"
             onClick={() => setPorteLegendMobileOpen(false)}
           />
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 rounded-t-3xl shadow-2xl p-6 z-[1030] max-h-[85vh] overflow-y-auto space-y-6 md:hidden animate-in slide-in-from-bottom duration-300 flex flex-col">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-2 shrink-0">
-              <h3 className="text-sm font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Layers className="h-4.5 w-4.5 text-indigo-600" />
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-t-3xl shadow-2xl p-6 z-[2030] max-h-[85vh] overflow-y-auto space-y-6 md:hidden animate-in slide-in-from-bottom duration-300 flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 shrink-0">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
                 Legendas do Mapa
               </h3>
               <button
                 onClick={() => setPorteLegendMobileOpen(false)}
-                className="text-zinc-400 hover:text-zinc-650 p-2.5 hover:bg-zinc-100 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1680,17 +1680,17 @@ const MemoizedMapView = memo(function MapView({
 
             <div className="space-y-5 overflow-y-auto">
               <div>
-                <h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider mb-2.5 flex items-center gap-1">
+                <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-2.5 flex items-center gap-1">
                   <span>⭐</span> Portes Oficiais
                 </h4>
-                <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-zinc-750">
+                <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-700 dark:text-slate-100">
                   {Object.values(PORTE_INFO).map((item) => (
                     <div key={item.name} className="flex items-center space-x-2">
                       <span
                         className="w-4 h-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.15)] inline-block shrink-0"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="uppercase tracking-wide font-mono text-zinc-800 text-[10px]">
+                      <span className="uppercase tracking-wide font-mono text-slate-800 dark:text-slate-200 text-[10px]">
                         {item.name}
                       </span>
                     </div>
@@ -1698,37 +1698,37 @@ const MemoizedMapView = memo(function MapView({
                 </div>
               </div>
 
-              <div className="border-t border-zinc-100 pt-4">
-                <h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider mb-2.5 flex items-center gap-1">
+              <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+                <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-2.5 flex items-center gap-1">
                   <span>🎨</span> Cores de Agrupamento (Regiões/UF)
                 </h4>
-                <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-zinc-750">
+                <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-700 dark:text-slate-100">
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#F59E0B] shrink-0" />
+                    <span className="w-4 h-4 rounded-md border border-slate-300 dark:border-slate-700 bg-[#F59E0B] shrink-0" />
                     <span>SP</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#EA580C] shrink-0" />
+                    <span className="w-4 h-4 rounded-md border border-slate-300 dark:border-slate-700 bg-[#EA580C] shrink-0" />
                     <span>MG</span>
                   </div>
                   <div className="flex items-center space-x-2 col-span-2">
-                    <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#DC2626] shrink-0" />
+                    <span className="w-4 h-4 rounded-md border border-slate-300 dark:border-slate-700 bg-[#DC2626] shrink-0" />
                     <span>ES / RJ</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#2563EB] shrink-0" />
+                    <span className="w-4 h-4 rounded-md border border-slate-300 dark:border-slate-700 bg-[#2563EB] shrink-0" />
                     <span>Sul</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#059669] shrink-0" />
+                    <span className="w-4 h-4 rounded-md border border-slate-300 dark:border-slate-700 bg-[#059669] shrink-0" />
                     <span>Norte</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#7C3AED] shrink-0" />
+                    <span className="w-4 h-4 rounded-md border border-slate-300 dark:border-slate-700 bg-[#7C3AED] shrink-0" />
                     <span>Nordeste</span>
                   </div>
                   <div className="flex items-center space-x-2 col-span-2">
-                    <span className="w-4 h-4 rounded-md border border-zinc-300 bg-[#0891B2] shrink-0" />
+                    <span className="w-4 h-4 rounded-md border border-slate-300 dark:border-slate-700 bg-[#0891B2] shrink-0" />
                     <span>Centro-Oeste</span>
                   </div>
                 </div>
