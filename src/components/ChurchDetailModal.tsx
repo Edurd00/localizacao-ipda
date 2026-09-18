@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Building2, MapPin, Loader2, Link, User, Phone } from 'lucide-react';
+import { Building2, MapPin, Loader2, Link, User, Phone, X } from 'lucide-react';
 import { Igreja } from '@/lib/db';
 import { toast } from 'sonner';
 import { PORTE_INFO, getPorte, getDescendantCount, formatLeadershipTenure } from './GeneralMapComponent';
@@ -23,6 +23,7 @@ export interface ChurchDetailModalProps {
   isAuthenticated: boolean;
   handleTraceConnectionMesh: (ig: Igreja) => void;
   fetchTerrestrialRoute: (origin: Igreja, dest: Igreja, profile?: 'driving' | 'foot') => Promise<boolean>;
+  onClose?: () => void;
 }
 
 export default function ChurchDetailModal({
@@ -42,6 +43,7 @@ export default function ChurchDetailModal({
   isAuthenticated,
   handleTraceConnectionMesh,
   fetchTerrestrialRoute,
+  onClose,
 }: ChurchDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'geral' | 'lideranca' | 'patrimonio' | 'historico'>('geral');
   const [liderancaData, setLiderancaData] = useState<any>(null);
@@ -124,31 +126,46 @@ export default function ChurchDetailModal({
   const totalCascata = getDescendantCount(ig.codigo_totvs, igrejas);
 
   return (
-    <div className="w-[350px] p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden text-slate-800 dark:text-slate-100 space-y-2 font-sans text-xs">
-      {/* Title & Header Badges */}
-      <div>
-        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
-          {ig.desc_igreja}
-        </h3>
-        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span className="text-[9px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-            TOTVS: {ig.codigo_totvs}
-          </span>
-          <span
-            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border text-white"
-            style={{
-              backgroundColor: PORTE_INFO[porte]?.color || '#A6A6A6',
-              borderColor: 'rgba(0,0,0,0.1)',
-            }}
-          >
-            {porte}
-          </span>
-          {totalCascata > 0 && (
-            <span className="px-2 py-0.5 bg-indigo-100 dark:bg-slate-800 text-indigo-800 dark:text-indigo-300 text-[10px] font-bold rounded-full border border-indigo-200 dark:border-slate-700 inline-flex items-center gap-1">
-              🏛️ {totalCascata} na malha
+    <div className="fixed inset-x-0 bottom-0 sm:top-1/2 sm:-translate-y-1/2 sm:left-1/2 sm:-translate-x-1/2 w-full sm:max-w-xl max-h-[65vh] sm:max-h-[85vh] bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-3xl shadow-2xl z-[9999] overflow-y-auto animate-in slide-in-from-bottom duration-300 p-4 font-sans text-xs space-y-3">
+      {/* Drag handle pill at top of drawer */}
+      <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2 shrink-0" />
+
+      {/* Header with Title, Badges and Close Button */}
+      <div className="flex items-start justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug truncate">
+            {ig.desc_igreja}
+          </h3>
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            <span className="text-[9px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+              TOTVS: {ig.codigo_totvs}
             </span>
-          )}
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border text-white"
+              style={{
+                backgroundColor: PORTE_INFO[porte]?.color || '#A6A6A6',
+                borderColor: 'rgba(0,0,0,0.1)',
+              }}
+            >
+              {porte}
+            </span>
+            {totalCascata > 0 && (
+              <span className="px-2 py-0.5 bg-indigo-100 dark:bg-slate-800 text-indigo-800 dark:text-indigo-300 text-[10px] font-bold rounded-full border border-indigo-200 dark:border-slate-700 inline-flex items-center gap-1">
+                🏛️ {totalCascata} na malha
+              </span>
+            )}
+          </div>
         </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all shrink-0 cursor-pointer"
+            title="Fechar Detalhes"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation Tabs (Segmented Control Layout) */}
@@ -262,7 +279,7 @@ export default function ChurchDetailModal({
                       <span>📍 Alvo de Análise</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 my-2">
+                    <div className="grid grid-cols-2 gap-2 my-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -272,7 +289,7 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(null);
                           toast.info('Modo comparativo desativado.');
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer"
                       >
                         <span className="text-xs">📐</span>
                         <span className="truncate font-semibold">Cancelar Comp.</span>
@@ -281,10 +298,10 @@ export default function ChurchDetailModal({
                       <button
                         type="button"
                         onClick={() => handleTraceConnectionMesh(ig)}
-                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold border rounded-xl transition-all cursor-pointer ${
                           String(connectionPathSource) === String(ig.codigo_totvs)
                             ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                            : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                            : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
                         }`}
                       >
                         <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
@@ -293,15 +310,15 @@ export default function ChurchDetailModal({
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-1.5 my-2">
-                    <div className="grid grid-cols-2 gap-1.5 my-2">
+                  <div className="space-y-2 my-2">
+                    <div className="grid grid-cols-2 gap-2 my-1">
                       <button
                         type="button"
                         onClick={() => {
                           setSedeCandidataA(ig);
                           toast.success(`Sede Candidata A definida: ${ig.desc_igreja}`);
                         }}
-                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold border rounded-xl transition-all cursor-pointer ${
                           String(sedeCandidataA?.codigo_totvs) === String(ig.codigo_totvs)
                             ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
                             : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
@@ -317,7 +334,7 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(ig);
                           toast.success(`Sede Candidata B definida: ${ig.desc_igreja}`);
                         }}
-                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold border rounded-xl transition-all cursor-pointer ${
                           String(sedeCandidataB?.codigo_totvs) === String(ig.codigo_totvs)
                             ? 'border-cyan-500 bg-cyan-500 text-white hover:bg-cyan-600'
                             : 'border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-800'
@@ -328,7 +345,7 @@ export default function ChurchDetailModal({
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 my-2">
+                    <div className="grid grid-cols-2 gap-2 my-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -338,7 +355,7 @@ export default function ChurchDetailModal({
                           setSedeCandidataB(null);
                           toast.success(`Novo destino definido: "${ig.desc_igreja}". Selecione as candidatas A e B.`);
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl transition-all cursor-pointer"
                       >
                         <span className="text-xs">📐</span>
                         <span className="truncate font-semibold">Comparar Rotas</span>
@@ -347,10 +364,10 @@ export default function ChurchDetailModal({
                       <button
                         type="button"
                         onClick={() => handleTraceConnectionMesh(ig)}
-                        className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold border rounded-xl transition-all cursor-pointer ${
                           String(connectionPathSource) === String(ig.codigo_totvs)
-                            ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                            : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                            ? 'bg-rose-50 dark:bg-slate-800 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-700 hover:bg-rose-100'
+                            : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
                         }`}
                       >
                         <span className="text-xs">{String(connectionPathSource) === String(ig.codigo_totvs) ? '❌' : '🔗'}</span>
@@ -362,13 +379,13 @@ export default function ChurchDetailModal({
               ) : (
                 <>
                   {/* Grid 2x2 para os 4 botões de ação */}
-                  <div className="grid grid-cols-2 gap-1.5 my-2">
+                  <div className="grid grid-cols-2 gap-2 my-2">
                     {/* 1. Rota Superior */}
                     <button
                       type="button"
                       disabled={!(ig.codigo_totvs_pai && parentChurch)}
                       onClick={() => fetchTerrestrialRoute(ig, parentChurch!)}
-                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       title={ig.codigo_totvs_pai && parentChurch ? `Rota para Sede Superior: ${parentChurch.desc_igreja}` : 'Sem coligação superior registrada'}
                     >
                       <span className="text-xs">🚗</span>
@@ -383,7 +400,7 @@ export default function ChurchDetailModal({
                           setPontoOrigem(ig);
                           toast.success(`Origem definida: ${ig.desc_igreja}`);
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl transition-all cursor-pointer"
                       >
                         <span className="text-xs">📍</span>
                         <span className="truncate font-semibold">Definir Origem</span>
@@ -397,7 +414,7 @@ export default function ChurchDetailModal({
                             setPontoOrigem(null);
                           }
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-emerald-900 dark:text-emerald-300 bg-emerald-50 dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded-lg hover:bg-emerald-100 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-xs"
+                        className="flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold text-emerald-900 dark:text-emerald-300 bg-emerald-50 dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded-xl hover:bg-emerald-100 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-xs"
                         title={`Traçar rota a partir de ${pontoOrigem.desc_igreja}`}
                       >
                         <span className="text-xs">🏁</span>
@@ -410,7 +427,7 @@ export default function ChurchDetailModal({
                           setPontoOrigem(null);
                           toast.info('Origem de rota cancelada.');
                         }}
-                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-slate-800 border border-rose-200 dark:border-rose-700 rounded-lg hover:bg-rose-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                        className="flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-slate-800 border border-rose-200 dark:border-rose-700 rounded-xl hover:bg-rose-100 dark:hover:bg-slate-700 transition-all cursor-pointer"
                       >
                         <span className="text-xs">❌</span>
                         <span className="truncate font-semibold">Cancelar Origem</span>
@@ -427,7 +444,7 @@ export default function ChurchDetailModal({
                         setSedeCandidataB(null);
                         toast.success(`Modo Comparativo Ativo! "${ig.desc_igreja}" definido como Destino.`);
                       }}
-                      className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-all cursor-pointer"
+                      className="flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl transition-all cursor-pointer"
                     >
                       <span className="text-xs">📐</span>
                       <span className="truncate font-semibold">Comparar Rotas</span>
@@ -437,7 +454,7 @@ export default function ChurchDetailModal({
                     <button
                       type="button"
                       onClick={() => handleTraceConnectionMesh(ig)}
-                      className={`flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-semibold border rounded-lg transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-1 px-2.5 py-2 min-h-[44px] text-[10px] sm:text-xs font-semibold border rounded-xl transition-all cursor-pointer ${
                         String(connectionPathSource) === String(ig.codigo_totvs)
                           ? 'bg-rose-50 dark:bg-slate-800 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-700 hover:bg-rose-100'
                           : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
@@ -455,7 +472,7 @@ export default function ChurchDetailModal({
                 href={ig.link_google_maps || `https://www.google.com/maps?q=${ig.latitude},${ig.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-slate-700 border border-indigo-200 dark:border-slate-700 rounded-lg transition-all"
+                className="w-full min-h-[44px] flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-slate-700 border border-indigo-200 dark:border-slate-700 rounded-xl transition-all"
               >
                 <span>🗺️</span>
                 <span>Abrir no Google Maps ↗</span>
