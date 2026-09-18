@@ -652,24 +652,24 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
                   setSuggestionsClosed(true);
                   onSelectSuggestion(ig);
                 }}
-                className="w-full text-left p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-between gap-2 text-xs font-medium cursor-pointer"
+                className="w-full text-left p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-800/50 transition-colors flex flex-col justify-center gap-1 min-h-[44px] cursor-pointer"
               >
-                <div className="min-w-0 flex-1">
-                  <span className="font-bold text-slate-900 dark:text-white block truncate leading-snug">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <span className="font-bold text-slate-900 dark:text-white text-sm truncate">
                     {ig.desc_igreja}
                   </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block truncate font-mono">
-                    TOTVS: {ig.codigo_totvs} • {ig.municipio} - {ig.estado}
+                  <span
+                    className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border text-white uppercase shrink-0"
+                    style={{
+                      backgroundColor: info.color,
+                      borderColor: 'rgba(255,255,255,0.2)',
+                    }}
+                  >
+                    {porte}
                   </span>
                 </div>
-                <span
-                  className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border text-white uppercase shrink-0"
-                  style={{
-                    backgroundColor: info.color,
-                    borderColor: 'rgba(255,255,255,0.2)',
-                  }}
-                >
-                  {porte}
+                <span className="text-xs text-slate-500 dark:text-slate-400 block truncate">
+                  TOTVS: {ig.codigo_totvs}{ig.bairro ? ` • ${ig.bairro}` : ''} • {ig.municipio} - {ig.estado}
                 </span>
               </button>
             );
@@ -677,6 +677,151 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
         </div>
       )}
     </div>
+  );
+}
+
+// Subcomponent: Dedicated Mobile Search Overlay component
+interface MobileSearchOverlayProps {
+  isOpen: boolean;
+  onClose: () => void;
+  igrejas: Igreja[];
+  onSelectSuggestion: (ig: Igreja) => void;
+  resetKey: number;
+}
+
+function MobileSearchOverlay({
+  isOpen,
+  onClose,
+  igrejas,
+  onSelectSuggestion,
+  resetKey,
+}: MobileSearchOverlayProps) {
+  const [inputValue, setInputValue] = useState('');
+
+  useEffect(() => {
+    setInputValue('');
+  }, [resetKey, isOpen]);
+
+  const suggestions = useMemo(() => {
+    const term = inputValue.trim().toLowerCase();
+    if (term.length < 2) return [];
+
+    const termNorm = normalizeTotvs(term);
+
+    const matches = igrejas.filter((ig) => {
+      const normIg = normalizeTotvs(ig.codigo_totvs);
+      const codeMatch = normIg === termNorm || String(ig.codigo_totvs || '').toLowerCase().includes(term);
+      const nameMatch = String(ig.desc_igreja || '').toLowerCase().includes(term);
+      const addressMatch = String(ig.endereco || '').toLowerCase().includes(term);
+      const cityMatch = String(ig.municipio || '').toLowerCase().includes(term);
+      return codeMatch || nameMatch || addressMatch || cityMatch;
+    });
+
+    matches.sort((a, b) => {
+      const aNorm = normalizeTotvs(a.codigo_totvs);
+      const bNorm = normalizeTotvs(b.codigo_totvs);
+
+      const aExact = aNorm === termNorm;
+      const bExact = bNorm === termNorm;
+
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return a.desc_igreja.localeCompare(b.desc_igreja);
+    });
+
+    return matches.slice(0, 8);
+  }, [igrejas, inputValue]);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 z-[9998] sm:hidden backdrop-blur-xs"
+        onClick={onClose}
+      />
+
+      {/* Mobile Search Overlay container */}
+      <div className="fixed inset-x-2 top-2 z-[9999] bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl sm:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="relative flex items-center w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            autoFocus
+            placeholder="Buscar por código TOTVS, nome, rua ou município..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (suggestions.length > 0) {
+                  onSelectSuggestion(suggestions[0]);
+                  onClose();
+                }
+              }
+            }}
+            className="w-full h-10 bg-slate-800 border border-slate-700 text-white placeholder:text-slate-400 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm rounded-xl pl-9 pr-20 transition-all"
+          />
+          {inputValue && (
+            <button
+              type="button"
+              onClick={() => setInputValue('')}
+              className="absolute right-10 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-full min-h-[32px] min-w-[32px] flex items-center justify-center"
+              title="Limpar texto"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            title="Fechar busca"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {suggestions.length > 0 && (
+          <div className="w-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-3 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+            {suggestions.map((ig) => {
+              const porte = ig.porte || getPorte(ig.desc_igreja, ig.porte);
+              const info = PORTE_INFO[porte] || PORTE_INFO.LOCAL;
+              return (
+                <button
+                  key={ig.codigo_totvs}
+                  type="button"
+                  onClick={() => {
+                    onSelectSuggestion(ig);
+                    onClose();
+                  }}
+                  className="w-full text-left p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 active:bg-slate-100 dark:active:bg-slate-800/50 transition-colors flex flex-col justify-center gap-1 min-h-[44px] cursor-pointer"
+                >
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                      {ig.desc_igreja}
+                    </span>
+                    <span
+                      className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border text-white uppercase shrink-0"
+                      style={{
+                        backgroundColor: info.color,
+                        borderColor: 'rgba(255,255,255,0.2)',
+                      }}
+                    >
+                      {porte}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 block truncate">
+                    TOTVS: {ig.codigo_totvs}{ig.bairro ? ` • ${ig.bairro}` : ''} • {ig.municipio} - {ig.estado}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -2082,6 +2227,9 @@ export default function GeneralMapComponent({
   // Toggle collapsible Filters Popover (Desktop and Mobile)
   const [showFilters, setShowFilters] = useState(false);
 
+  // Mobile Search Overlay state
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
   const fetchIgrejas = async () => {
     swrMutate();
   };
@@ -2523,23 +2671,25 @@ export default function GeneralMapComponent({
 
       {/* Mobile Minimalist Floating Header Overlay (sm:hidden) */}
       <header className="flex sm:hidden fixed top-0 left-0 right-0 mx-3 mt-3 w-[calc(100%-24px)] h-12 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl px-3 items-center justify-between shadow-2xl z-[1000]">
-        {/* Left: Minified logo + short title GEO-VALIG */}
-        <div className="flex items-center gap-2">
-          <img src="/img/logo.png" alt="IPDA" className="h-7 w-auto object-contain" />
-          <span className="text-xs font-black text-white tracking-tight">GEO-VALIG</span>
+        {/* Left: Minified logo (no 'GEO-VALIG' text) */}
+        <div className="flex items-center">
+          <img src="/img/logo.png" alt="IPDA" className="h-7 w-7 object-contain" />
         </div>
 
-        {/* Center: Search input or modal trigger */}
-        <div className="flex-1 max-w-[160px] mx-2">
-          <HeaderSearchBar
-            igrejas={igrejas}
-            onSelectSuggestion={handleSelectSuggestion}
-            resetKey={resetKey}
-          />
-        </div>
+        {/* Center: Search trigger button */}
+        <button
+          type="button"
+          onClick={() => setIsMobileSearchOpen(true)}
+          className="flex-1 mx-2 h-8 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2.5 flex items-center gap-2 text-slate-400 text-xs font-semibold transition-all active:scale-[0.98]"
+        >
+          <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="truncate text-slate-400 text-xs font-semibold">
+            Buscar por igreja, TOTVS...
+          </span>
+        </button>
 
-        {/* Right: Compact actions (Filters toggle + Admin/Login icon) */}
-        <div className="flex items-center gap-1.5">
+        {/* Right: Compact actions (Filters toggle + Organização + Admin/Login icon) */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => {
               requestAnimationFrame(() => {
@@ -2576,6 +2726,15 @@ export default function GeneralMapComponent({
           </a>
         </div>
       </header>
+
+      {/* Mobile Search Overlay Modal Portal */}
+      <MobileSearchOverlay
+        isOpen={isMobileSearchOpen}
+        onClose={() => setIsMobileSearchOpen(false)}
+        igrejas={igrejas}
+        onSelectSuggestion={handleSelectSuggestion}
+        resetKey={resetKey}
+      />
 
       {/* Floating Collapsible Filters Modal Portal */}
       <FiltersModal

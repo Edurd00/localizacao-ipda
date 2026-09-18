@@ -5,17 +5,16 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 537ms
-Attention: Next.js now collects completely anonymous telemetry regarding usage.
-This information is used to shape Next.js' roadmap and prioritize features.
-You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-https://nextjs.org/telemetry
+✓ Ready in 622ms
 
-
-○ Compiling / ...
- HEAD / 200 in 3.8s (next.js: 3.6s, application-code: 249ms)
- GET / 200 in 103ms (next.js: 6ms, application-code: 97ms)
- GET /api/auth/session 200 in 904ms (next.js: 844ms, application-code: 60ms)
- GET /api/igrejas/validadas 200 in 655ms (next.js: 647ms, application-code: 9ms)
- GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 8ms)
- GET /api/auth/session 200 in 11ms (next.js: 3ms, application-code: 7ms)
+○ Compiling /mapa-geral ...
+ GET /mapa-geral 200 in 4.2s (next.js: 3.9s, application-code: 284ms)
+ GET /api/igrejas/validadas 200 in 599ms (next.js: 577ms, application-code: 22ms)
+ GET /api/auth/session 200 in 1104ms (next.js: 1083ms, application-code: 21ms)
+ GET /api/auth/session 200 in 19ms (next.js: 9ms, application-code: 11ms)
+ GET /api/auth/session 200 in 11ms (next.js: 5ms, application-code: 6ms)
+ GET /mapa-geral 200 in 94ms (next.js: 5ms, application-code: 89ms)
+ GET /api/auth/session 200 in 12ms (next.js: 4ms, application-code: 9ms)
+ GET /api/igrejas/validadas 200 in 11ms (next.js: 4ms, application-code: 6ms)
+ GET /api/auth/session 200 in 13ms (next.js: 5ms, application-code: 8ms)
+ GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 7ms)
