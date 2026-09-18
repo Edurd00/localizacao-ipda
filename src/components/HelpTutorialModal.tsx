@@ -303,7 +303,7 @@ export default function HelpTutorialModal({ isOpen, onClose }: HelpTutorialModal
                 {/* Featured Landline Phone Card */}
                 <div className="bg-indigo-50 dark:bg-slate-800/80 border border-indigo-100 dark:border-slate-700 p-4 rounded-2xl flex items-center gap-3 shadow-xs">
                   <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-sm shrink-0">
-                    <Phone className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <Phone className="h-5 w-5 text-white" />
                   </div>
                   <div className="space-y-0.5 min-w-0">
                     <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider block">

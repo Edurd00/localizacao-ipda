@@ -1096,7 +1096,7 @@ const MemoizedMapView = memo(function MapView({
         preferCanvas={true}
         zoomAnimation={true}
         fadeAnimation={true}
-        className="w-full h-full z-10"
+        className="w-full h-full z-10 [&_.leaflet-control-attribution]:hidden sm:[&_.leaflet-control-attribution]:block"
       >
         <MapController
           center={mapCenter}
@@ -1377,12 +1377,10 @@ const MemoizedMapView = memo(function MapView({
         )}
       </MapContainer>
 
-      {/* Floating Controls Container (Top Spacing Safe for Navigation Bar: top-36 md:top-24, z-[1025]) */}
-      <div className="absolute top-36 md:top-24 right-3 md:right-4 z-[1025] flex items-center gap-2">
-        {/* Botão de Tema Flutuante */}
+      {/* Desktop Floating Controls Container */}
+      <div className="hidden sm:flex absolute top-24 right-4 z-[1025] items-center gap-2">
         <ThemeToggle className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md border border-zinc-200 dark:border-slate-700 backdrop-blur-md hover:scale-105 transition-all cursor-pointer shrink-0" />
 
-        {/* Botão da Central de Ajuda e Tutorial */}
         <button
           type="button"
           onClick={() => setIsHelpModalOpen(true)}
@@ -1392,7 +1390,6 @@ const MemoizedMapView = memo(function MapView({
           <HelpCircle className="h-5 w-5" />
         </button>
 
-        {/* Map Layer Overlay Selector */}
         <div className="flex bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-zinc-200 dark:border-slate-800 overflow-hidden text-[11px] font-bold">
           <button
             type="button"
@@ -1418,7 +1415,6 @@ const MemoizedMapView = memo(function MapView({
           </button>
         </div>
 
-        {/* Global floating button to clear connection lines and routes ("Remover Malha / Limpar Linhas") */}
         {(selectedConnectionPath !== null ||
           routePath !== null ||
           routeAtual !== null ||
@@ -1431,6 +1427,44 @@ const MemoizedMapView = memo(function MapView({
             title="Remover Malha e limpar todas as linhas de conexões e rotas ativas do mapa"
           >
             <span>🧹 Remover Malha / Limpar Linhas</span>
+          </button>
+        )}
+      </div>
+
+      {/* Mobile Floating Controls Toolbar (Vertical on Right) */}
+      <div className="flex sm:hidden flex-col gap-2 fixed right-3 top-16 z-[1000]">
+        <button
+          type="button"
+          onClick={() => setIsHelpModalOpen(true)}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg text-white hover:bg-slate-800 transition-all cursor-pointer"
+          title="Central de Ajuda e Tutorial"
+        >
+          <HelpCircle className="h-5 w-5 text-indigo-400" />
+        </button>
+
+        <ThemeToggle className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg text-white hover:bg-slate-800 transition-all cursor-pointer" />
+
+        <button
+          type="button"
+          onClick={() => setMapType(mapType === 'satellite' ? 'osm' : 'satellite')}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg text-white hover:bg-slate-800 transition-all cursor-pointer"
+          title={mapType === 'satellite' ? 'Mudar para Mapa (OSM)' : 'Mudar para Satélite Esri'}
+        >
+          <Layers className="h-5 w-5 text-indigo-400" />
+        </button>
+
+        {(selectedConnectionPath !== null ||
+          routePath !== null ||
+          routeAtual !== null ||
+          routeCandidataA !== null ||
+          routeCandidataB !== null) && (
+          <button
+            type="button"
+            onClick={handleClearAllLines}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-600 border border-rose-500 shadow-lg text-white hover:bg-rose-700 transition-all cursor-pointer"
+            title="Remover Malha / Limpar Linhas"
+          >
+            <span className="text-sm">🧹</span>
           </button>
         )}
       </div>
@@ -1613,13 +1647,13 @@ const MemoizedMapView = memo(function MapView({
       </div>
 
       {/* Mobile-only Minimized Floating Legend Button */}
-      <div className="absolute bottom-6 left-6 z-[1000] md:hidden">
+      <div className="fixed bottom-4 left-3 z-[1000] sm:hidden">
         <button
           onClick={() => setPorteLegendMobileOpen(true)}
-          className="bg-white border border-zinc-200 rounded-full py-2.5 px-4 shadow-lg text-xs font-bold text-zinc-800 flex items-center gap-1.5 min-h-[44px] min-w-[44px] hover:bg-zinc-50 active:bg-zinc-100 transition-all"
+          className="bg-slate-900/90 border border-slate-800 text-white text-xs px-3 py-2 rounded-xl shadow-lg flex items-center gap-2 hover:bg-slate-800 transition-all"
         >
-          <Layers className="h-4 w-4 text-indigo-600" />
-          <span>Legenda</span>
+          <Layers className="h-4 w-4 text-indigo-400" />
+          <span className="font-bold">Legenda</span>
         </button>
       </div>
 
@@ -2390,23 +2424,23 @@ export default function GeneralMapComponent({
         isDanger={false}
       />
 
-      {/* Modern Compact Floating Header Overlay */}
-      <header className="absolute top-2 left-1/2 -translate-x-1/2 w-[95%] md:w-[90%] max-w-6xl mx-auto mt-2 md:mt-3 z-[1020] bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-zinc-200 dark:border-slate-800 shadow-xl rounded-2xl md:rounded-full p-2 sm:p-4 h-auto max-h-16 sm:max-h-none flex flex-row items-center justify-between gap-2 md:gap-3 transition-all duration-300">
+      {/* Desktop Floating Header Overlay (hidden sm:flex) */}
+      <header className="hidden sm:flex absolute top-2 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl mx-auto mt-3 z-[1020] bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-zinc-200 dark:border-slate-800 shadow-xl rounded-full p-4 flex-row items-center justify-between gap-3 transition-all duration-300">
         {/* Left Section: Logo & Counter */}
         <div className="flex items-center justify-between w-auto shrink-0 gap-2">
           <div className="flex items-center space-x-2 shrink-0">
-            <img src="/img/logo.png" alt="IPDA" className="h-8 sm:h-10 w-auto object-contain shrink-0" />
+            <img src="/img/logo.png" alt="IPDA" className="h-10 w-auto object-contain shrink-0" />
             <div className="shrink-0">
-              <h1 className="text-xs sm:text-sm font-black text-zinc-950 dark:text-white tracking-tight leading-tight whitespace-nowrap">
+              <h1 className="text-sm font-black text-zinc-950 dark:text-white tracking-tight leading-tight whitespace-nowrap">
                 GEOLOCALIZAÇÕES IPDA
               </h1>
-              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold hidden sm:block">GESTÃO DE DADOS</p>
+              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
             </div>
           </div>
           <button
             onClick={handleSyncDatabase}
             disabled={isSyncing}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-60 shadow-xs shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-60 shadow-xs shrink-0"
             title="Clique para recarregar dados do banco em tempo real"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -2422,13 +2456,13 @@ export default function GeneralMapComponent({
         />
 
         {/* Right Section: Actions & Access Buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-2 w-auto justify-end shrink-0">
+        <div className="flex items-center gap-2 w-auto justify-end shrink-0">
           <a
             href="/organizacao"
-            className="flex items-center justify-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 dark:text-slate-200 dark:bg-slate-800 font-medium text-xs rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all whitespace-nowrap w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 shrink-0"
+            className="flex items-center justify-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 dark:text-slate-200 dark:bg-slate-800 font-medium text-xs rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all whitespace-nowrap px-3.5 py-2 shrink-0"
             title="Organização"
           >
-            <span>🏛️</span> <span className="hidden sm:inline">Organização</span>
+            <span>🏛️</span> <span>Organização</span>
           </a>
 
           <button
@@ -2440,7 +2474,7 @@ export default function GeneralMapComponent({
                 });
               });
             }}
-            className={`rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2 shrink-0 ${
+            className={`rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 px-3 py-2 shrink-0 ${
               showFilters
                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                 : 'bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-50'
@@ -2448,17 +2482,17 @@ export default function GeneralMapComponent({
             title="Filtros"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">Filtros</span>
+            <span>Filtros</span>
           </button>
 
           {isAuthenticated && userRole === 'admin' ? (
             <a
               href="/validacao"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs hover:shadow-sm w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs hover:shadow-sm px-3 py-2"
               title={`Acessar Painel de Validação (${userName || 'Admin'})`}
             >
               <Lock className="h-3.5 w-3.5 text-white shrink-0" />
-              <span className="text-xs font-bold hidden sm:inline">
+              <span className="text-xs font-bold">
                 {userName ? `Olá, ${userName.split(' ')[0]}` : 'Painel Admin'}
               </span>
             </a>
@@ -2468,22 +2502,78 @@ export default function GeneralMapComponent({
                 await fetch('/api/auth/logout', { method: 'POST' });
                 window.location.href = '/';
               }}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs px-3 py-2"
               title="Sair da Sessão de Leitor"
             >
               <Lock className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-              <span className="text-xs font-bold hidden sm:inline">Sair (Leitor)</span>
+              <span className="text-xs font-bold">Sair (Leitor)</span>
             </button>
           ) : (
             <a
               href="/validacao"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs hover:shadow-sm w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs hover:shadow-sm px-3 py-2"
               title="Acessar Área Restrita"
             >
               <Lock className="h-3.5 w-3.5 text-white shrink-0" />
-              <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
+              <span className="text-xs font-bold">🔒 Área Restrita / Login</span>
             </a>
           )}
+        </div>
+      </header>
+
+      {/* Mobile Minimalist Floating Header Overlay (sm:hidden) */}
+      <header className="flex sm:hidden fixed top-0 left-0 right-0 mx-3 mt-3 w-[calc(100%-24px)] h-12 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl px-3 items-center justify-between shadow-2xl z-[1000]">
+        {/* Left: Minified logo + short title GEO-VALIG */}
+        <div className="flex items-center gap-2">
+          <img src="/img/logo.png" alt="IPDA" className="h-7 w-auto object-contain" />
+          <span className="text-xs font-black text-white tracking-tight">GEO-VALIG</span>
+        </div>
+
+        {/* Center: Search input or modal trigger */}
+        <div className="flex-1 max-w-[160px] mx-2">
+          <HeaderSearchBar
+            igrejas={igrejas}
+            onSelectSuggestion={handleSelectSuggestion}
+            resetKey={resetKey}
+          />
+        </div>
+
+        {/* Right: Compact actions (Filters toggle + Admin/Login icon) */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              requestAnimationFrame(() => {
+                startTransition(() => {
+                  setShowFilters((prev) => !prev);
+                  toast.dismiss();
+                });
+              });
+            }}
+            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${
+              showFilters
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+            }`}
+            title="Filtros"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+          </button>
+
+          <a
+            href="/organizacao"
+            className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 flex items-center justify-center hover:bg-slate-700 transition-all text-xs"
+            title="Organização"
+          >
+            🏛️
+          </a>
+
+          <a
+            href="/validacao"
+            className="w-8 h-8 rounded-xl bg-indigo-600 border border-indigo-500 text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-md"
+            title={isAuthenticated ? `Painel (${userName || 'User'})` : 'Área Restrita / Login'}
+          >
+            <Lock className="h-3.5 w-3.5 text-white" />
+          </a>
         </div>
       </header>
 
