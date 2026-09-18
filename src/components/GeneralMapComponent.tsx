@@ -601,7 +601,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
 
   return (
     <div className="relative w-full md:max-w-md flex-1">
-      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500" />
+      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 dark:text-slate-500 pointer-events-none" />
       <input
         type="text"
         placeholder="Buscar por código TOTVS, nome, rua ou município..."
@@ -623,7 +623,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
             }
           }
         }}
-        className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl pl-9 pr-8 py-1.5 transition-all"
+        className="w-full h-9 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white dark:opacity-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs rounded-xl pl-8 pr-7 transition-all"
       />
       {inputValue && (
         <button
@@ -632,7 +632,7 @@ function HeaderSearchBar({ igrejas, onSelectSuggestion, resetKey }: HeaderSearch
             setInputValue('');
             setSuggestionsClosed(true);
           }}
-          className="absolute right-2.5 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-650 dark:hover:text-slate-350 p-0.5"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -2391,22 +2391,22 @@ export default function GeneralMapComponent({
       />
 
       {/* Modern Compact Floating Header Overlay */}
-      <header className="absolute top-2 left-1/2 -translate-x-1/2 w-[95%] md:w-[90%] max-w-6xl mx-auto mt-2 md:mt-3 z-[1020] bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-zinc-200 dark:border-slate-800 shadow-xl rounded-2xl md:rounded-full p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition-all duration-300">
+      <header className="absolute top-2 left-1/2 -translate-x-1/2 w-[95%] md:w-[90%] max-w-6xl mx-auto mt-2 md:mt-3 z-[1020] bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-zinc-200 dark:border-slate-800 shadow-xl rounded-2xl md:rounded-full p-2 sm:p-4 h-auto max-h-16 sm:max-h-none flex flex-row items-center justify-between gap-2 md:gap-3 transition-all duration-300">
         {/* Left Section: Logo & Counter */}
-        <div className="flex items-center justify-between w-full md:w-auto shrink-0 gap-2">
-          <div className="flex items-center space-x-2">
-            <img src="/img/logo.png" alt="IPDA" className="h-10 w-auto object-contain" />
-            <div>
-              <h1 className="text-xs font-black text-zinc-950 dark:text-white tracking-tight leading-tight">
+        <div className="flex items-center justify-between w-auto shrink-0 gap-2">
+          <div className="flex items-center space-x-2 shrink-0">
+            <img src="/img/logo.png" alt="IPDA" className="h-8 sm:h-10 w-auto object-contain shrink-0" />
+            <div className="shrink-0">
+              <h1 className="text-xs sm:text-sm font-black text-zinc-950 dark:text-white tracking-tight leading-tight whitespace-nowrap">
                 GEOLOCALIZAÇÕES IPDA
               </h1>
-              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold">GESTÃO DE DADOS</p>
+              <p className="text-[9px] text-zinc-500 dark:text-slate-400 font-semibold hidden sm:block">GESTÃO DE DADOS</p>
             </div>
           </div>
           <button
             onClick={handleSyncDatabase}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-60 shadow-xs shrink-0"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-60 shadow-xs shrink-0"
             title="Clique para recarregar dados do banco em tempo real"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -2422,10 +2422,11 @@ export default function GeneralMapComponent({
         />
 
         {/* Right Section: Actions & Access Buttons */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div className="flex items-center gap-1.5 sm:gap-2 w-auto justify-end shrink-0">
           <a
             href="/organizacao"
-            className="flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 dark:text-slate-200 dark:bg-slate-800 font-medium text-xs px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all whitespace-nowrap min-h-[44px]"
+            className="flex items-center justify-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 dark:text-slate-200 dark:bg-slate-800 font-medium text-xs rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all whitespace-nowrap w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 shrink-0"
+            title="Organização"
           >
             <span>🏛️</span> <span className="hidden sm:inline">Organização</span>
           </a>
@@ -2439,23 +2440,24 @@ export default function GeneralMapComponent({
                 });
               });
             }}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px] ${
+            className={`rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2 shrink-0 ${
               showFilters
                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                 : 'bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border-zinc-200 dark:border-slate-700 hover:bg-zinc-50'
             }`}
+            title="Filtros"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">Filtros</span>
           </button>
 
           {isAuthenticated && userRole === 'admin' ? (
             <a
               href="/validacao"
-              className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs hover:shadow-sm w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2"
               title={`Acessar Painel de Validação (${userName || 'Admin'})`}
             >
-              <Lock className="h-3.5 w-3.5 text-white" />
+              <Lock className="h-3.5 w-3.5 text-white shrink-0" />
               <span className="text-xs font-bold hidden sm:inline">
                 {userName ? `Olá, ${userName.split(' ')[0]}` : 'Painel Admin'}
               </span>
@@ -2466,19 +2468,19 @@ export default function GeneralMapComponent({
                 await fetch('/api/auth/logout', { method: 'POST' });
                 window.location.href = '/';
               }}
-              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs min-h-[44px]"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2"
               title="Sair da Sessão de Leitor"
             >
-              <Lock className="h-3.5 w-3.5 text-slate-500" />
+              <Lock className="h-3.5 w-3.5 text-slate-500 shrink-0" />
               <span className="text-xs font-bold hidden sm:inline">Sair (Leitor)</span>
             </button>
           ) : (
             <a
               href="/validacao"
-              className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 px-3 shadow-xs hover:shadow-sm min-h-[44px]"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-600 transition-all flex items-center justify-center shrink-0 gap-1.5 shadow-xs hover:shadow-sm w-8 h-8 p-1 sm:w-auto sm:h-auto sm:px-3 sm:py-2"
               title="Acessar Área Restrita"
             >
-              <Lock className="h-3.5 w-3.5 text-white" />
+              <Lock className="h-3.5 w-3.5 text-white shrink-0" />
               <span className="text-xs font-bold hidden sm:inline">🔒 Área Restrita / Login</span>
             </a>
           )}
