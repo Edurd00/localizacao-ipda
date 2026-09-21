@@ -50,82 +50,91 @@ export default function HelpTutorialModal({ isOpen, onClose }: HelpTutorialModal
             <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full" />
           </div>
 
-          {/* Modal Header */}
-          <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-indigo-50 dark:bg-slate-800 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-slate-700">
-                <HelpCircle className="h-5 w-5" />
+          {/* Sticky Header Container */}
+          <div className="sticky top-0 bg-white dark:bg-slate-900 z-20 pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+            {/* Modal Header */}
+            <div className="px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 dark:bg-slate-800 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-slate-700">
+                  <HelpCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                    Central de Ajuda & Tutorial
+                  </h2>
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    GEO-VALIG IPDA • Manual do Usuário
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
-                  Central de Ajuda & Tutorial
-                </h2>
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  GEO-VALIG IPDA • Manual do Usuário
-                </p>
-              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
+                title="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
-              title="Fechar"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+            {/* Tab Navigation Segmented Control */}
+            <div className="px-3 sm:px-5">
+              <div className="w-full grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('sobre')}
+                  className={`py-2 px-2 sm:px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeTab === 'sobre'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <BookOpen className="h-4 w-4 shrink-0 sm:hidden" />
+                  <Building2 className="h-4 w-4 shrink-0 hidden sm:block" />
+                  <span className="text-xs sm:hidden">Projeto</span>
+                  <span className="hidden sm:inline truncate">Sobre o Projeto</span>
+                </button>
 
-          {/* Tab Navigation Segmented Control */}
-          <div className="px-5 pt-3 pb-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
-            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 gap-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab('sobre')}
-                className={`flex-1 py-2 px-2 sm:px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'sobre'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                <Building2 className="h-4 w-4 shrink-0" />
-                <span className="truncate">Sobre o Projeto</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('guia')}
+                  className={`py-2 px-2 sm:px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeTab === 'guia'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <HelpCircle className="h-4 w-4 shrink-0 sm:hidden" />
+                  <BookOpen className="h-4 w-4 shrink-0 hidden sm:block" />
+                  <span className="text-xs sm:hidden">Guia</span>
+                  <span className="hidden sm:inline truncate">Guia & Passo a Passo</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('guia')}
-                className={`flex-1 py-2 px-2 sm:px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'guia'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                <BookOpen className="h-4 w-4 shrink-0" />
-                <span className="truncate">Guia & Passo a Passo</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('suporte')}
-                className={`flex-1 py-2 px-2 sm:px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'suporte'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                <Headphones className="h-4 w-4 shrink-0" />
-                <span className="truncate">Suporte & Contato</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('suporte')}
+                  className={`py-2 px-2 sm:px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeTab === 'suporte'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Phone className="h-4 w-4 shrink-0 sm:hidden" />
+                  <Headphones className="h-4 w-4 shrink-0 hidden sm:block" />
+                  <span className="text-xs sm:hidden">Suporte</span>
+                  <span className="hidden sm:inline truncate">Suporte & Contato</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Tab Contents Area */}
-          <div className="p-5 overflow-y-auto space-y-4 flex-1 text-xs text-slate-700 dark:text-slate-300">
+          <div className="overflow-y-auto max-h-[60vh] sm:max-h-[70vh] px-3 py-4 space-y-3 flex-1 text-xs text-slate-700 dark:text-slate-300">
             {/* Tab 1: Sobre o Projeto */}
             {activeTab === 'sobre' && (
               <div className="space-y-4 animate-in fade-in duration-200">
-                <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 space-y-2">
+                <div className="p-3 sm:p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 space-y-2">
                   <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200 font-extrabold text-sm">
                     <span className="text-base">🏢</span>
                     <h3>Apresentação do Sistema GEO-VALIG IPDA</h3>
@@ -135,7 +144,7 @@ export default function HelpTutorialModal({ isOpen, onClose }: HelpTutorialModal
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
                   <h4 className="font-extrabold text-slate-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
                     🎯 Objetivos Principais
                   </h4>

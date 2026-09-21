@@ -1,16 +1,31 @@
-▲ Next.js 16.2.11
-- Local:         http://localhost:3005
-- Network:       http://192.168.0.2:3005
-✓ Ready in 193ms
-API Error in GET /api/igrejas: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
-    at d (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:1636)
-    at E (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:2819)
-    at s (.next/server/chunks/[root-of-the-server]__1sruibi._.js:1:1360)
-API Error in GET /api/coligacoes: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
-    at d (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:1636)
-    at E (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:2819)
-    at o (.next/server/chunks/[root-of-the-server]__0zof54k._.js:1:1109)
-API Error in GET /api/admin/igrejas-completas: Error: DATABASE_URL is missing in production environment. Database operations cannot proceed.
-    at d (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:1636)
-    at E (.next/server/chunks/[root-of-the-server]__08z5cta._.js:10:2819)
-    at l (.next/server/chunks/[root-of-the-server]__0un35jj._.js:1:5215)
+
+> test-dir@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.11 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 552ms
+
+○ Compiling / ...
+ HEAD / 200 in 3.8s (next.js: 3.6s, application-code: 249ms)
+ GET / 200 in 119ms (next.js: 14ms, application-code: 105ms)
+ GET /api/auth/session 200 in 906ms (next.js: 860ms, application-code: 45ms)
+ GET /api/igrejas/validadas 200 in 757ms (next.js: 747ms, application-code: 10ms)
+ GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET / 200 in 79ms (next.js: 5ms, application-code: 74ms)
+ GET /api/auth/session 200 in 18ms (next.js: 3ms, application-code: 15ms)
+ GET /api/igrejas/validadas 200 in 10ms (next.js: 5ms, application-code: 5ms)
+ GET /api/auth/session 200 in 9ms (next.js: 3ms, application-code: 5ms)
+ GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 6ms)
+ GET / 200 in 66ms (next.js: 3ms, application-code: 63ms)
+ GET /api/auth/session 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET /api/igrejas/validadas 200 in 9ms (next.js: 2ms, application-code: 6ms)
+ GET /api/auth/session 200 in 8ms (next.js: 4ms, application-code: 4ms)
+ GET /api/auth/session 200 in 8ms (next.js: 2ms, application-code: 6ms)
+ GET / 200 in 58ms (next.js: 3ms, application-code: 55ms)
+ GET /api/auth/session 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET /api/igrejas/validadas 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/auth/session 200 in 9ms (next.js: 2ms, application-code: 7ms)
