@@ -1581,21 +1581,21 @@ const MemoizedMapView = memo(function MapView({
         <button
           type="button"
           onClick={() => setIsHelpModalOpen(true)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg text-white hover:bg-slate-800 transition-all cursor-pointer"
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 shadow-lg hover:scale-105 transition-all cursor-pointer"
           title="Central de Ajuda e Tutorial"
         >
-          <HelpCircle className="h-5 w-5 text-indigo-400" />
+          <HelpCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
         </button>
 
-        <ThemeToggle className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg text-white hover:bg-slate-800 transition-all cursor-pointer" />
+        <ThemeToggle className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 shadow-lg hover:scale-105 transition-all cursor-pointer" />
 
         <button
           type="button"
           onClick={() => setMapType(mapType === 'satellite' ? 'osm' : 'satellite')}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg text-white hover:bg-slate-800 transition-all cursor-pointer"
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 shadow-lg hover:scale-105 transition-all cursor-pointer"
           title={mapType === 'satellite' ? 'Mudar para Mapa (OSM)' : 'Mudar para Satélite Esri'}
         >
-          <Layers className="h-5 w-5 text-indigo-400" />
+          <Layers className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
         </button>
 
         {(selectedConnectionPath !== null ||
@@ -2670,7 +2670,7 @@ export default function GeneralMapComponent({
       </header>
 
       {/* Mobile Minimalist Floating Header Overlay (sm:hidden) */}
-      <header className="flex sm:hidden fixed top-0 left-0 right-0 mx-3 mt-3 w-[calc(100%-24px)] h-12 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl px-3 items-center justify-between shadow-2xl z-[1000]">
+      <header className="flex sm:hidden fixed top-0 left-0 right-0 mx-3 mt-3 w-[calc(100%-24px)] h-12 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl px-3 items-center justify-between shadow-xl transition-colors duration-200 z-[1000]">
         {/* Left: Minified logo (no 'GEO-VALIG' text) */}
         <div className="flex items-center">
           <img src="/img/logo.png" alt="IPDA" className="h-7 w-7 object-contain" />
@@ -2680,10 +2680,10 @@ export default function GeneralMapComponent({
         <button
           type="button"
           onClick={() => setIsMobileSearchOpen(true)}
-          className="flex-1 mx-2 h-8 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2.5 flex items-center gap-2 text-slate-400 text-xs font-semibold transition-all active:scale-[0.98]"
+          className="flex-1 mx-2 h-8 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 flex items-center gap-2 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 text-xs font-semibold transition-all active:scale-[0.98]"
         >
-          <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-          <span className="truncate text-slate-400 text-xs font-semibold">
+          <Search className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+          <span className="truncate text-slate-600 dark:text-slate-400 text-xs font-semibold">
             Buscar por igreja, TOTVS...
           </span>
         </button>
@@ -2702,7 +2702,7 @@ export default function GeneralMapComponent({
             className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${
               showFilters
                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
             title="Filtros"
           >
@@ -2711,7 +2711,7 @@ export default function GeneralMapComponent({
 
           <a
             href="/organizacao"
-            className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 flex items-center justify-center hover:bg-slate-700 transition-all text-xs"
+            className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-xs"
             title="Organização"
           >
             🏛️
