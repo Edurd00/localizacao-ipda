@@ -6,6 +6,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
 } from '@react-pdf/renderer';
 
@@ -35,6 +36,7 @@ export interface PatrimonioItem {
   conservacao?: string;
   estado_conservacao?: string;
   estado?: string;
+  observacao?: string | null;
 }
 
 interface PatrimonioPDFProps {
@@ -51,87 +53,107 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1.5,
-    borderBottomColor: '#4f46e5',
+    borderBottomColor: '#3b82f6',
+    alignItems: 'flex-start',
+  },
+  logo: {
+    width: 60,
+    height: 60,
+    marginBottom: 8,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: '#1e1b4b',
+    color: '#0f172a',
     marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 11,
-    color: '#6b7280',
-    marginBottom: 12,
+    fontSize: 10,
+    color: '#475569',
+    marginBottom: 10,
   },
   infoGrid: {
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
-    backgroundColor: '#f9fafb',
+    marginTop: 4,
+    backgroundColor: '#f8fafc',
     padding: 10,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e2e8f0',
   },
   infoItem: {
     width: '50%',
     marginBottom: 6,
   },
   infoLabel: {
-    fontSize: 8,
-    color: '#6b7280',
+    fontSize: 7.5,
+    color: '#64748b',
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
   },
   infoValue: {
-    fontSize: 10,
-    color: '#111827',
+    fontSize: 9.5,
+    color: '#0f172a',
     marginTop: 1,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    color: '#1e1b4b',
-    marginTop: 16,
+    color: '#0f172a',
+    marginTop: 14,
     marginBottom: 8,
+    textTransform: 'uppercase',
   },
   table: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e2e8f0',
     borderRadius: 6,
     overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f1f5f9',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#cbd5e1',
     paddingVertical: 6,
     paddingHorizontal: 8,
+    alignItems: 'center',
   },
   tableHeaderCellItem: {
-    flex: 3,
-    fontSize: 9,
+    width: '35%',
+    fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#374151',
+    color: '#334155',
+    textAlign: 'left',
   },
   tableHeaderCellQtd: {
-    flex: 1,
-    fontSize: 9,
+    width: '15%',
+    fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#374151',
+    color: '#334155',
     textAlign: 'center',
   },
   tableHeaderCellCons: {
-    flex: 2,
-    fontSize: 9,
+    width: '20%',
+    fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#374151',
+    color: '#334155',
+    textAlign: 'center',
+  },
+  tableHeaderCellObs: {
+    width: '30%',
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#334155',
+    textAlign: 'left',
   },
   tableRowEven: {
     flexDirection: 'row',
@@ -139,37 +161,70 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#f1f5f9',
+    alignItems: 'center',
   },
   tableRowOdd: {
     flexDirection: 'row',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8fafc',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#f1f5f9',
+    alignItems: 'center',
   },
   tableCellItem: {
-    flex: 3,
-    fontSize: 9,
-    color: '#111827',
+    width: '35%',
+    fontSize: 8.5,
+    color: '#0f172a',
+    textAlign: 'left',
   },
   tableCellQtd: {
-    flex: 1,
-    fontSize: 9,
-    color: '#1e1b4b',
+    width: '15%',
+    fontSize: 8.5,
+    color: '#0f172a',
     fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
   },
-  tableCellCons: {
-    flex: 2,
-    fontSize: 9,
-    color: '#4b5563',
+  tableCellConsContainer: {
+    width: '20%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'center',
+  },
+  badgeGreen: {
+    backgroundColor: '#dcfce7',
+    color: '#166534',
+  },
+  badgeYellow: {
+    backgroundColor: '#fef9c3',
+    color: '#854d0e',
+  },
+  badgeRed: {
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+  },
+  badgeDefault: {
+    backgroundColor: '#f1f5f9',
+    color: '#475569',
+  },
+  tableCellObs: {
+    width: '30%',
+    fontSize: 8,
+    color: '#475569',
+    textAlign: 'left',
   },
   emptyText: {
     padding: 12,
     fontSize: 9,
-    color: '#9ca3af',
+    color: '#94a3b8',
     fontStyle: 'italic',
     textAlign: 'center',
   },
@@ -179,12 +234,12 @@ const styles = StyleSheet.create({
     left: 36,
     right: 36,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: '#e2e8f0',
     paddingTop: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 8,
-    color: '#9ca3af',
+    color: '#64748b',
   },
 });
 
@@ -204,14 +259,29 @@ export default function PatrimonioPDF({ submissao, itens }: PatrimonioPDFProps) 
     }
   };
 
+  const renderConservacaoBadge = (conservacaoRaw?: string | null) => {
+    const cons = (conservacaoRaw || '').trim().toUpperCase();
+    if (cons === 'ÓTIMO' || cons === 'OTIMO' || cons === 'BOM') {
+      return <Text style={[styles.badge, styles.badgeGreen]}>{cons || 'BOM'}</Text>;
+    }
+    if (cons === 'REGULAR') {
+      return <Text style={[styles.badge, styles.badgeYellow]}>REGULAR</Text>;
+    }
+    if (cons === 'RUIM') {
+      return <Text style={[styles.badge, styles.badgeRed]}>RUIM</Text>;
+    }
+    return <Text style={[styles.badge, styles.badgeDefault]}>{cons || '-'}</Text>;
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>GEO-VALIG • Relatório de Patrimônio</Text>
+          <Image src="/img/logo.png" style={styles.logo} />
+          <Text style={styles.title}>RELATÓRIO OFICIAL DE PATRIMÔNIO - IPDA</Text>
           <Text style={styles.subtitle}>
-            IPDA - Igreja Pentecostal Deus é Amor • Código TOTVS: {submissao.codigo_totvs}
+            Igreja Pentecostal Deus é Amor • Código TOTVS: {submissao.codigo_totvs}
           </Text>
 
           {/* Info Card Grid */}
@@ -251,30 +321,38 @@ export default function PatrimonioPDF({ submissao, itens }: PatrimonioPDFProps) 
             <Text style={styles.tableHeaderCellItem}>Item</Text>
             <Text style={styles.tableHeaderCellQtd}>Quantidade</Text>
             <Text style={styles.tableHeaderCellCons}>Conservação</Text>
+            <Text style={styles.tableHeaderCellObs}>Observação</Text>
           </View>
 
           {validItems.length === 0 ? (
             <Text style={styles.emptyText}>Nenhum item marcado como existente neste relatório.</Text>
           ) : (
-            validItems.map((item, idx) => (
-              <View key={item.id || idx} style={idx % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                <Text style={styles.tableCellItem}>
-                  {item.item_nome || item.item || item.nome_item || item.descricao || '---'}
-                </Text>
-                <Text style={styles.tableCellQtd}>
-                  {item.quantidade ?? item.qtd ?? '---'}
-                </Text>
-                <Text style={styles.tableCellCons}>
-                  {item.conservacao || item.estado_conservacao || item.estado || '---'}
-                </Text>
-              </View>
-            ))
+            validItems.map((item, idx) => {
+              const cons = item.conservacao || item.estado_conservacao || item.estado || '';
+              const obs = item.observacao && item.observacao.trim() !== '' ? item.observacao : '-';
+              return (
+                <View key={item.id || idx} style={idx % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                  <Text style={styles.tableCellItem}>
+                    {item.item_nome || item.item || item.nome_item || item.descricao || '---'}
+                  </Text>
+                  <Text style={styles.tableCellQtd}>
+                    {item.quantidade ?? item.qtd ?? '---'}
+                  </Text>
+                  <View style={styles.tableCellConsContainer}>
+                    {renderConservacaoBadge(cons)}
+                  </View>
+                  <Text style={styles.tableCellObs}>
+                    {obs}
+                  </Text>
+                </View>
+              );
+            })
           )}
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text>GEO-VALIG IPDA System • Relatório de Gestão de Patrimônio</Text>
+          <Text>SISTEMA DE GESTÃO E INTELIGÊNCIA PATRIMONIAL IPDA</Text>
           <Text
             render={({ pageNumber, totalPages }) =>
               `Página ${pageNumber} de ${totalPages}`

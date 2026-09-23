@@ -1,41 +1,67 @@
-
-> test-dir@0.1.0 dev
-> next dev
-
+$ next dev
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 552ms
+✓ Ready in 550ms
 
-○ Compiling / ...
- HEAD / 200 in 3.8s (next.js: 3.6s, application-code: 249ms)
- GET / 200 in 119ms (next.js: 14ms, application-code: 105ms)
- GET /api/auth/session 200 in 906ms (next.js: 860ms, application-code: 45ms)
- GET /api/igrejas/validadas 200 in 757ms (next.js: 747ms, application-code: 10ms)
- GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
- GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
- GET / 200 in 79ms (next.js: 5ms, application-code: 74ms)
- GET /api/auth/session 200 in 18ms (next.js: 3ms, application-code: 15ms)
- GET /api/igrejas/validadas 200 in 10ms (next.js: 5ms, application-code: 5ms)
- GET /api/auth/session 200 in 9ms (next.js: 3ms, application-code: 5ms)
- GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 6ms)
- GET / 200 in 66ms (next.js: 3ms, application-code: 63ms)
- GET /api/auth/session 200 in 12ms (next.js: 3ms, application-code: 10ms)
- GET /api/igrejas/validadas 200 in 9ms (next.js: 2ms, application-code: 6ms)
- GET /api/auth/session 200 in 8ms (next.js: 4ms, application-code: 4ms)
- GET /api/auth/session 200 in 8ms (next.js: 2ms, application-code: 6ms)
- GET / 200 in 58ms (next.js: 3ms, application-code: 55ms)
- GET /api/auth/session 200 in 12ms (next.js: 3ms, application-code: 10ms)
- GET /api/igrejas/validadas 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/auth/session 200 in 9ms (next.js: 2ms, application-code: 7ms)
- GET / 200 in 750ms (next.js: 82ms, application-code: 668ms)
- GET /api/auth/session 200 in 144ms (next.js: 87ms, application-code: 58ms)
- GET /api/igrejas/validadas 200 in 16ms (next.js: 6ms, application-code: 10ms)
- GET /api/auth/session 200 in 12ms (next.js: 2ms, application-code: 10ms)
- GET /api/auth/session 200 in 14ms (next.js: 3ms, application-code: 10ms)
- GET / 200 in 155ms (next.js: 3ms, application-code: 152ms)
- GET /api/auth/session 200 in 15ms (next.js: 5ms, application-code: 10ms)
- GET /api/igrejas/validadas 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
- GET /api/auth/session 200 in 16ms (next.js: 8ms, application-code: 8ms)
+ GET /login 200 in 3.1s (next.js: 2.8s, application-code: 244ms)
+ POST /api/auth/login 401 in 619ms (next.js: 586ms, application-code: 33ms)
+ GET /login 200 in 68ms (next.js: 4ms, application-code: 64ms)
+ GET /login 200 in 72ms (next.js: 5ms, application-code: 68ms)
+ POST /api/auth/login 401 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /login 200 in 103ms (next.js: 3ms, application-code: 100ms)
+ GET /login 200 in 67ms (next.js: 4ms, application-code: 63ms)
+ POST /api/auth/login 401 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /login 200 in 55ms (next.js: 4ms, application-code: 52ms)
+ GET /patrimonio/100 200 in 1320ms (next.js: 1229ms, application-code: 92ms)
+Postgres error in obterIgrejaMinima: Error: connect ENETUNREACH 2600:1f18:441a:8900:e4c5:77ff:2166:146f:5432 - Local (:::0)
+    at async obterIgrejaMinima (src/lib/patrimonio.ts:140:19)
+    at async GET (src/app/api/igrejas/public-lookup/route.ts:18:20)
+  138 |   if (pool) {
+  139 |     try {
+> 140 |       const res = await pool.query(
+      |                   ^
+  141 |         `SELECT codigo_totvs, desc_igreja, endereco, bairro, municipio, estado
+  142 |          FROM igrejas
+  143 |          WHERE LOWER(codigo_totvs) = $1 {
+  errno: -101,
+  code: 'ENETUNREACH',
+  syscall: 'connect',
+  address: '2600:1f18:441a:8900:e4c5:77ff:2166:146f',
+  port: 5432
+}
+Postgres error in getIgrejas: Error: connect ENETUNREACH 2600:1f18:441a:8900:e4c5:77ff:2166:146f:5432 - Local (:::0)
+    at async getIgrejas (src/lib/db.ts:338:24)
+    at async obterIgrejaMinima (src/lib/patrimonio.ts:189:18)
+    at async GET (src/app/api/igrejas/public-lookup/route.ts:18:20)
+  336 |         FROM igrejas${whereClause}
+  337 |       `;
+> 338 |       const statsRes = await pool.query(statsQuery, params);
+      |                        ^
+  339 |       const total = statsRes.rows[0]?.total || 0;
+  340 |       const totalDirigentes = statsRes.rows[0]?.total_dirigentes || 0;
+  341 |       const totalFinanceira = statsRes.rows[0]?.total_financeira || 0; {
+  errno: -101,
+  code: 'ENETUNREACH',
+  syscall: 'connect',
+  address: '2600:1f18:441a:8900:e4c5:77ff:2166:146f',
+  port: 5432
+}
+Fallback error in obterIgrejaMinima: Error: connect ENETUNREACH 2600:1f18:441a:8900:e4c5:77ff:2166:146f:5432 - Local (:::0)
+    at async getIgrejas (src/lib/db.ts:338:24)
+    at async obterIgrejaMinima (src/lib/patrimonio.ts:189:18)
+    at async GET (src/app/api/igrejas/public-lookup/route.ts:18:20)
+  336 |         FROM igrejas${whereClause}
+  337 |       `;
+> 338 |       const statsRes = await pool.query(statsQuery, params);
+      |                        ^
+  339 |       const total = statsRes.rows[0]?.total || 0;
+  340 |       const totalDirigentes = statsRes.rows[0]?.total_dirigentes || 0;
+  341 |       const totalFinanceira = statsRes.rows[0]?.total_financeira || 0; {
+  errno: -101,
+  code: 'ENETUNREACH',
+  syscall: 'connect',
+  address: '2600:1f18:441a:8900:e4c5:77ff:2166:146f',
+  port: 5432
+}
+ GET /api/igrejas/public-lookup?totvs=100 404 in 1092ms (next.js: 539ms, application-code: 553ms)
