@@ -46,69 +46,71 @@ interface PatrimonioPDFProps {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 36,
-    fontSize: 10,
+    paddingTop: 15,
+    paddingBottom: 25,
+    paddingHorizontal: 20,
+    fontSize: 9,
     fontFamily: 'Helvetica',
     color: '#1f2937',
     backgroundColor: '#ffffff',
   },
   header: {
-    marginBottom: 16,
-    paddingBottom: 12,
+    marginBottom: 8,
+    paddingBottom: 6,
     borderBottomWidth: 1.5,
     borderBottomColor: '#3b82f6',
     alignItems: 'flex-start',
   },
   logo: {
-    width: 60,
-    height: 60,
-    marginBottom: 8,
+    width: 45,
+    height: 45,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     color: '#0f172a',
-    marginBottom: 4,
+    marginBottom: 2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#475569',
-    marginBottom: 10,
+    marginBottom: 4,
   },
   infoGrid: {
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 4,
+    marginTop: 2,
     backgroundColor: '#f8fafc',
-    padding: 10,
+    padding: 6,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
   infoItem: {
     width: '50%',
-    marginBottom: 6,
+    marginBottom: 3,
   },
   infoLabel: {
-    fontSize: 7.5,
+    fontSize: 7,
     color: '#64748b',
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
   },
   infoValue: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     color: '#0f172a',
     marginTop: 1,
   },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: '#0f172a',
-    marginTop: 14,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 4,
     textTransform: 'uppercase',
   },
   table: {
@@ -123,34 +125,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     borderBottomWidth: 1,
     borderBottomColor: '#cbd5e1',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
     alignItems: 'center',
   },
   tableHeaderCellItem: {
-    width: '35%',
-    fontSize: 8.5,
+    width: '28%',
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#334155',
     textAlign: 'left',
   },
   tableHeaderCellQtd: {
-    width: '15%',
-    fontSize: 8.5,
+    width: '10%',
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#334155',
     textAlign: 'center',
   },
   tableHeaderCellCons: {
-    width: '20%',
-    fontSize: 8.5,
+    width: '18%',
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#334155',
     textAlign: 'center',
   },
   tableHeaderCellObs: {
-    width: '30%',
-    fontSize: 8.5,
+    width: '44%',
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#334155',
     textAlign: 'left',
@@ -158,8 +160,8 @@ const styles = StyleSheet.create({
   tableRowEven: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
     alignItems: 'center',
@@ -167,35 +169,35 @@ const styles = StyleSheet.create({
   tableRowOdd: {
     flexDirection: 'row',
     backgroundColor: '#f8fafc',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
     alignItems: 'center',
   },
   tableCellItem: {
-    width: '35%',
-    fontSize: 8.5,
+    width: '28%',
+    fontSize: 8,
     color: '#0f172a',
     textAlign: 'left',
   },
   tableCellQtd: {
-    width: '15%',
-    fontSize: 8.5,
+    width: '10%',
+    fontSize: 8,
     color: '#0f172a',
     fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
   },
   tableCellConsContainer: {
-    width: '20%',
+    width: '18%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   badge: {
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 4,
-    fontSize: 7.5,
+    paddingVertical: 1,
+    paddingHorizontal: 5,
+    borderRadius: 3,
+    fontSize: 7,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
   },
@@ -216,34 +218,39 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   tableCellObs: {
-    width: '30%',
-    fontSize: 8,
+    width: '44%',
+    fontSize: 7.5,
     color: '#475569',
     textAlign: 'left',
   },
   emptyText: {
-    padding: 12,
-    fontSize: 9,
+    padding: 8,
+    fontSize: 8,
     color: '#94a3b8',
     fontStyle: 'italic',
     textAlign: 'center',
   },
   footer: {
     position: 'absolute',
-    bottom: 24,
-    left: 36,
-    right: 36,
+    bottom: 10,
+    left: 20,
+    right: 20,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingTop: 8,
+    paddingTop: 4,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
 });
 
 export default function PatrimonioPDF({ submissao, itens }: PatrimonioPDFProps) {
+  const logoUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/img/logo.png`
+      : '/img/logo.png';
+
   const validItems = (itens || []).filter((item) => {
     const val = String(item.possui || '').trim().toLowerCase();
     return val === 'sim' || val === 's' || val === 'true';
@@ -278,7 +285,7 @@ export default function PatrimonioPDF({ submissao, itens }: PatrimonioPDFProps) 
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Image src="/img/logo.png" style={styles.logo} />
+          <Image src={logoUrl} style={styles.logo} />
           <Text style={styles.title}>RELATÓRIO OFICIAL DE PATRIMÔNIO - IPDA</Text>
           <Text style={styles.subtitle}>
             Igreja Pentecostal Deus é Amor • Código TOTVS: {submissao.codigo_totvs}
