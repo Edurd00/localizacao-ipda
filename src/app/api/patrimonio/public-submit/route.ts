@@ -82,13 +82,17 @@ export async function POST(request: NextRequest) {
       cargo_responsavel: cargo_responsavel ? String(cargo_responsavel).trim() : 'Dirigente Local',
       ano_referencia: anoAtual,
       observacoes: observacoes ? String(observacoes).trim() : null,
-      itens: itens.map((it: any) => ({
-        item_nome: String(it.item_nome || it.item || it.nome_item || it.descricao || '').trim(),
-        quantidade: Math.max(0, Number(it.quantidade ?? it.qtd ?? 1)),
-        possui: String(it.possui || 'Sim').trim(),
-        conservacao: String(it.conservacao || it.estado_conservacao || it.estado || 'BOM').trim().toUpperCase(),
-        observacao: it.observacao ? String(it.observacao).trim() : null,
-      })),
+      itens: itens.map((it: any) => {
+        const possuiVal = String(it.possui || 'Sim').trim();
+        const isSim = possuiVal.toLowerCase() === 'sim' || possuiVal.toLowerCase() === 's' || possuiVal.toLowerCase() === 'true';
+        return {
+          item_nome: String(it.item_nome || it.item || it.nome_item || it.descricao || '').trim(),
+          quantidade: isSim ? Math.max(1, Number(it.quantidade ?? it.qtd ?? 1)) : 0,
+          possui: isSim ? 'Sim' : 'Não',
+          conservacao: String(it.conservacao || it.estado_conservacao || it.estado || 'BOM').trim().toUpperCase(),
+          observacao: it.observacao ? String(it.observacao).trim() : null,
+        };
+      }),
     };
 
     const resultado = await salvarSubmissaoPatrimonio(payload);

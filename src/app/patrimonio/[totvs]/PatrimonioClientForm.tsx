@@ -128,8 +128,9 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
       id: it.id,
       item_nome: it.nome,
       categoria: it.categoria,
-      quantidade: 1,
+      quantidade: 0,
       possui: false,
+      resposta: null,
       conservacao: 'BOM',
       observacao: '',
     }))
@@ -150,7 +151,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
           if (json.ja_enviado) {
             setChurch(json.igreja || null);
             setAlreadySubmitted(true);
-            toast.info('A declaração patrimonial de 2026 para esta igreja já foi realizada.');
+            toast.info(`A declaração patrimonial de ${anoReferencia} para esta igreja já foi realizada.`);
           } else if (json.success && json.igreja) {
             setChurch(json.igreja);
             setAlreadySubmitted(false);
@@ -169,7 +170,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
           setLoading(false);
         });
     }
-  }, [isDirectLink, initialTotvs]);
+  }, [isDirectLink, initialTotvs, anoReferencia]);
 
   // Digitação manual TOTVS
   useEffect(() => {
@@ -191,7 +192,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
           if (json.ja_enviado) {
             setChurch(json.igreja || null);
             setAlreadySubmitted(true);
-            toast.info('A declaração patrimonial referente ao ano de 2026 desta igreja já foi recebida.');
+            toast.info(`A declaração patrimonial referente ao ano de ${anoReferencia} desta igreja já foi recebida.`);
           } else if (json.success && json.igreja) {
             setChurch(json.igreja);
             setAlreadySubmitted(false);
@@ -212,7 +213,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [codigoTotvs, isDirectLink]);
+  }, [codigoTotvs, isDirectLink, anoReferencia]);
 
   // Handlers
   const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,9 +221,20 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
     setTelefoneResponsavel(formatado);
   };
 
-  const handleTogglePossui = (id: string) => {
+  const handleRespostaChange = (id: string, resposta: 'SIM' | 'NAO') => {
     setItens((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, possui: !it.possui } : it))
+      prev.map((it) => {
+        if (it.id === id) {
+          const isSim = resposta === 'SIM';
+          return {
+            ...it,
+            resposta,
+            possui: isSim,
+            quantidade: isSim ? (it.quantidade > 0 ? it.quantidade : 1) : 0,
+          };
+        }
+        return it;
+      })
     );
   };
 
@@ -275,6 +287,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
       categoria: 'Itens Adicionais',
       quantidade: 1,
       possui: true,
+      resposta: 'SIM',
       conservacao: 'BOM',
       observacao: '',
       isCustom: true,
@@ -298,7 +311,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
       if (!codigoTotvs.trim()) {
         erros.codigo_totvs = 'Informe o Código TOTVS da igreja.';
       } else if (alreadySubmitted) {
-        erros.codigo_totvs = 'A declaração de 2026 já foi enviada para esta igreja.';
+        erros.codigo_totvs = `A declaração de ${anoReferencia} já foi enviada para esta igreja.`;
       } else if (!church) {
         erros.codigo_totvs = 'Código TOTVS não localizado ou congregação não encontrada.';
       }
@@ -321,12 +334,12 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
     }
 
     if (etapaAtual === 2) {
-      const totalPossui = itens.filter((i) => i.possui).length;
-      if (totalPossui === 0) {
-        const confirmEmpty = confirm(
-          'Nenhum bem foi marcado como "Possui". Deseja realmente prosseguir sem nenhum item de patrimônio?'
+      const itensNaoRespondidos = itens.filter((i) => !i.isCustom && !i.resposta);
+      if (itensNaoRespondidos.length > 0) {
+        toast.error(
+          `Atenção: Existem ${itensNaoRespondidos.length} item(ns) padrão não respondido(s). Por favor, marque SIM ou NÃO para todos os itens antes de avançar.`
         );
-        if (!confirmEmpty) return;
+        return;
       }
     }
 
@@ -374,7 +387,7 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
 
       if (json.ja_enviado) {
         setAlreadySubmitted(true);
-        toast.info('A declaração patrimonial referente ao ano de 2026 desta igreja já foi recebida.');
+        toast.info(`A declaração patrimonial referente ao ano de ${anoReferencia} desta igreja já foi recebida.`);
         return;
       }
 
@@ -411,18 +424,17 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
     return (
       <div className="w-full max-w-4xl mx-auto h-auto min-h-fit pb-16 pt-8 px-4 font-sans">
         <Toaster position="top-center" richColors />
-        <div className="bg-white rounded-3xl shadow-xl border border-indigo-200 p-8 sm:p-10 space-y-6 text-center">
-          <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+        <div className="bg-white rounded-3xl shadow-xl border border-amber-200 p-8 sm:p-10 space-y-6 text-center">
+          <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
             <CalendarCheck2 className="h-10 w-10" />
           </div>
 
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-              Declaração Anual de 2026 Já Recebida!
+              Inventário de Patrimônio {anoReferencia} Já Realizado
             </h2>
             <p className="text-slate-600 text-base max-w-lg mx-auto leading-relaxed">
-              A declaração patrimonial referente ao ano de <strong>2026</strong> da igreja{' '}
-              <strong>{church.desc_igreja}</strong> (TOTVS {church.codigo_totvs}) já foi recebida e consta registrada no sistema.
+              Esta congregação já enviou a declaração patrimonial referente ao ano corrente ({anoReferencia}). O formulário estará disponível novamente no próximo ciclo anual.
             </p>
           </div>
 
@@ -837,53 +849,98 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
               })}
             </div>
 
-            {/* Lista dos Itens: Cards Inteiros Clicáveis */}
+            {/* Lista dos Itens com escolha explícita SIM / NÃO */}
             <div className="space-y-4">
               {itensExibidos.map((item) => {
-                const isChecked = item.possui;
+                const isSim = item.resposta === 'SIM';
+                const isNao = item.resposta === 'NAO';
+                const isRespondido = Boolean(item.resposta);
 
                 return (
                   <div
                     key={item.id}
-                    onClick={() => handleTogglePossui(item.id)}
-                    className={`cursor-pointer rounded-2xl border-2 p-4 sm:p-5 transition-all ${
-                      isChecked
+                    className={`rounded-2xl border-2 p-4 sm:p-5 transition-all ${
+                      isSim
                         ? 'border-indigo-600 bg-indigo-50/60 shadow-md'
-                        : 'border-slate-200 bg-slate-50/60 hover:bg-slate-100/80 hover:border-slate-300'
+                        : isNao
+                        ? 'border-slate-300 bg-slate-100/60'
+                        : 'border-amber-300 bg-amber-50/40'
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      {/* Checkbox e Título */}
-                      <div className="flex items-center gap-4 select-none">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleTogglePossui(item.id);
-                          }}
-                          className="h-7 w-7 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer accent-indigo-600 shrink-0"
-                        />
-                        <div>
+                      {/* Título e Categoria */}
+                      <div>
+                        <div className="flex items-center gap-2">
                           <span
                             className={`text-base sm:text-lg font-black block ${
-                              isChecked ? 'text-indigo-950' : 'text-slate-800'
+                              isSim ? 'text-indigo-950' : 'text-slate-800'
                             }`}
                           >
                             {item.item_nome}
                           </span>
-                          <span className="text-xs text-slate-500 uppercase tracking-wider font-extrabold">
-                            {item.categoria}
-                          </span>
+                          {!isRespondido && !item.isCustom && (
+                            <span className="text-[10px] font-extrabold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full uppercase">
+                              Pendente
+                            </span>
+                          )}
                         </div>
+                        <span className="text-xs text-slate-500 uppercase tracking-wider font-extrabold">
+                          {item.categoria}
+                        </span>
                       </div>
 
-                      {/* Stepper de Quantidade com botões grandes h-10 w-10 text-xl font-bold */}
-                      {isChecked && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-3 flex-wrap sm:flex-nowrap pl-11 sm:pl-0"
-                        >
+                      {/* Botões de escolha explícita SIM / NÃO */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-slate-600 hidden sm:inline">Possui este item?</span>
+                        <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-300 shadow-xs">
+                          <button
+                            type="button"
+                            onClick={() => handleRespostaChange(item.id, 'SIM')}
+                            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-1 ${
+                              isSim
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            {isSim && <Check className="h-4 w-4" />}
+                            <span>SIM</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRespostaChange(item.id, 'NAO')}
+                            className={`h-10 px-4 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-1 ${
+                              isNao
+                                ? 'bg-rose-600 text-white shadow-xs'
+                                : 'text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            {isNao && <Check className="h-4 w-4" />}
+                            <span>NÃO</span>
+                          </button>
+                        </div>
+
+                        {item.isCustom && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomItem(item.id)}
+                            className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                            title="Remover item"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expansão quando selecionado SIM: Quantidade, Conservação e Observação */}
+                    {isSim && (
+                      <div className="mt-4 pt-4 border-t border-indigo-200/80 space-y-4">
+                        {/* Stepper de Quantidade */}
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                          <label className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider block">
+                            Quantidade:
+                          </label>
                           <div className="flex items-center bg-white border-2 border-indigo-200 rounded-2xl overflow-hidden shadow-xs">
                             <button
                               type="button"
@@ -903,27 +960,9 @@ export default function PatrimonioClientForm({ totvs: initialTotvs }: { totvs?: 
                               +
                             </button>
                           </div>
-
-                          {item.isCustom && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCustomItem(item.id)}
-                              className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                              title="Remover item"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Expansão quando selecionado: Pílulas de Estado de Conservação e Observação */}
-                    {isChecked && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="mt-4 pl-11 sm:pl-11 pt-4 border-t border-indigo-200/80 space-y-3"
-                      >
+                        {/* Pílulas de Estado de Conservação */}
                         <div className="space-y-1.5">
                           <label className="block text-xs font-extrabold text-indigo-900 uppercase tracking-wider">
                             Estado de Conservação:

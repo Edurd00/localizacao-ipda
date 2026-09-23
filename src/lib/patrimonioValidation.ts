@@ -13,6 +13,7 @@ export interface ItemPatrimonialForm {
   categoria: string;
   quantidade: number;
   possui: boolean;
+  resposta?: 'SIM' | 'NAO' | null;
   conservacao: 'ÓTIMO' | 'BOM' | 'REGULAR' | 'RUIM';
   observacao?: string;
   isCustom?: boolean;
