@@ -306,10 +306,11 @@ export default function GestaoPatrimonioPage() {
   // Prepara dados de conservação para o gráfico de barras horizontais
   const getConservationColor = (consName: string) => {
     const name = (consName || '').toUpperCase();
-    if (name.includes('ÓTIMO') || name.includes('OTIMO') || name.includes('BOM')) return '#10B981'; // Verde
+    if (name.includes('ÓTIMO') || name.includes('OTIMO')) return '#10B981'; // Verde
+    if (name.includes('BOM')) return '#3B82F6'; // Azul
     if (name.includes('REGULAR')) return '#F59E0B'; // Laranja
     if (name.includes('RUIM') || name.includes('REPARO')) return '#EF4444'; // Vermelho
-    return '#6366F1';
+    return '#F59E0B'; // Fallback Regular
   };
 
   const totalRuim = (statsBi.itens_por_conservacao || []).reduce((acc: number, item: any) => {
@@ -1268,7 +1269,7 @@ export default function GestaoPatrimonioPage() {
                                         ) : (
                                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                             {(cg.patrimonio_itens || cg.itens).map((it: any, idx: number) => {
-                                              const conservacaoVal = it.estado_conservacao || it.conservacao || 'N/I';
+                                              const conservacaoVal = it.conservacao || it.estado_conservacao || it.estado || 'REGULAR';
                                               return (
                                                 <div key={`item-${idx}`} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between text-xs space-y-1">
                                                   <div className="flex items-start justify-between gap-1">

@@ -326,7 +326,7 @@ export default function PatrimonioDetailModal({
                           {item.quantidade ?? item.qtd ?? '---'}
                         </td>
                         <td className="px-3 py-2.5 text-slate-600 dark:text-slate-400">
-                          {item.conservacao || item.estado_conservacao || item.estado || '---'}
+                          {item.conservacao || item.estado_conservacao || item.estado || 'REGULAR'}
                         </td>
                         <td className="px-3 py-2.5 text-slate-600 dark:text-slate-400">
                           {item.observacao && item.observacao.trim() !== '' ? item.observacao : '-'}
