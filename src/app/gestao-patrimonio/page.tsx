@@ -332,15 +332,15 @@ export default function GestaoPatrimonioPage() {
         {children.map((sub) => (
           <div key={sub.codigo_totvs} className="flex flex-col">
             <div
-              className="p-3.5 bg-white border-b border-zinc-100 hover:bg-zinc-50/80 transition-colors flex flex-col md:flex-row items-start md:items-center justify-between gap-3"
+              className="p-3.5 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors flex flex-col md:flex-row items-start md:items-center justify-between gap-3"
               style={{ paddingLeft: `${Math.max(16, level * 28)}px` }}
             >
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="font-mono font-bold text-xs bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded text-zinc-700">
+                <span className="font-mono font-bold text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
                   {sub.codigo_totvs}
                 </span>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-sm text-zinc-800">{sub.desc_igreja}</span>
+                  <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{sub.desc_igreja}</span>
                   {sub.porte && (
                     <span
                       className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider"
@@ -349,36 +349,36 @@ export default function GestaoPatrimonioPage() {
                       {sub.porte}
                     </span>
                   )}
-                  <span className="text-[10px] text-zinc-500">{sub.municipio} - {sub.estado}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">{sub.municipio} - {sub.estado}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-between md:justify-end">
                 {sub.dirigente_nome ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase text-zinc-700 flex items-center gap-1">
-                      <User className="h-3.5 w-3.5 text-indigo-500" /> {sub.dirigente_nome}
+                    <span className="text-[10px] font-bold uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                      <User className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" /> {sub.dirigente_nome}
                     </span>
                     {sub.dirigente_telefone && (
                       <a
                         href={`https://wa.me/55${sub.dirigente_telefone.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full hover:bg-emerald-100 transition-colors font-bold"
+                        className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-2 py-0.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors font-bold"
                       >
                         <Phone className="h-2.5 w-2.5" /> WhatsApp
                       </a>
                     )}
                   </div>
                 ) : (
-                  <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                  <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/80 px-2 py-0.5 rounded text-[10px] font-bold">
                     ⚠️ Acionar Sede
                   </span>
                 )}
 
                 {sub.submissao_id ? (
                   <div className="flex items-center gap-1.5">
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Recebido
                     </span>
                     {isRecentSubmission(sub.data_envio) && (
@@ -388,7 +388,7 @@ export default function GestaoPatrimonioPage() {
                     )}
                   </div>
                 ) : (
-                  <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                  <span className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
                     <X className="h-3.5 w-3.5" /> Pendente
                   </span>
                 )}
@@ -399,7 +399,7 @@ export default function GestaoPatrimonioPage() {
                       setSelectedSubmissao(sub);
                       setIsDetailModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/80 rounded-lg transition-colors cursor-pointer"
                   >
                     <Eye className="h-3.5 w-3.5" /> Ver Detalhes
                   </button>
@@ -420,24 +420,24 @@ export default function GestaoPatrimonioPage() {
     );
 
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 flex items-center justify-between flex-wrap gap-2">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/30 border-b border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-indigo-600" />
-            <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wide">
-              Estrutura Hierárquica da Sede: <span className="font-mono text-indigo-700">{filterSede.toUpperCase()}</span>
+            <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wide">
+              Estrutura Hierárquica da Sede: <span className="font-mono text-indigo-700 dark:text-indigo-400">{filterSede.toUpperCase()}</span>
             </h3>
           </div>
-          <span className="text-[10px] bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-full font-bold">
+          <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-2.5 py-0.5 rounded-full font-bold">
             {submissoes.length} {submissoes.length === 1 ? 'Igreja' : 'Igrejas na malha'}
           </span>
         </div>
 
-        <div className="divide-y divide-zinc-100">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
           {rootSede ? (
             <div className="flex flex-col">
               <div
-                className="p-3.5 bg-indigo-50/30 border-b border-indigo-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 font-semibold"
+                className="p-3.5 bg-indigo-50/30 dark:bg-indigo-950/20 border-b border-indigo-100 dark:border-indigo-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 font-semibold"
                 style={{ paddingLeft: '16px' }}
               >
                 <div className="flex items-center gap-3 flex-wrap">
@@ -445,7 +445,7 @@ export default function GestaoPatrimonioPage() {
                     {rootSede.codigo_totvs}
                   </span>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-black text-sm text-zinc-900">{rootSede.desc_igreja}</span>
+                    <span className="font-black text-sm text-slate-900 dark:text-white">{rootSede.desc_igreja}</span>
                     {rootSede.porte && (
                       <span
                         className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider"
@@ -454,39 +454,39 @@ export default function GestaoPatrimonioPage() {
                         {rootSede.porte}
                       </span>
                     )}
-                    <span className="text-[10px] text-zinc-500">{rootSede.municipio} - {rootSede.estado}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{rootSede.municipio} - {rootSede.estado}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-between md:justify-end">
                   {rootSede.dirigente_nome ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase text-zinc-700 flex items-center gap-1">
-                        <User className="h-3.5 w-3.5 text-indigo-500" /> {rootSede.dirigente_nome}
+                      <span className="text-[10px] font-bold uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                        <User className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" /> {rootSede.dirigente_nome}
                       </span>
                       {rootSede.dirigente_telefone && (
                         <a
                           href={`https://wa.me/55${rootSede.dirigente_telefone.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full hover:bg-emerald-100 transition-colors font-bold"
+                          className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-2 py-0.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors font-bold"
                         >
                           <Phone className="h-2.5 w-2.5" /> WhatsApp
                         </a>
                       )}
                     </div>
                   ) : (
-                    <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                    <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/80 px-2 py-0.5 rounded text-[10px] font-bold">
                       ⚠️ Acionar Sede
                     </span>
                   )}
 
                   {rootSede.submissao_id ? (
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Recebido
                     </span>
                   ) : (
-                    <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
                       <X className="h-3.5 w-3.5" /> Pendente
                     </span>
                   )}
@@ -497,7 +497,7 @@ export default function GestaoPatrimonioPage() {
                         setSelectedSubmissao(rootSede);
                         setIsDetailModalOpen(true);
                       }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/80 rounded-lg transition-colors cursor-pointer"
                     >
                       <Eye className="h-3.5 w-3.5" /> Ver Detalhes
                     </button>
@@ -515,7 +515,7 @@ export default function GestaoPatrimonioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 sm:p-6 transition-colors duration-200 flex flex-col font-sans">
       <Toaster position="top-right" richColors />
 
       {/* Header */}
@@ -705,43 +705,43 @@ export default function GestaoPatrimonioPage() {
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* KPIs Cards Tab 1 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-slate-950/50 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Total de Igrejas Ativas</p>
-                    <h3 className="text-3xl font-black text-zinc-800 mt-1">{kpiDash.total_igrejas_ativas || kpiMeta.totalIgrejas}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Total de Igrejas Ativas</p>
+                    <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{kpiDash.total_igrejas_ativas || kpiMeta.totalIgrejas}</h3>
                   </div>
-                  <div className="p-2.5 bg-zinc-100 text-zinc-600 rounded-xl"><Building2 className="h-5 w-5"/></div>
+                  <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl"><Building2 className="h-5 w-5"/></div>
                 </div>
               </div>
 
-              <div className="bg-white border border-emerald-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-slate-950/50 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Preenchido em 2026</p>
-                    <h3 className="text-3xl font-black text-emerald-700 mt-1">{kpiDash.submissoes_2026 || kpiMeta.recebidos}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Preenchido em 2026</p>
+                    <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{kpiDash.submissoes_2026 || kpiMeta.recebidos}</h3>
                   </div>
-                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle2 className="h-5 w-5"/></div>
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl"><CheckCircle2 className="h-5 w-5"/></div>
                 </div>
               </div>
 
-              <div className="bg-white border border-indigo-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-slate-950/50 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Envios Últimos 7 Dias</p>
-                    <h3 className="text-3xl font-black text-indigo-700 mt-1">{kpiDash.submissoes_ultimos_7_dias || 0}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">Envios Últimos 7 Dias</p>
+                    <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{kpiDash.submissoes_ultimos_7_dias || 0}</h3>
                   </div>
-                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><Clock className="h-5 w-5"/></div>
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl"><Clock className="h-5 w-5"/></div>
                 </div>
               </div>
 
-              <div className="bg-white border border-indigo-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-slate-950/50 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">% Cobertura Patrimônio</p>
-                    <h3 className="text-3xl font-black text-indigo-700 mt-1">{kpiDash.percentual_cobertura_2026 || kpiMeta.percentual}%</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">% Cobertura Patrimônio</p>
+                    <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{kpiDash.percentual_cobertura_2026 || kpiMeta.percentual}%</h3>
                   </div>
-                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><Package className="h-5 w-5"/></div>
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl"><Package className="h-5 w-5"/></div>
                 </div>
               </div>
             </div>
@@ -820,16 +820,16 @@ export default function GestaoPatrimonioPage() {
 
             {/* Lista de Resultados Tab 1 */}
             {loading ? (
-              <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-indigo-600"/></div>
+              <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-indigo-600 dark:text-indigo-400"/></div>
             ) : submissoes.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-2xl py-20 text-center"><Package className="h-12 w-12 text-zinc-300 mx-auto mb-3"/><h3 className="font-bold text-zinc-800">Nenhum registro encontrado</h3></div>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl py-20 text-center"><Package className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3"/><h3 className="font-bold text-slate-800 dark:text-slate-200">Nenhum registro encontrado</h3></div>
             ) : filterSede.trim() !== '' ? (
               renderTreeContainer()
             ) : (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-zinc-50 text-zinc-500 font-bold border-b border-zinc-200 uppercase tracking-wider text-[10px]">
+                    <thead className="bg-slate-100/80 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider">
                       <tr>
                         <th className="p-4">TOTVS</th>
                         <th className="p-4">Igreja / Sede Superior</th>
@@ -839,12 +839,12 @@ export default function GestaoPatrimonioPage() {
                         <th className="p-4 text-center">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-800 dark:text-slate-200">
                       {submissoes.map(sub => (
-                        <tr key={sub.codigo_totvs} className="hover:bg-zinc-50/50 transition-colors">
-                          <td className="p-4 font-mono font-bold">{sub.codigo_totvs}</td>
+                        <tr key={sub.codigo_totvs} className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{sub.codigo_totvs}</td>
                           <td className="p-4">
-                            <div className="font-bold text-sm flex items-center gap-2 flex-wrap">
+                            <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                               <span>{sub.desc_igreja}</span>
                               {sub.porte && (
                                 <span
@@ -856,40 +856,40 @@ export default function GestaoPatrimonioPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
-                              <span className="text-[10px] text-zinc-500">{sub.municipio} - {sub.estado}</span>
-                              {sub.codigo_totvs_pai && <span className="bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded text-[9px] font-mono text-zinc-600">Sede Pai: {sub.codigo_totvs_pai}</span>}
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">{sub.municipio} - {sub.estado}</span>
+                              {sub.codigo_totvs_pai && <span className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-[9px] font-mono text-slate-600 dark:text-slate-300">Sede Pai: {sub.codigo_totvs_pai}</span>}
                             </div>
                           </td>
                           <td className="p-4">
                             {sub.dirigente_nome ? (
                               <div className="space-y-1">
-                                <div className="font-bold flex items-center gap-1.5 uppercase text-[10px]"><User className="h-3.5 w-3.5 text-indigo-500"/> {sub.dirigente_nome}</div>
+                                <div className="font-bold flex items-center gap-1.5 uppercase text-[10px] text-slate-700 dark:text-slate-300"><User className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400"/> {sub.dirigente_nome}</div>
                                 {sub.dirigente_telefone && (
-                                  <a href={`https://wa.me/55${sub.dirigente_telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full hover:bg-emerald-100 transition-colors font-bold"><Phone className="h-2.5 w-2.5"/> WhatsApp</a>
+                                  <a href={`https://wa.me/55${sub.dirigente_telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-2 py-0.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors font-bold"><Phone className="h-2.5 w-2.5"/> WhatsApp</a>
                                 )}
                               </div>
-                            ) : <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded text-[10px] font-bold">⚠️ Acionar Sede (Sem Contato)</span>}
+                            ) : <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/80 px-2.5 py-1 rounded text-[10px] font-bold">⚠️ Acionar Sede (Sem Contato)</span>}
                           </td>
-                          <td className="p-4 text-center font-mono text-zinc-600">
+                          <td className="p-4 text-center font-mono text-slate-600 dark:text-slate-400">
                             {formatDate(sub.data_envio)}
                           </td>
                           <td className="p-4 text-center">
                             {sub.submissao_id ? (
                               <div className="flex flex-col items-center gap-1">
-                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center justify-center gap-1 max-w-max mx-auto"><CheckCircle2 className="h-3.5 w-3.5"/> Recebido</span>
+                                <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center justify-center gap-1 max-w-max mx-auto"><CheckCircle2 className="h-3.5 w-3.5"/> Recebido</span>
                                 {isRecentSubmission(sub.data_envio) && (
                                   <span className="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
                                     🔥 Recente
                                   </span>
                                 )}
                               </div>
-                            ) : <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center justify-center gap-1 max-w-max mx-auto"><X className="h-3.5 w-3.5"/> Pendente</span>}
+                            ) : <span className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center justify-center gap-1 max-w-max mx-auto"><X className="h-3.5 w-3.5"/> Pendente</span>}
                           </td>
                           <td className="p-4 text-center">
                             {sub.submissao_id ? (
-                              <button onClick={() => { setSelectedSubmissao(sub); setIsDetailModalOpen(true); }} className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors shadow-xs cursor-pointer"><Eye className="h-3.5 w-3.5"/> Ver Detalhes</button>
+                              <button onClick={() => { setSelectedSubmissao(sub); setIsDetailModalOpen(true); }} className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/80 rounded-lg transition-colors shadow-xs cursor-pointer"><Eye className="h-3.5 w-3.5"/> Ver Detalhes</button>
                             ) : (
-                              <a href={`/patrimonio/${sub.codigo_totvs}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors shadow-xs cursor-pointer" title="Abrir formulário público de patrimônio">🔗 Link Público</a>
+                              <a href={`/patrimonio/${sub.codigo_totvs}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/80 rounded-lg transition-colors shadow-xs cursor-pointer" title="Abrir formulário público de patrimônio">🔗 Link Público</a>
                             )}
                           </td>
                         </tr>
@@ -898,11 +898,11 @@ export default function GestaoPatrimonioPage() {
                   </table>
                 </div>
                 {pageMeta.totalPages > 1 && (
-                  <div className="p-4 bg-zinc-50 border-t border-zinc-150 flex items-center justify-between">
-                    <span className="text-xs text-zinc-500 font-semibold font-mono">Página {pageMeta.page} de {pageMeta.totalPages} ({pageMeta.total} registros)</span>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold font-mono">Página {pageMeta.page} de {pageMeta.totalPages} ({pageMeta.total} registros)</span>
                     <div className="flex items-center gap-2">
-                      <button disabled={pageMeta.page <= 1} onClick={() => setCurrentPage(prev => prev - 1)} className="px-3 py-1.5 border border-zinc-200 bg-white rounded-lg text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 flex items-center gap-1 cursor-pointer"><ChevronLeft className="h-4 w-4"/> Anterior</button>
-                      <button disabled={pageMeta.page >= pageMeta.totalPages} onClick={() => setCurrentPage(prev => prev + 1)} className="px-3 py-1.5 border border-zinc-200 bg-white rounded-lg text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 flex items-center gap-1 cursor-pointer">Próxima <ChevronRight className="h-4 w-4"/></button>
+                      <button disabled={pageMeta.page <= 1} onClick={() => setCurrentPage(prev => prev - 1)} className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 flex items-center gap-1 cursor-pointer"><ChevronLeft className="h-4 w-4"/> Anterior</button>
+                      <button disabled={pageMeta.page >= pageMeta.totalPages} onClick={() => setCurrentPage(prev => prev + 1)} className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 flex items-center gap-1 cursor-pointer">Próxima <ChevronRight className="h-4 w-4"/></button>
                     </div>
                   </div>
                 )}
