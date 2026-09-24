@@ -841,10 +841,10 @@ export async function obterEstatisticasPatrimonio(
         }
       }
 
-      // Filter condition for items
-      let itemFilterClause = `WHERE (pi.quantidade > 0 OR UPPER(pi.possui) = 'SIM') AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)`;
+      // Filter condition for items (only declared items with quantity > 0)
+      let itemFilterClause = `WHERE pi.quantidade > 0 AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)`;
       if (apenasRuim) {
-        itemFilterClause += ` AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'`;
+        itemFilterClause += ` AND UPPER(TRIM(COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'))) = 'RUIM'`;
       }
 
       // 1. Totals query
@@ -863,8 +863,8 @@ export async function obterEstatisticasPatrimonio(
             FROM ${baseFromIgrejas}
             JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
             JOIN patrimonio_itens pi ON ps.id = pi.submissao_id
-            ${whereIgreja} AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'
-              AND (pi.quantidade > 0 OR UPPER(pi.possui) = 'SIM')
+            ${whereIgreja} AND UPPER(TRIM(COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'))) = 'RUIM'
+              AND pi.quantidade > 0
               AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
           ), 0)::int AS estado_ruim,
 
@@ -908,15 +908,14 @@ export async function obterEstatisticasPatrimonio(
         ORDER BY total DESC
       `;
 
-      // 3. Conservation status query
+      // 3. Conservation status query (Strict 4 official categories: 'Ótimo', 'Bom', 'Regular', 'Ruim')
       const conservationQuery = `${cte}
         SELECT 
           CASE 
-            WHEN UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'BOM' THEN 'Bom'
-            WHEN UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'REGULAR' THEN 'Regular'
-            WHEN UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM' THEN 'Ruim'
-            WHEN UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) IN ('OTIMO', 'ÓTIMO') THEN 'Ótimo'
-            ELSE 'Outro'
+            WHEN UPPER(TRIM(COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'))) IN ('OTIMO', 'ÓTIMO') THEN 'Ótimo'
+            WHEN UPPER(TRIM(COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'))) = 'BOM' THEN 'Bom'
+            WHEN UPPER(TRIM(COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'))) = 'RUIM' THEN 'Ruim'
+            ELSE 'Regular'
           END AS estado,
           SUM(pi.quantidade)::int AS quantidade
         FROM ${baseFromIgrejas}
@@ -957,15 +956,16 @@ export async function obterEstatisticasPatrimonio(
               json_build_object(
                 'item_nome', pi.item_nome,
                 'quantidade', pi.quantidade,
-                'estado_conservacao', COALESCE(pi.estado_conservacao, pi.conservacao),
+                'estado_conservacao', COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'),
+                'conservacao', COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'),
                 'observacao', pi.observacao
               )
-            ) FILTER (WHERE pi.id IS NOT NULL),
+            ) FILTER (WHERE pi.id IS NOT NULL AND pi.quantidade > 0),
             '[]'::json
           ) AS patrimonio_itens
         FROM ${baseFromIgrejas}
         JOIN patrimonio_submissoes ps ON LOWER(i.codigo_totvs) = LOWER(ps.codigo_totvs)
-        LEFT JOIN patrimonio_itens pi ON ps.id = pi.submissao_id ${apenasRuim ? "AND UPPER(TRIM(COALESCE(pi.estado_conservacao, pi.conservacao, ''))) = 'RUIM'" : ""}
+        LEFT JOIN patrimonio_itens pi ON ps.id = pi.submissao_id AND pi.quantidade > 0 ${apenasRuim ? "AND UPPER(TRIM(COALESCE(pi.conservacao, pi.estado_conservacao, 'REGULAR'))) = 'RUIM'" : ""}
         ${whereIgreja} AND (ps.ano_referencia = 2026 OR ps.ano_referencia IS NULL)
         GROUP BY i.codigo_totvs, i.desc_igreja, i.dirigente_nome, i.dirigente_telefone, i.porte, i.estado, i.municipio, ps.id, ps.data_envio
         ORDER BY total_geral DESC, i.desc_igreja ASC
@@ -1004,13 +1004,29 @@ export async function obterEstatisticasPatrimonio(
         quantidade: parseInt(row.total || "0", 10),
       }));
 
-      const conservacaoFormatted = conservationRes.rows
-        .filter((row) => row.estado !== "Outro" || parseInt(row.quantidade || "0", 10) > 0)
-        .map((row) => ({
-          estado: row.estado,
-          quantidade: parseInt(row.quantidade || "0", 10),
-          conservacao: row.estado,
-        }));
+      const officialCategories = ['Ótimo', 'Bom', 'Regular', 'Ruim'];
+      const rawConservationMap: Record<string, number> = {
+        'Ótimo': 0,
+        'Bom': 0,
+        'Regular': 0,
+        'Ruim': 0,
+      };
+
+      conservationRes.rows.forEach((row) => {
+        const cat = row.estado;
+        const qty = parseInt(row.quantidade || "0", 10);
+        if (cat in rawConservationMap) {
+          rawConservationMap[cat] += qty;
+        } else {
+          rawConservationMap['Regular'] += qty;
+        }
+      });
+
+      const conservacaoFormatted = officialCategories.map((cat) => ({
+        estado: cat,
+        quantidade: rawConservationMap[cat] || 0,
+        conservacao: cat,
+      }));
 
       const congregacoesMatricial = matrixRes.rows.map((row) => {
         const itensArr = Array.isArray(row.patrimonio_itens) ? row.patrimonio_itens : [];
