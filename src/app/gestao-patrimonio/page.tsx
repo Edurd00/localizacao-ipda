@@ -678,7 +678,7 @@ export default function GestaoPatrimonioPage() {
             className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'VISAO_GERAL'
                 ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Building2 className="h-4 w-4" />
@@ -691,7 +691,7 @@ export default function GestaoPatrimonioPage() {
             className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'DASHBOARD_BI'
                 ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <PieChartIcon className="h-4 w-4" />
@@ -986,8 +986,8 @@ export default function GestaoPatrimonioPage() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
-                <label className="bg-rose-50 hover:bg-rose-100/80 border border-rose-200 px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer transition-all">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
+                <label className="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100/80 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/60 px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer transition-all">
                   <input
                     type="checkbox"
                     checked={apenasRuim}
@@ -995,14 +995,14 @@ export default function GestaoPatrimonioPage() {
                     className="h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500 cursor-pointer accent-rose-600"
                   />
                   <div className="text-xs">
-                    <span className="font-extrabold text-rose-900 block">Mostrar apenas itens em estado Ruim</span>
-                    <span className="text-[10px] text-rose-700 font-medium">Filtrar auditoria de compras para substituição urgente</span>
+                    <span className="font-extrabold text-rose-900 dark:text-rose-200 block">Mostrar apenas itens em estado Ruim</span>
+                    <span className="text-[10px] text-rose-700 dark:text-rose-300 font-medium">Filtrar auditoria de compras para substituição urgente</span>
                   </div>
                 </label>
 
                 <div className="text-right">
-                  <span className="text-[11px] font-bold text-slate-500 block">
-                    Congregações encontradas: <strong className="text-indigo-600 font-extrabold">{statsBi.congregacoes?.length || 0}</strong>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
+                    Congregações encontradas: <strong className="text-indigo-600 dark:text-indigo-400 font-extrabold">{statsBi.congregacoes?.length || 0}</strong>
                   </span>
                 </div>
               </div>
@@ -1011,56 +1011,56 @@ export default function GestaoPatrimonioPage() {
             {/* Cards KPI Tab 2 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Total de Itens */}
-              <div className="bg-white border-2 border-emerald-500 bg-emerald-50/20 rounded-3xl p-6 shadow-xs flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-900 border-2 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20 rounded-3xl p-6 shadow-xs flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-black text-emerald-800 uppercase tracking-wider block">
+                  <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
                     Total de Itens Cadastrados
                   </span>
-                  <h3 className="text-3xl sm:text-4xl font-black text-emerald-950 mt-1">
+                  <h3 className="text-3xl sm:text-4xl font-black text-emerald-950 dark:text-emerald-100 mt-1">
                     {statsBi.total_itens || 0}
                   </h3>
-                  <span className="text-[11px] text-emerald-700 font-semibold mt-1 block">
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold mt-1 block">
                     Equipamentos e bens patrimoniais
                   </span>
                 </div>
-                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center shrink-0">
                   <Package className="h-7 w-7" />
                 </div>
               </div>
 
               {/* Estado Crítico - Ruim */}
-              <div className="bg-white border-2 border-rose-500 bg-rose-50/20 rounded-3xl p-6 shadow-xs flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-900 border-2 border-rose-500 bg-rose-50/20 dark:bg-rose-950/20 rounded-3xl p-6 shadow-xs flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-black text-rose-800 uppercase tracking-wider block flex items-center gap-1">
-                    <AlertTriangle className="h-4 w-4 text-rose-600" />
+                  <span className="text-xs font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider block flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                     Estado Crítico - Ruim
                   </span>
-                  <h3 className="text-3xl sm:text-4xl font-black text-rose-950 mt-1">
+                  <h3 className="text-3xl sm:text-4xl font-black text-rose-950 dark:text-rose-100 mt-1">
                     {statsBi.estado_ruim !== undefined ? statsBi.estado_ruim : totalRuim}
                   </h3>
-                  <span className="text-[11px] text-rose-700 font-semibold mt-1 block">
+                  <span className="text-[11px] text-rose-700 dark:text-rose-400 font-semibold mt-1 block">
                     Necessitam de reparo ou troca urgente
                   </span>
                 </div>
-                <div className="w-14 h-14 bg-rose-100 text-rose-700 rounded-2xl flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 rounded-2xl flex items-center justify-center shrink-0">
                   <AlertTriangle className="h-7 w-7" />
                 </div>
               </div>
 
               {/* Média por Templo */}
-              <div className="bg-white border-2 border-amber-500 bg-amber-50/20 rounded-3xl p-6 shadow-xs flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-900 border-2 border-amber-500 bg-amber-50/20 dark:bg-amber-950/20 rounded-3xl p-6 shadow-xs flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-black text-amber-800 uppercase tracking-wider block">
+                  <span className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
                     Média de Itens por Templo
                   </span>
-                  <h3 className="text-3xl sm:text-4xl font-black text-amber-950 mt-1">
+                  <h3 className="text-3xl sm:text-4xl font-black text-amber-950 dark:text-amber-100 mt-1">
                     {statsBi.media_itens_por_templo || 0}
                   </h3>
-                  <span className="text-[11px] text-amber-700 font-semibold mt-1 block">
+                  <span className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold mt-1 block">
                     Baseado nas submissões filtradas
                   </span>
                 </div>
-                <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center shrink-0">
                   <TrendingUp className="h-7 w-7" />
                 </div>
               </div>
@@ -1068,7 +1068,7 @@ export default function GestaoPatrimonioPage() {
 
             {/* Gráficos Recharts */}
             {loadingBi ? (
-              <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center flex items-center justify-center gap-3 text-indigo-600 font-bold">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-16 text-center flex items-center justify-center gap-3 text-indigo-600 dark:text-indigo-400 font-bold">
                 <Loader2 className="h-6 w-6 animate-spin" />
                 <span>Carregando dados estatísticos e gráficos...</span>
               </div>
@@ -1076,21 +1076,21 @@ export default function GestaoPatrimonioPage() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Gráfico Esquerda: Distribuição por Categorias (Doughnut) */}
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                       <div className="flex items-center gap-2">
-                        <PieChartIcon className="h-5 w-5 text-indigo-600" />
-                        <h3 className="font-black text-slate-900 text-base">
+                        <PieChartIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        <h3 className="font-black text-slate-900 dark:text-white text-base">
                           Distribuição por Categoria
                         </h3>
                       </div>
-                      <span className="text-xs font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-100">
+                      <span className="text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full border border-indigo-100 dark:border-indigo-900/50">
                         {(statsBi.itens_por_categoria || []).length} tipos
                       </span>
                     </div>
 
                     {(statsBi.itens_por_categoria || []).length === 0 ? (
-                      <p className="text-slate-400 text-xs italic text-center py-12">Sem itens cadastrados para esta visualização.</p>
+                      <p className="text-slate-400 dark:text-slate-500 text-xs italic text-center py-12">Sem itens cadastrados para esta visualização.</p>
                     ) : (
                       <div className="h-72 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1126,21 +1126,21 @@ export default function GestaoPatrimonioPage() {
                   </div>
 
                   {/* Gráfico Direita: Estado de Conservação */}
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                       <div className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-indigo-600" />
-                        <h3 className="font-black text-slate-900 text-base">
+                        <BarChart3 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        <h3 className="font-black text-slate-900 dark:text-white text-base">
                           Estado de Conservação dos Bens
                         </h3>
                       </div>
-                      <span className="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
+                      <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-full">
                         Classificação Oficial
                       </span>
                     </div>
 
                     {(statsBi.itens_por_conservacao || []).length === 0 ? (
-                      <p className="text-slate-400 text-xs italic text-center py-12">Sem dados de conservação disponíveis.</p>
+                      <p className="text-slate-400 dark:text-slate-500 text-xs italic text-center py-12">Sem dados de conservação disponíveis.</p>
                     ) : (
                       <div className="h-72 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1169,29 +1169,29 @@ export default function GestaoPatrimonioPage() {
                 </div>
 
                 {/* Tabela Matricial Consolidada por Categoria de Bens */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col space-y-4 p-6">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-2">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col space-y-4 p-6">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-indigo-600" />
+                      <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                       <div>
-                        <h3 className="font-black text-slate-900 text-base">Tabela Matricial Consolidada de Patrimônio</h3>
-                        <p className="text-xs text-slate-500 font-medium">Contagem por categoria de bens declarados em cada congregação</p>
+                        <h3 className="font-black text-slate-900 dark:text-white text-base">Tabela Matricial Consolidada de Patrimônio</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Contagem por categoria de bens declarados em cada congregação</p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100">
+                    <span className="text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-900/50">
                       {(statsBi.congregacoes || []).length} Templo(s)
                     </span>
                   </div>
 
                   {(statsBi.congregacoes || []).length === 0 ? (
-                    <div className="py-12 text-center text-slate-400 text-xs font-medium">
-                      <Package className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                    <div className="py-12 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
+                      <Package className="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                       Nenhum templo encontrado com os filtros aplicados.
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
-                        <thead className="bg-slate-50 text-slate-600 font-extrabold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                        <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-extrabold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[10px]">
                           <tr>
                             <th className="p-3">TOTVS</th>
                             <th className="p-3">Igreja / Dirigente</th>
@@ -1200,19 +1200,19 @@ export default function GestaoPatrimonioPage() {
                             <th className="p-3 text-center">Som & Inst.</th>
                             <th className="p-3 text-center">Cozinha & Seg.</th>
                             <th className="p-3 text-center">Adicionais</th>
-                            <th className="p-3 text-center bg-indigo-50/50 text-indigo-900 font-black">Total Geral</th>
+                            <th className="p-3 text-center bg-indigo-50/50 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-300 font-black">Total Geral</th>
                             <th className="p-3 text-center">Detalhes</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-800 dark:text-slate-200">
                           {(statsBi.congregacoes || []).map((cg: any) => {
                             const isExpanded = Boolean(expandedRows[cg.codigo_totvs]);
                             return (
                               <React.Fragment key={cg.codigo_totvs}>
-                                <tr className="hover:bg-slate-50/80 transition-colors">
-                                  <td className="p-3 font-mono font-bold text-slate-900">{cg.codigo_totvs}</td>
+                                <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                  <td className="p-3 font-mono font-bold text-slate-900 dark:text-slate-100">{cg.codigo_totvs}</td>
                                   <td className="p-3">
-                                    <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                                    <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
                                       <span>{cg.desc_igreja}</span>
                                       {cg.porte && (
                                         <span
@@ -1223,26 +1223,26 @@ export default function GestaoPatrimonioPage() {
                                         </span>
                                       )}
                                     </div>
-                                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 flex-wrap">
+                                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400 flex-wrap">
                                       <span>{cg.municipio} - {cg.estado}</span>
                                       {cg.dirigente_nome && (
-                                        <span className="font-bold text-slate-700 flex items-center gap-1">
-                                          <User className="h-3 w-3 text-indigo-500" /> {cg.dirigente_nome}
+                                        <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                          <User className="h-3 w-3 text-indigo-500 dark:text-indigo-400" /> {cg.dirigente_nome}
                                         </span>
                                       )}
                                     </div>
                                   </td>
-                                  <td className="p-3 text-center font-bold text-slate-700">{cg.mobiliario || 0}</td>
-                                  <td className="p-3 text-center font-bold text-slate-700">{cg.eletronicos || 0}</td>
-                                  <td className="p-3 text-center font-bold text-slate-700">{cg.som_instrumentos || 0}</td>
-                                  <td className="p-3 text-center font-bold text-slate-700">{cg.cozinha_seguranca || 0}</td>
-                                  <td className="p-3 text-center font-bold text-slate-700">{cg.adicionais || 0}</td>
-                                  <td className="p-3 text-center font-black text-indigo-700 bg-indigo-50/40">{cg.total_geral || 0}</td>
+                                  <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300">{cg.mobiliario || 0}</td>
+                                  <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300">{cg.eletronicos || 0}</td>
+                                  <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300">{cg.som_instrumentos || 0}</td>
+                                  <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300">{cg.cozinha_seguranca || 0}</td>
+                                  <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300">{cg.adicionais || 0}</td>
+                                  <td className="p-3 text-center font-black text-indigo-700 dark:text-indigo-300 bg-indigo-50/40 dark:bg-indigo-950/30">{cg.total_geral || 0}</td>
                                   <td className="p-3 text-center">
                                     <button
                                       type="button"
                                       onClick={() => toggleRowExpanded(cg.codigo_totvs)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-extrabold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-lg transition-colors cursor-pointer"
                                     >
                                       {isExpanded ? 'Recolher' : 'Expandir'}
                                       <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -1251,35 +1251,35 @@ export default function GestaoPatrimonioPage() {
                                 </tr>
 
                                 {isExpanded && (
-                                  <tr className="bg-indigo-50/30">
+                                  <tr className="bg-indigo-50/30 dark:bg-indigo-950/20">
                                     <td colSpan={9} className="p-4">
-                                      <div className="bg-white border border-indigo-100 rounded-2xl p-4 shadow-2xs space-y-3">
-                                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                                          <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wide flex items-center gap-1.5">
-                                            <Package className="h-4 w-4 text-indigo-600" />
+                                      <div className="bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-4 shadow-2xs space-y-3">
+                                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                          <h4 className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wide flex items-center gap-1.5">
+                                            <Package className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                                             Itens Declarados - {cg.desc_igreja} ({cg.codigo_totvs})
                                           </h4>
-                                          <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                                          <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-600 dark:text-slate-300">
                                             {(cg.patrimonio_itens || cg.itens || []).length} item(ns)
                                           </span>
                                         </div>
 
                                         {(cg.patrimonio_itens || cg.itens || []).length === 0 ? (
-                                          <p className="text-xs text-slate-400 italic">Nenhum item detalhado encontrado nesta submissão.</p>
+                                          <p className="text-xs text-slate-400 dark:text-slate-500 italic">Nenhum item detalhado encontrado nesta submissão.</p>
                                         ) : (
                                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                             {(cg.patrimonio_itens || cg.itens).map((it: any, idx: number) => {
                                               const conservacaoVal = it.conservacao || it.estado_conservacao || it.estado || 'REGULAR';
                                               return (
-                                                <div key={`item-${idx}`} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between text-xs space-y-1">
+                                                <div key={`item-${idx}`} className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col justify-between text-xs space-y-1">
                                                   <div className="flex items-start justify-between gap-1">
-                                                    <span className="font-bold text-slate-800">{it.item_nome}</span>
-                                                    <span className="bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black text-[10px]">
+                                                    <span className="font-bold text-slate-800 dark:text-slate-200">{it.item_nome}</span>
+                                                    <span className="bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 px-1.5 py-0.5 rounded font-black text-[10px]">
                                                       x{it.quantidade}
                                                     </span>
                                                   </div>
                                                   <div className="flex items-center justify-between text-[10px]">
-                                                    <span className="text-slate-500 font-medium">Conservação:</span>
+                                                    <span className="text-slate-500 dark:text-slate-400 font-medium">Conservação:</span>
                                                     <span
                                                       className="font-extrabold px-1.5 py-0.5 rounded text-[9px]"
                                                       style={{
@@ -1291,7 +1291,7 @@ export default function GestaoPatrimonioPage() {
                                                     </span>
                                                   </div>
                                                   {it.observacao && (
-                                                    <p className="text-[10px] text-slate-500 italic bg-white p-1 rounded border border-slate-100">
+                                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 italic bg-white dark:bg-slate-900 p-1 rounded border border-slate-100 dark:border-slate-800">
                                                       "{it.observacao}"
                                                     </p>
                                                   )}
@@ -1313,22 +1313,22 @@ export default function GestaoPatrimonioPage() {
                   )}
 
                   {biMeta.totalPages > 1 && (
-                    <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2 rounded-b-2xl">
-                      <span className="text-xs text-slate-600 font-semibold font-mono">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 rounded-b-2xl">
+                      <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold font-mono">
                         Página {biMeta.page} de {biMeta.totalPages} ({biMeta.total} congregações)
                       </span>
                       <div className="flex items-center gap-2">
                         <button
                           disabled={biMeta.page <= 1}
                           onClick={() => setBiPage(prev => Math.max(1, prev - 1))}
-                          className="px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
                         >
                           <ChevronLeft className="h-4 w-4" /> Anterior
                         </button>
                         <button
                           disabled={biMeta.page >= biMeta.totalPages}
                           onClick={() => setBiPage(prev => prev + 1)}
-                          className="px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
                         >
                           Próxima <ChevronRight className="h-4 w-4" />
                         </button>
