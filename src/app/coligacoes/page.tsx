@@ -730,31 +730,31 @@ export default function ColigacoesPage() {
       {/* Mandatory Transfer / Reorganization Modal */}
       {showDeactivateModal && selectedChurch && (
         <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-zinc-200 space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center space-x-3 text-amber-600">
-              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200">
-                <AlertTriangle className="h-6 w-6 text-amber-600" />
+          <div className="bg-white dark:bg-slate-900 text-zinc-900 dark:text-slate-100 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-zinc-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center space-x-3 text-amber-600 dark:text-amber-400">
+              <div className="p-2.5 bg-amber-50 dark:bg-amber-950/50 rounded-xl border border-amber-200 dark:border-amber-900/50">
+                <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-zinc-900">Reorganização Obrigatória de Coligações</h3>
-                <p className="text-xs text-zinc-500 font-medium">Igreja Superior com Igrejas Filhas Ativas</p>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">Reorganização Obrigatória de Coligações</h3>
+                <p className="text-xs text-zinc-500 dark:text-slate-400 font-medium">Igreja Superior com Igrejas Filhas Ativas</p>
               </div>
             </div>
 
-            <p className="text-xs text-zinc-700 leading-relaxed">
-              A igreja <strong className="text-zinc-950 font-bold">{selectedChurch.desc_igreja} ({selectedChurch.codigo_totvs})</strong> possui{' '}
-              <strong className="text-indigo-600 font-bold">
+            <p className="text-xs text-zinc-700 dark:text-slate-300 leading-relaxed">
+              A igreja <strong className="text-zinc-950 dark:text-white font-bold">{selectedChurch.desc_igreja} ({selectedChurch.codigo_totvs})</strong> possui{' '}
+              <strong className="text-indigo-600 dark:text-indigo-400 font-bold">
                 {getChildrenOf(selectedChurch.codigo_totvs).length} igrejas filhas
               </strong>{' '}
               vinculadas hierarquicamente a ela. Para desativá-la, você deve escolher uma nova igreja mãe de destino para transferir essas filhas instantaneamente.
             </p>
 
             <div className="space-y-1.5 pt-1.5">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">
+              <label className="text-[10px] font-black text-zinc-500 dark:text-slate-400 uppercase tracking-wider block">
                 Escolha a Nova Igreja Superior (Mãe)
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 dark:text-slate-400" />
                 <input
                   type="text"
                   placeholder="Pesquise por código TOTVS ou nome da igreja..."
@@ -765,7 +765,7 @@ export default function ColigacoesPage() {
               </div>
 
               {reorganizationParents.length > 0 && (
-                <div className="border border-zinc-200 rounded-xl bg-white overflow-hidden max-h-40 overflow-y-auto mt-2 divide-y divide-zinc-100 shadow-lg">
+                <div className="border border-zinc-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 overflow-hidden max-h-40 overflow-y-auto mt-2 divide-y divide-zinc-100 dark:divide-slate-700 shadow-lg">
                   {reorganizationParents.map((parent) => {
                     const pPorte = getPorte(parent.desc_igreja);
                     const cleanName = (parent.desc_igreja || '').replace(new RegExp(`\\b${pPorte}\\b`, 'gi'), '').replace(/^\s*-\s*|\s*-\s*$/g, '').replace(/\s+/g, ' ').trim();
@@ -777,14 +777,14 @@ export default function ColigacoesPage() {
                           setReorganizationParentId(parent.codigo_totvs);
                           setReorganizationParentSearch(`${parent.desc_igreja} (${parent.codigo_totvs})`);
                         }}
-                        className="w-full text-left p-2.5 text-xs hover:bg-zinc-50 flex items-center justify-between"
+                        className="w-full text-left p-2.5 text-xs hover:bg-zinc-50 dark:hover:bg-slate-700/50 flex items-center justify-between"
                       >
                         <div className="min-w-0 pr-2 text-left">
-                          <span className="font-bold text-zinc-900 block truncate">
+                          <span className="font-bold text-zinc-900 dark:text-slate-100 block truncate">
                             {pPorte} - {cleanName} - {(parent.municipio || '').toUpperCase()}/{(parent.estado || '').toUpperCase()} (TOTVS: {parent.codigo_totvs})
                           </span>
                         </div>
-                        <span className="text-[9px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-200 uppercase shrink-0">
+                        <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 uppercase shrink-0">
                           {pPorte}
                         </span>
                       </button>
@@ -794,11 +794,11 @@ export default function ColigacoesPage() {
               )}
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t border-zinc-150">
+            <div className="flex justify-end space-x-3 pt-4 border-t border-zinc-150 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowDeactivateModal(false)}
-                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-xs rounded-xl transition-all"
+                className="px-4 py-2 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-300 font-semibold text-xs rounded-xl transition-all"
               >
                 Cancelar
               </button>
@@ -968,7 +968,7 @@ export default function ColigacoesPage() {
       {/* Main content workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Sub-header Tab Segment for internal Coligacoes views */}
-        <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 max-w-sm shrink-0 shadow-2xs">
+        <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl border border-zinc-200 dark:border-slate-700 max-w-sm shrink-0 shadow-2xs">
           <button
             type="button"
             onClick={() => {
@@ -977,11 +977,11 @@ export default function ColigacoesPage() {
             }}
             className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-150 flex items-center justify-center space-x-1.5 ${
               activeTab === 'tree'
-                ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200/50'
-                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+                ? 'bg-white dark:bg-slate-900 text-zinc-950 dark:text-white shadow-xs border border-zinc-200/50 dark:border-slate-700'
+                : 'text-zinc-600 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-slate-700/50'
             }`}
           >
-            <GitBranch className="h-3.5 w-3.5 text-indigo-600" />
+            <GitBranch className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>Árvore Hierárquica</span>
           </button>
           {userRole !== 'viewer' && (
@@ -993,11 +993,11 @@ export default function ColigacoesPage() {
               }}
               className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-150 flex items-center justify-center space-x-1.5 ${
                 activeTab === 'import'
-                  ? 'bg-white text-zinc-950 shadow-xs border border-zinc-200/50'
-                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+                  ? 'bg-white dark:bg-slate-900 text-zinc-950 dark:text-white shadow-xs border border-zinc-200/50 dark:border-slate-700'
+                  : 'text-zinc-600 dark:text-slate-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-slate-700/50'
               }`}
             >
-              <Upload className="h-3.5 w-3.5 text-indigo-600" />
+              <Upload className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
               <span>Importação em Lotes</span>
             </button>
           )}
@@ -1005,24 +1005,24 @@ export default function ColigacoesPage() {
 
         {activeTab === 'import' ? (
           /* UNLIMITED SHEET CLIENT UPLOADER PANEL */
-          <div className="max-w-xl mx-auto w-full bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-6">
-            <div className="text-center space-y-1.5 border-b border-zinc-100 pb-4">
-              <h2 className="text-sm font-black text-zinc-800 uppercase tracking-wide flex items-center justify-center gap-1.5">
-                <Upload className="h-5 w-5 text-indigo-600 animate-bounce" />
+          <div className="max-w-xl mx-auto w-full bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="text-center space-y-1.5 border-b border-zinc-100 dark:border-slate-800 pb-4">
+              <h2 className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wide flex items-center justify-center gap-1.5">
+                <Upload className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-bounce" />
                 Módulo de Importação sem Limites (Em Lotes)
               </h2>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-500 dark:text-slate-400">
                 Os dados são divididos em lotes de 500 registros diretamente no navegador para evitar limites de timeout ou Payload do Vercel.
               </p>
             </div>
 
             {/* Drag & Drop File Selector area */}
-            <div className="border-2 border-dashed border-zinc-200 rounded-2xl p-6 hover:border-indigo-500 transition-all text-center relative flex flex-col items-center justify-center bg-zinc-50/50">
-              <FolderOpen className="h-10 w-10 text-zinc-400 mb-3" />
-              <p className="text-xs text-zinc-700 font-semibold mb-1">
+            <div className="border-2 border-dashed border-zinc-200 dark:border-slate-700 rounded-2xl p-6 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all text-center relative flex flex-col items-center justify-center bg-zinc-50/50 dark:bg-slate-800/50">
+              <FolderOpen className="h-10 w-10 text-zinc-400 dark:text-slate-500 mb-3" />
+              <p className="text-xs text-zinc-700 dark:text-slate-200 font-semibold mb-1">
                 Selecione o arquivo de planilha (.xlsx) de 12.000+ igrejas
               </p>
-              <p className="text-[10px] text-zinc-400 font-medium">
+              <p className="text-[10px] text-zinc-400 dark:text-slate-400 font-medium">
                 Suporta múltiplas abas: Sudeste, Nordeste, Norte, etc.
               </p>
               <input
@@ -1035,12 +1035,12 @@ export default function ColigacoesPage() {
             </div>
 
             {selectedFileName && (
-              <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 flex items-center justify-between">
+              <div className="p-4 bg-zinc-50 dark:bg-slate-800/50 rounded-xl border border-zinc-200 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-zinc-800 block truncate max-w-xs">
+                  <span className="text-xs font-bold text-zinc-800 dark:text-slate-200 block truncate max-w-xs">
                     📄 {selectedFileName}
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-medium font-mono mt-0.5 block">
+                  <span className="text-[10px] text-zinc-500 dark:text-slate-400 font-medium font-mono mt-0.5 block">
                     {parsedChurchesBuffer.length} igrejas processadas no navegador
                   </span>
                 </div>
@@ -1051,7 +1051,7 @@ export default function ColigacoesPage() {
                       setParsedChurchesBuffer([]);
                       setSelectedFileName('');
                     }}
-                    className="p-1 hover:bg-zinc-200 rounded-lg text-rose-600"
+                    className="p-1 hover:bg-zinc-200 dark:hover:bg-slate-700 rounded-lg text-rose-600 dark:text-rose-400"
                     title="Remover arquivo"
                   >
                     <X className="h-4 w-4" />
@@ -1170,12 +1170,12 @@ export default function ColigacoesPage() {
                           }
                           toast.success(`Selecionado: ${match.desc_igreja}`);
                         }}
-                        className="text-left text-xs text-zinc-700 hover:text-indigo-700 hover:underline flex justify-between items-center bg-white p-1.5 rounded border border-zinc-200 shadow-2xs font-medium"
+                        className="text-left text-xs text-zinc-700 dark:text-slate-200 hover:text-indigo-700 dark:hover:text-indigo-400 hover:underline flex justify-between items-center bg-white dark:bg-slate-800 p-1.5 rounded border border-zinc-200 dark:border-slate-700 shadow-2xs font-medium"
                       >
                         <span className="truncate pr-4">
                           <strong>{match.desc_igreja}</strong> ({match.codigo_totvs})
                         </span>
-                        <span className="text-[10px] font-bold text-indigo-600 shrink-0 uppercase font-mono">
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0 uppercase font-mono">
                           {match.estado}
                         </span>
                       </button>
@@ -1287,7 +1287,7 @@ export default function ColigacoesPage() {
                     </div>
 
                     {prospectiveParents.length > 0 && editParentSearch && (
-                      <div className="border border-zinc-200 rounded-xl bg-white overflow-hidden max-h-40 overflow-y-auto shadow-md divide-y divide-zinc-100">
+                      <div className="border border-zinc-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 overflow-hidden max-h-40 overflow-y-auto shadow-md divide-y divide-zinc-100 dark:divide-slate-700">
                         {prospectiveParents.map((parent) => {
                           const pPorte = getPorte(parent.desc_igreja);
                           const cleanName = (parent.desc_igreja || '').replace(new RegExp(`\\b${pPorte}\\b`, 'gi'), '').replace(/^\s*-\s*|\s*-\s*$/g, '').replace(/\s+/g, ' ').trim();
@@ -1299,14 +1299,14 @@ export default function ColigacoesPage() {
                                 setEditParentId(parent.codigo_totvs);
                                 setEditParentSearch(`${parent.desc_igreja} (${parent.codigo_totvs})`);
                               }}
-                              className="w-full text-left p-2 hover:bg-zinc-50 text-xs flex justify-between items-center"
+                              className="w-full text-left p-2 hover:bg-zinc-50 dark:hover:bg-slate-700/50 text-xs flex justify-between items-center"
                             >
                               <div className="min-w-0 pr-2">
-                                <span className="font-bold text-zinc-900 block truncate">
+                                <span className="font-bold text-zinc-900 dark:text-slate-100 block truncate">
                                   {pPorte} - {cleanName} - {(parent.municipio || '').toUpperCase()}/{(parent.estado || '').toUpperCase()} (TOTVS: {parent.codigo_totvs})
                                 </span>
                               </div>
-                              <span className="text-[9px] bg-indigo-50 text-indigo-800 font-bold px-1.5 py-0.5 rounded border border-indigo-200 uppercase shrink-0">
+                              <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 font-bold px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 uppercase shrink-0">
                                 {pPorte}
                               </span>
                             </button>
@@ -1372,10 +1372,10 @@ export default function ColigacoesPage() {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-3">
-                  <GitBranch className="h-12 w-12 text-zinc-300 stroke-[1.5]" />
+                  <GitBranch className="h-12 w-12 text-zinc-300 dark:text-slate-600 stroke-[1.5]" />
                   <div>
-                    <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Painel Lateral de Detalhes</h3>
-                    <p className="text-[10px] text-zinc-500 max-w-xs mt-1 leading-normal font-medium">
+                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Painel Lateral de Detalhes</h3>
+                    <p className="text-[10px] text-zinc-500 dark:text-slate-400 max-w-xs mt-1 leading-normal font-medium">
                       Selecione qualquer igreja da árvore de coligações para gerenciar sua classificação, igreja superior, ou desativá-la com trava de segurança.
                     </p>
                   </div>
