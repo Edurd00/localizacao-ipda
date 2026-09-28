@@ -864,7 +864,7 @@ export default function ValidacaoPage() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-slate-950 flex flex-col font-sans text-zinc-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
       {/* Toast Notification Container */}
       <Toaster position="top-right" richColors closeButton />
 
@@ -1289,19 +1289,22 @@ export default function ValidacaoPage() {
                 <p className="text-xs text-zinc-500 mt-1">Isso pode levar alguns segundos dependendo do banco de dados.</p>
               </div>
             ) : !currentIgreja ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white border border-zinc-200 rounded-2xl shadow-sm text-center px-4">
-                <Sparkles className="h-12 w-12 text-indigo-600 mb-4 animate-pulse" />
-                <h3 className="text-lg font-bold text-zinc-850">Parabéns! Todas as igrejas deste filtro foram validadas.</h3>
-                <p className="text-xs text-zinc-500 max-w-md mt-1">
+              <div className="w-full bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 text-center shadow-xl backdrop-blur-sm transition-colors duration-200">
+                <Sparkles className="w-16 h-16 mx-auto mb-4 text-indigo-500 dark:text-indigo-400 p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-2xl border border-indigo-100 dark:border-indigo-900/40" />
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  Parabéns! Todas as igrejas deste filtro foram validadas.
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
                   Não restam registros pendentes com os critérios selecionados. Altere os filtros superiores para continuar validando ou acesse as outras seções do painel.
                 </p>
                 <button
+                  type="button"
                   onClick={() => {
                     setFilterEstado('ALL');
                     setFilterStatus('ALL');
                     setFilterPorte('ALL');
                   }}
-                  className="mt-6 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
                 >
                   Ver Todas as Igrejas
                 </button>
@@ -1310,7 +1313,7 @@ export default function ValidacaoPage() {
               /* SPLIT SCREEN WORKSPACE */
               <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[600px] items-stretch">
                 {/* LEFT COLUMN: Data Validation Details (5 cols) */}
-                <div className="lg:col-span-5 flex flex-col gap-4 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm justify-between transition-colors duration-200">
+                <div className="lg:col-span-5 flex flex-col gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm justify-between transition-colors duration-200">
                   <div>
                     {/* Header: Navigation & Status Badge */}
                     <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-100 dark:border-slate-800">
@@ -1641,7 +1644,7 @@ export default function ValidacaoPage() {
                 </div>
 
                 {/* RIGHT COLUMN: Leaflet Interactive Map (7 cols) */}
-                <div className="lg:col-span-7 flex flex-col bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm min-h-[450px] lg:min-h-0 transition-colors duration-200">
+                <div className="lg:col-span-7 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm min-h-[450px] lg:min-h-0 transition-colors duration-200">
                   <div className="flex items-center justify-between mb-3 shrink-0">
                     <h3 className="text-xs font-bold text-zinc-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
                       <Layers className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
