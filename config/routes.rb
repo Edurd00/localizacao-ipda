@@ -6,6 +6,7 @@ Rails.application.routes.draw do
       resources :igrejas, only: [] do
         collection do
           get  :validadas
+          get  :organizacao
           post :salvar_localizacao
           post :expandir_link
         end

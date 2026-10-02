@@ -12,6 +12,44 @@ module Api
         render json: { success: true, data: igrejas }
       end
 
+      def organizacao
+        igrejas = Igreja.where.not(status: 'DESATIVADO').order(desc_igreja: :asc)
+
+        nodes = igrejas.map do |ig|
+          {
+            id: ig.id,
+            codigo_totvs: ig.codigo_totvs,
+            desc_igreja: ig.desc_igreja,
+            porte: ig.porte || 'LOCAL',
+            codigo_totvs_pai: ig.codigo_totvs_pai,
+            estado: ig.estado,
+            municipio: ig.municipio,
+            bairro: ig.bairro,
+            status: ig.status
+          }
+        end
+
+        # Group by parent TOTVS code for fast hierarchical tree construction
+        grouped = nodes.group_by { |n| n[:codigo_totvs_pai].to_s.strip.downcase.presence }
+
+        tree = (grouped[nil] || []).map do |root|
+          build_tree_node(root, grouped)
+        end
+
+        render json: { success: true, total: nodes.size, data: tree }
+      end
+
+      def expandir_link
+        link = params[:link].presence || params[:url].presence || params[:link_google_maps].presence
+        coords = GoogleMaps::ExtractCoordinatesService.call(link)
+
+        if coords
+          render json: { success: true, data: coords }
+        else
+          render json: { success: false, error: 'Não foi possível extrair coordenadas do link informado' }, status: :bad_request
+        end
+      end
+
       def salvar_localizacao
         totvs_code = params[:codigo_totvs] || params[:id]
         igreja = Igreja.find_by(codigo_totvs: totvs_code) || Igreja.find_by(id: totvs_code)
@@ -53,15 +91,13 @@ module Api
         end
       end
 
-      def expandir_link
-        link = params[:url] || params[:link_google_maps]
-        coords = GoogleMaps::ExtractCoordinatesService.call(link)
+      private
 
-        if coords
-          render json: { success: true, data: coords }
-        else
-          render json: { success: false, error: 'Não foi possível extrair coordenadas do link informado' }, status: :bad_request
-        end
+      def build_tree_node(node, grouped)
+        key = node[:codigo_totvs].to_s.strip.downcase.presence
+        children = (grouped[key] || []).map { |child| build_tree_node(child, grouped) }
+
+        node.merge(filhas: children, total_filhas: children.size)
       end
     end
   end

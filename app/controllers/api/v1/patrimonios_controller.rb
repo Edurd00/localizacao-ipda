@@ -4,7 +4,7 @@ module Api
   module V1
     class PatrimoniosController < ApplicationController
       def dashboard
-        stats = Patrimonio::DashboardStatsService.call(params)
+        stats = Patrimonio::DashboardStatsService.new(params).call
         render json: { success: true, data: stats }
       rescue StandardError => e
         render json: { success: false, error: e.message }, status: :internal_server_error
