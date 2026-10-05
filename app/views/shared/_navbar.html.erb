@@ -1,0 +1,61 @@
+<header class="sticky top-0 z-[9999] h-16 w-full bg-slate-900/90 border-b border-slate-800 px-4 md:px-6 flex items-center justify-between gap-2 shrink-0 backdrop-blur-md transition-colors duration-200 print:hidden">
+  <!-- Esquerda: Logo oficial + Título curto + Badge / Counter -->
+  <div class="flex items-center gap-3 shrink-0">
+    <img src="/img/logo.png" alt="Localização IPDA" class="h-9 w-auto object-contain shrink-0" />
+    <div class="flex items-center gap-2 whitespace-nowrap">
+      <h1 class="text-sm md:text-base font-extrabold text-white tracking-tight whitespace-nowrap">
+        GEO-VALIG IPDA
+      </h1>
+      <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-indigo-400 border border-slate-700 uppercase tracking-wider shrink-0 whitespace-nowrap">
+        <%= defined?(@total_churches_count) && @total_churches_count.present? ? "#{@total_churches_count} IGREJAS" : "SISTEMA" %>
+      </span>
+    </div>
+  </div>
+
+  <!-- Centro: Busca por TOTVS / Nome + Navigation Links -->
+  <div class="hidden lg:flex items-center gap-3 flex-1 max-w-xl mx-4">
+    <!-- Search Bar -->
+    <form action="/churches" method="get" class="relative flex items-center flex-1">
+      <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input type="text" name="query" value="<%= defined?(params) && params[:query].present? ? params[:query] : "" %>" placeholder="Buscar por TOTVS ou Nome da Igreja..." class="w-full h-9 bg-slate-800/90 border border-slate-700 text-white placeholder:text-slate-500 font-semibold text-xs rounded-xl pl-9 pr-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" />
+    </form>
+
+    <!-- Navigation Menu Buttons -->
+    <nav class="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl text-xs font-semibold shrink-0 border border-slate-700/80">
+      <a href="#" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-200 hover:text-white hover:bg-slate-700 whitespace-nowrap">
+        <span>🗺️</span>
+        <span>Mapa Geral</span>
+      </a>
+
+      <a href="#" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-200 hover:text-white hover:bg-slate-700 whitespace-nowrap">
+        <span>📍</span>
+        <span>Validação & Gestão</span>
+      </a>
+
+      <a href="#" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-200 hover:text-white hover:bg-slate-700 whitespace-nowrap">
+        <span>📊</span>
+        <span>Inteligência & BI</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Direita: Importar Planilha + Perfil do Usuário Logado -->
+  <div class="flex items-center gap-2 shrink-0">
+    <a href="#" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 border bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-500 shadow-sm">
+      <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+      <span class="hidden sm:inline">Importar Planilha</span>
+      <span class="sm:hidden">Importar</span>
+    </a>
+
+    <!-- Badge do Usuário Logado -->
+    <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold text-slate-200">
+      <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+      <span class="hidden md:inline">Olá, <strong class="text-indigo-400"><%= defined?(current_user) && current_user.present? ? current_user.nome : "Gestor de Dados" %></strong></span>
+      <span class="md:hidden text-indigo-400 font-bold">Admin</span>
+    </div>
+  </div>
+</header>
