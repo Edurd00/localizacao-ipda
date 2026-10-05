@@ -1,10 +1,20 @@
 class Church < ApplicationRecord
   self.table_name = 'igrejas'
 
-  # Alias attribute for 'desc_igreja' column to be accessible via 'nome'
-  alias_attribute :nome, :desc_igreja
+  # Safe getter for name supporting both 'nome' and 'desc_igreja' columns
+  def nome
+    if has_attribute?(:nome) && self[:nome].present?
+      self[:nome]
+    elsif has_attribute?(:desc_igreja)
+      self[:desc_igreja]
+    elsif respond_to?(:desc_igreja)
+      desc_igreja
+    else
+      nil
+    end
+  end
 
-  # Getter for validada boolean field based on status column
+  # Getter for validada boolean field based on status column or validada attribute
   def validada
     if has_attribute?(:validada)
       self[:validada]
@@ -30,7 +40,7 @@ class Church < ApplicationRecord
     {
       id: respond_to?(:id) ? id : nil,
       codigo_totvs: respond_to?(:codigo_totvs) ? codigo_totvs : nil,
-      nome: respond_to?(:nome) ? nome : desc_igreja,
+      nome: nome,
       porte: respond_to?(:porte) ? porte : nil,
       endereco: respond_to?(:endereco) ? endereco : nil,
       bairro: respond_to?(:bairro) ? bairro : nil,

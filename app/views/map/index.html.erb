@@ -1,0 +1,43 @@
+<div class="relative w-full h-[calc(100vh-8rem)] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900">
+  <!-- Container do Mapa Leaflet com Stimulus Controller -->
+  <div id="map" data-controller="map" class="w-full h-full z-10"></div>
+
+  <!-- Legenda Oficial de Portes (Overlay no Canto Inferior Esquerdo) -->
+  <div class="absolute bottom-5 left-5 z-[1000] bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-4 shadow-2xl text-xs text-slate-100 max-w-xs">
+    <div class="flex items-center justify-between font-extrabold uppercase text-[11px] text-slate-300 border-b border-slate-800 pb-2 mb-2.5">
+      <span>Classificação por Porte</span>
+      <span class="text-indigo-400">IPDA</span>
+    </div>
+
+    <div class="grid grid-cols-1 gap-2 font-semibold">
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#3B82F6] border-2 border-white shadow-xs shrink-0"></span>
+        <span class="text-slate-200">ESTADUAL</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#EAB308] border-2 border-white shadow-xs shrink-0"></span>
+        <span class="text-slate-200">SETORIAL</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#F97316] border-2 border-white shadow-xs shrink-0"></span>
+        <span class="text-slate-200">CENTRAL</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#22C55E] border-2 border-white shadow-xs shrink-0"></span>
+        <span class="text-slate-200">REGIONAL</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#6B7280] border-2 border-white shadow-xs shrink-0"></span>
+        <span class="text-slate-200">LOCAL</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#EC4899] border-2 border-white shadow-xs shrink-0"></span>
+        <span class="text-slate-200">CASA DE ORAÇÃO</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#06B6D4] border-2 border-white shadow-xs shrink-0"></span>
+        <span class="text-slate-200">ALDEIA INDÍGENA</span>
+      </div>
+    </div>
+  </div>
+</div>
