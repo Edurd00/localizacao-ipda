@@ -1,4 +1,5 @@
 class ValidationController < ApplicationController
+  protect_from_forgery with: :null_session, only: [:extract_coords]
   before_action :set_church, only: [:update]
 
   def show
@@ -32,6 +33,15 @@ class ValidationController < ApplicationController
       format.turbo_stream
       format.html { redirect_to validation_path }
     end
+  end
+
+  def extract_coords
+    input_text = params[:url] || params[:text] || params[:link] || ''
+    result = ExtractCoordinatesService.new(input_text).call
+
+    render json: result
+  rescue StandardError => e
+    render json: { success: false, error: e.message }, status: :internal_server_error
   end
 
   private

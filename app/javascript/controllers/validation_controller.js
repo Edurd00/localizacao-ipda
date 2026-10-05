@@ -73,33 +73,42 @@ export default class extends Controller {
     }
   }
 
-  // Parse Google Maps URLs pasted into the link/message input
-  processLink() {
+  // Parse Google Maps URLs pasted into the link/message input via backend service
+  async processLink() {
     if (!this.hasLinkInputTarget) return
     const input = this.linkInputTarget.value.trim()
     if (!input) return
 
-    let lat = null
-    let lng = null
+    try {
+      const csrfToken = document.querySelector("meta[name='csrf-token']")?.getAttribute("content")
 
-    // Regex patterns for Google Maps coordinates
-    let match = input.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
-    if (!match) match = input.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/)
-    if (!match) match = input.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/)
+      const response = await fetch('/validation/extract_coords', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || ''
+        },
+        body: JSON.stringify({ url: input })
+      })
 
-    if (match) {
-      lat = parseFloat(match[1])
-      lng = parseFloat(match[2])
-    }
+      const data = await response.json()
 
-    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-      this.updateInputs(lat, lng)
-      if (this.marker) {
-        this.marker.setLatLng([lat, lng])
+      if (data.success && data.latitude && data.longitude) {
+        const lat = parseFloat(data.latitude)
+        const lng = parseFloat(data.longitude)
+
+        this.updateInputs(lat, lng)
+
+        if (this.marker) {
+          this.marker.setLatLng([lat, lng])
+        }
+
+        if (this.map) {
+          this.map.flyTo([lat, lng], 17)
+        }
       }
-      if (this.map) {
-        this.map.flyTo([lat, lng], 17)
-      }
+    } catch (error) {
+      console.error("Erro ao extrair coordenadas do link:", error)
     }
   }
 }
