@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+require_relative "../config/boot"
+
+begin
+  require "puma/cli"
+  cli = Puma::CLI.new(ARGV)
+  cli.run
+rescue LoadError
+  exec "bundle", "exec", "puma", *ARGV
+end
